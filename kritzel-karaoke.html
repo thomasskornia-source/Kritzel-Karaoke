@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kritzel-Karaoke</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#f2ece2;
+    --paper:#0a0a0a;
+    --paper-deep:#050505;
+    --pen:#e6392b;
+    --pen-dim:#7a1f18;
+    --muted:#7a756c;
+    --line:#2a2825;
+    --gold:#c9a227;
+    --good:#5fae82;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 60px;
+  }
+  .wrap{width:100%;max-width:620px;}
+  h1{
+    font-family:'Caveat', cursive;
+    font-weight:700;
+    font-size:52px;
+    color:var(--pen);
+    margin:0 0 2px;
+    line-height:0.95;
+  }
+  .sub{color:var(--muted);font-size:14px;margin-bottom:22px;}
+
+  .name-row{
+    display:flex;gap:10px;align-items:center;margin-bottom:20px;
+  }
+  .name-row input{
+    flex:1;background:transparent;border:1px solid var(--line);
+    color:var(--ink);padding:10px 12px;border-radius:6px;
+    font-family:inherit;font-size:15px;
+  }
+  .name-row input:focus{outline:none;border-color:var(--pen-dim);}
+  .name-row input:disabled{opacity:.6;}
+  .start-btn{
+    background:var(--pen);color:#0a0a0a;border:none;
+    padding:10px 16px;border-radius:6px;font-weight:600;
+    font-family:inherit;font-size:14px;cursor:pointer;
+    white-space:nowrap;
+  }
+  .start-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  .fs-btn{
+    position:fixed;top:14px;right:14px;
+    width:38px;height:38px;border-radius:50%;
+    background:rgba(0,0,0,0.55);border:1px solid var(--line);
+    color:var(--ink);font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    z-index:50;
+  }
+  .fs-btn:hover{border-color:var(--muted);}
+  .fs-note{
+    position:fixed;top:58px;right:14px;max-width:220px;
+    background:rgba(0,0,0,0.85);border:1px solid var(--line);
+    color:var(--muted);font-size:12px;padding:8px 10px;
+    border-radius:6px;z-index:50;display:none;text-align:right;
+  }
+  .err-banner{
+    position:fixed;left:12px;right:12px;bottom:12px;
+    background:#3a0f0c;border:1px solid var(--pen);
+    color:#ffd9d4;font-size:12px;padding:10px 12px;
+    border-radius:8px;z-index:100;display:none;
+    white-space:pre-wrap;word-break:break-word;
+  }
+
+  .hud{
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:10px;font-size:13px;color:var(--muted);
+  }
+  .hud b{color:var(--ink);}
+
+  .stage{
+    position:relative;
+    background:var(--paper-deep);
+    border:1px solid var(--line);
+    border-radius:10px;
+    aspect-ratio:4/5;
+    max-height:52vh;
+    margin:0 auto;
+    overflow:hidden;
+  }
+  canvas{width:100%;height:100%;display:block;}
+
+  .progress{
+    height:3px;background:var(--line);border-radius:2px;
+    margin:10px 0 18px;overflow:hidden;
+  }
+  .progress i{
+    display:block;height:100%;width:100%;
+    background:var(--pen);
+    transform-origin:left;
+    transform:scaleX(1);
+  }
+
+  .options{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  }
+  .opt{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:10px 11px;
+    border-radius:7px;
+    font-family:inherit;font-size:12.5px;
+    text-align:left;cursor:pointer;
+    transition:border-color .15s, background .15s, opacity .3s, transform .3s;
+  }
+  .opt:hover{border-color:var(--muted);}
+  .opt.locked{opacity:.45;pointer-events:none;}
+  .opt.eliminated{opacity:0;transform:scale(.92);pointer-events:none;}
+  .opt.correct{border-color:var(--good);background:rgba(95,174,130,0.08);}
+  .opt.wrong{border-color:var(--pen);background:rgba(230,57,43,0.08);}
+
+  .result{
+    margin-top:16px;padding:14px 16px;border:1px solid var(--line);
+    border-radius:8px;font-size:14px;display:none;
+  }
+  .result a{color:var(--pen);text-decoration:none;border-bottom:1px solid var(--pen-dim);}
+  .result .verdict{font-family:'Caveat',cursive;font-size:26px;margin-bottom:4px;display:block;}
+
+  .next-btn{
+    margin-top:14px;width:100%;
+    background:var(--pen);color:#0a0a0a;border:none;
+    padding:13px;border-radius:8px;font-weight:600;
+    font-family:inherit;font-size:15px;cursor:pointer;
+    display:none;
+  }
+
+  .final{display:none;text-align:center;padding:30px 10px;}
+  .final .score{font-family:'Caveat',cursive;font-size:64px;color:var(--pen);line-height:1;}
+  .final p{color:var(--muted);font-size:14px;}
+  .save-btn{
+    background:var(--pen);color:#0a0a0a;border:none;
+    padding:12px 22px;border-radius:8px;font-weight:600;
+    font-family:inherit;cursor:pointer;margin-top:6px;
+  }
+  .restart-btn{
+    background:transparent;color:var(--ink);border:1px solid var(--line);
+    padding:12px 22px;border-radius:8px;font-family:inherit;
+    cursor:pointer;margin-top:10px;margin-left:8px;
+  }
+
+  .board{
+    margin-top:34px;border-top:1px solid var(--line);padding-top:18px;
+  }
+  .board h2{
+    font-family:'Caveat',cursive;font-weight:700;color:var(--gold);
+    font-size:26px;margin:0 0 10px;
+  }
+  .board ol{list-style:none;margin:0;padding:0;counter-reset:rank;}
+  .board li{
+    counter-increment:rank;
+    display:flex;justify-content:space-between;
+    padding:8px 4px;font-size:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .board li::before{
+    content:counter(rank)".";
+    color:var(--muted);width:22px;display:inline-block;
+  }
+  .board li b{margin-left:6px;}
+  .board .score-val{color:var(--gold);}
+  .board .empty{color:var(--muted);font-size:13px;padding:6px 4px;}
+
+  @media (max-width:400px){
+    body{padding:18px 12px 40px;}
+    h1{font-size:42px;}
+    .opt{font-size:11.5px;padding:9px 9px;}
+    .options{gap:7px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Kritzel-Karaoke</h1>
+  <div class="sub">Errate den Song, bevor die Zeit um ist.</div>
+
+  <div class="name-row">
+    <input id="playerName" type="text" placeholder="Dein Spielername" maxlength="24">
+    <button class="start-btn" id="startGameBtn">Los geht's</button>
+  </div>
+
+  <button class="fs-btn" id="fsBtn" title="Vollbild">⛶</button>
+  <div class="fs-note" id="fsNote">Vollbild wird von diesem Browser/Fenster nicht unterstützt.</div>
+  <div class="err-banner" id="errBanner"></div>
+
+  <div class="game-area" id="gameArea" style="display:none;">
+  <div class="hud">
+    <span>Runde <b id="roundNum">1</b>/5</span>
+    <span>Punkte: <b id="scoreVal">0</b></span>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="progress"><i id="progressBar"></i></div>
+
+  <div class="options" id="options"></div>
+
+  <div class="result" id="result">
+    <span class="verdict" id="verdict"></span>
+    <span id="resultText"></span>
+  </div>
+
+  <button class="next-btn" id="nextBtn">Nächste Runde</button>
+  </div>
+
+  <div class="final" id="final">
+    <div class="score" id="finalScore">0</div>
+    <p>Punkte erreicht — trag dich ins Leaderboard ein</p>
+    <button class="save-btn" id="saveBtn">Im Leaderboard speichern</button>
+    <button class="restart-btn" id="restartBtn">Nochmal spielen</button>
+  </div>
+
+  <div class="board">
+    <h2>Top 10</h2>
+    <ol id="boardList"></ol>
+  </div>
+
+</div>
+
+<script>
+window.leaderboardReady = new Promise((resolve) => { window.__resolveLeaderboard = resolve; });
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Leaderboard-Verbindung dauert zu lange / nicht erreichbar (evtl. in dieser Vorschau blockiert — im echten Browser öffnen)')), ms))
+  ]);
+}
+
+window.addEventListener('error', (e) => {
+  const b = document.getElementById('errBanner');
+  if(b){
+    b.style.display = 'block';
+    b.textContent = 'Fehler: ' + e.message + ' (Zeile ' + e.lineno + ')';
+  }
+});
+
+const SONGS = [
+  { title:"Hard to Be a Girl", artist:"Adam Green", url:"https://open.spotify.com/track/2DfuL14apEffNJfujr5ELr" },
+  { title:"Falling out of Love", artist:"The Strokes", url:"https://open.spotify.com/track/7D92yxAcYNd1Sis8uXdkQo" },
+  { title:"Honey Bucket", artist:"Melvins", url:"https://open.spotify.com/track/5oABn2E9jiDrmhDdiNWbKS" },
+  { title:"Milktoast", artist:"Helmet", url:"https://open.spotify.com/track/0EV6881kagOULo42517dMX" },
+  { title:"Jolene - Live", artist:"The White Stripes", url:"https://open.spotify.com/track/1rn3RdftgRiJOsJEpOyn0Q" },
+  { title:"Black Balloon", artist:"Monster Magnet", url:"https://open.spotify.com/track/7ESkDMpwNR4NAoFLiXNw0I" },
+  { title:"Guten Morgen", artist:"Ton Steine Scherben", url:"https://open.spotify.com/track/1RxCJ6SP1qhSZHcE7IYyqO" },
+  { title:"Sexy Boy", artist:"Air", url:"https://open.spotify.com/track/6INLpBxo9F5QMer04VXEnd" },
+  { title:"Wonderwall", artist:"Oasis", url:"https://open.spotify.com/track/1qPbGZqppFwLwcBC1JQ6Vr" },
+  { title:"Lonely Boy", artist:"The Black Keys", url:"https://open.spotify.com/track/5G1sTBGbZT5o4PNRc75RKI" },
+  { title:"Psycho Killer", artist:"Talking Heads", url:"https://open.spotify.com/track/7dSCxR4LqkmxoBrq9MzVSD" },
+  { title:"Are You Gonna Go My Way", artist:"Lenny Kravitz", url:"https://open.spotify.com/track/5mdoV6zsJseH2GO4jMcuMx" },
+  { title:"Space Lord", artist:"Monster Magnet", url:"https://open.spotify.com/track/6GGfYfQlQhHidVOJO1tNgK" },
+  { title:"Billie Jean", artist:"Michael Jackson", url:"https://open.spotify.com/track/7J1uxwnxfQLu4APicE5Rnj" },
+  { title:"Under the Bridge", artist:"Red Hot Chili Peppers", url:"https://open.spotify.com/track/3d9DChrdc6BOeFsbrZ3Is0" },
+  { title:"Immigrant Song", artist:"Led Zeppelin", url:"https://open.spotify.com/track/78lgmZwycJ3nzsdgmPPGNx" },
+  { title:"Praise You", artist:"Fatboy Slim", url:"https://open.spotify.com/track/1FS21kclHQ2vVi3U1ZxETc" },
+  { title:"Forever Young", artist:"Alphaville", url:"https://open.spotify.com/track/4S1VYqwfkLit9mKVY3MXoo" },
+  { title:"Don't Stop Me Now", artist:"Queen", url:"https://open.spotify.com/track/1NHWG8zxSEypSRF3UufrnO" },
+  { title:"Cannonball", artist:"The Breeders", url:"https://open.spotify.com/track/1KdwPeY1WRWQGHCmRJTveb" },
+  { title:"Sternenhimmel", artist:"Hubert Kah", url:"https://open.spotify.com/track/6GFxsM2ptSwD8FYkPCd5hr" },
+  { title:"Major Tom", artist:"Peter Schilling", url:"https://open.spotify.com/track/6lXKNdOsnaLv9LwulZbxNl" },
+  { title:"Jeanny", artist:"Falco", url:"https://open.spotify.com/track/6a0lr0jt8lKDJhsAYA49NS" },
+  { title:"Sleeper In Metropolis", artist:"Anne Clark", url:"https://open.spotify.com/track/6Ub4gtTVRUpV5u7BQubeW7" },
+  { title:"Where Is My Mind?", artist:"Pixies", url:"https://open.spotify.com/track/7wCmS9TTVUcIhRalDYFgPy" },
+  { title:"Sultans Of Swing", artist:"Dire Straits", url:"https://open.spotify.com/track/4CnpXQzAwEohawf60xM3yA" },
+  { title:"Mr. Jones", artist:"Counting Crows", url:"https://open.spotify.com/track/4PWM2FhAqgwwEXevUsPBDd" },
+  { title:"Alive", artist:"Pearl Jam", url:"https://open.spotify.com/track/1L94M3KIu7QluZe63g64rv" },
+  { title:"Little Black Submarines", artist:"The Black Keys", url:"https://open.spotify.com/track/1PXsUXSM3LF2XNSkmIldPb" },
+  { title:"Sheena Is a Punk Rocker", artist:"Ramones", url:"https://open.spotify.com/track/61MZN0yyMWSEwrLPUUGfgJ" },
+  { title:"There Is a Light That Never Goes Out", artist:"The Smiths", url:"https://open.spotify.com/track/0WQiDwKJclirSYG9v5tayI" },
+  { title:"God Is a DJ", artist:"Faithless", url:"https://open.spotify.com/track/5QyjoC4PkppkL5lz5AH2ts" },
+  { title:"I Bet You Look Good On The Dancefloor", artist:"Arctic Monkeys", url:"https://open.spotify.com/track/3DQVgcqaP3iSMbaKsd57l5" },
+  { title:"Love Will Tear Us Apart", artist:"Joy Division", url:"https://open.spotify.com/track/2JO3HwMRPeya8bXbtbyPcf" },
+  { title:"Black Dog", artist:"Led Zeppelin", url:"https://open.spotify.com/track/3qT4bUD1MaWpGrTwcvguhb" },
+  { title:"Even Flow", artist:"Pearl Jam", url:"https://open.spotify.com/track/6QewNVIDKdSl8Y3ycuHIei" },
+  { title:"Kelly Watch the Stars", artist:"Air", url:"https://open.spotify.com/track/5tR13oIwi5J3elcTZPTTIU" },
+  { title:"Helden", artist:"David Bowie", url:"https://open.spotify.com/track/7dCiqEHU97OX7mkRG1Kdjm" },
+  { title:"Mrs. Robinson", artist:"The Lemonheads", url:"https://open.spotify.com/track/5mku3tKrGywhpynkQupeok" },
+  { title:"Touch Me I'm Sick", artist:"Mudhoney", url:"https://open.spotify.com/track/2x5FYXo5rL4Phmn3UPdkK3" },
+  { title:"Blitzkrieg Bop", artist:"Ramones", url:"https://open.spotify.com/track/4KcH1ZRV2W1q7Flq0QqC76" },
+  { title:"Hate To Say I Told You So", artist:"The Hives", url:"https://open.spotify.com/track/20j7B6mL9gnNvG3ic6Vwh5" },
+  { title:"Someday", artist:"The Strokes", url:"https://open.spotify.com/track/56NkIxSZZiMpFP5ZNSxtnT" },
+  { title:"When The Sun Goes Down", artist:"Arctic Monkeys", url:"https://open.spotify.com/track/2zzLRQ78kKfPTx8FJQCdC2" },
+  { title:"Bigmouth Strikes Again", artist:"The Smiths", url:"https://open.spotify.com/track/2OErSh4oVVAUll0vHxdr6p" },
+  { title:"Heaven Knows I'm Miserable Now", artist:"The Smiths", url:"https://open.spotify.com/track/1H5N26VqHR4JhuaRKY2I0u" },
+  { title:"1000 und 1 Nacht", artist:"Klaus Lage", url:"https://open.spotify.com/track/6Vy2Hxn8XErS6y8Qh3n0KC" },
+  { title:"Cello (feat. Clueso)", artist:"Udo Lindenberg", url:"https://open.spotify.com/track/62BukCU8nVt44KQXm0LUff" },
+  { title:"Just Another Victim", artist:"Helmet, House Of Pain", url:"https://open.spotify.com/track/4WlhMYiPUp94kZO5uzVk7i" },
+  { title:"Midlife Crisis", artist:"Faith No More", url:"https://open.spotify.com/track/3Ph7fws05DvPwpn5CQHTBy" },
+  { title:"Killing Me Softly With His Song", artist:"Fugees", url:"https://open.spotify.com/track/0Q0IVlqMV64kNLlwjPj0Hl" },
+  { title:"Easy", artist:"Faith No More", url:"https://open.spotify.com/track/4Y3WqmBWmG23thvU9xEhMv" },
+  { title:"One Way", artist:"Levellers", url:"https://open.spotify.com/track/2KqzoO46gwMLOb5YXSlxqs" },
+  { title:"Sunday Bloody Sunday", artist:"U2", url:"https://open.spotify.com/track/5M2YboDNVdN5pnoQCfQmjE" },
+  { title:"Try (Just a Little Bit Harder)", artist:"Janis Joplin", url:"https://open.spotify.com/track/5Icqjqizh8TnwHdejZQQGQ" },
+  { title:"Temple of Love", artist:"Sisters of Mercy", url:"https://open.spotify.com/track/6ADyVHLIyY1sOLmEANictY" },
+  { title:"I Love You Mary Jane", artist:"Sonic Youth, Cypress Hill", url:"https://open.spotify.com/track/4eObWNJwTvfQe66wIzfHjb" },
+  { title:"The Outdoor Type", artist:"The Lemonheads", url:"https://open.spotify.com/track/2vwD1L4eD0VwJIiykuLGC4" },
+  { title:"Our Darkness", artist:"Anne Clark", url:"https://open.spotify.com/track/5spuWlfsHfNO94R5w3aPrE" },
+  { title:"Ich geh weg", artist:"Ton Steine Scherben", url:"https://open.spotify.com/track/6e5IEPP8EExcj6GRaqYgU2" },
+  { title:"Marliese", artist:"Fischer-Z", url:"https://open.spotify.com/track/3CovsS9wAZUNH7AwSLPTIH" },
+  { title:"The Worker", artist:"Fischer-Z", url:"https://open.spotify.com/track/4sxsZUKO543RzqWPeA5cQY" },
+  { title:"So Long", artist:"Fischer-Z", url:"https://open.spotify.com/track/3XAiXl3dKpG7b0qcrCtBD4" },
+  { title:"Never in My Wildest Dreams", artist:"Dan Auerbach", url:"https://open.spotify.com/track/3MJov5mT64K42o1Rffhblq" },
+  { title:"Say It Ain't So", artist:"Weezer", url:"https://open.spotify.com/track/5yNwnJeSPgDGSdvuCf44g0" },
+  { title:"Insomnia", artist:"Faithless", url:"https://open.spotify.com/track/3XTefle3zvDkjgS1Fiq14A" },
+  { title:"Nowhere Girl", artist:"B-Movie", url:"https://open.spotify.com/track/00bMZiaSVjOYfZwvFfqojD" },
+  { title:"Ich verabscheue Euch", artist:"Tocotronic", url:"https://open.spotify.com/track/4fsGARyouI7DhZuLsGTc6W" },
+  { title:"Die Welt kann mich nicht mehr verstehen", artist:"Tocotronic", url:"https://open.spotify.com/track/5O0e4HJ5L9so864JhTqnxk" },
+  { title:"Was hat dich bloß so ruiniert", artist:"Die Sterne", url:"https://open.spotify.com/track/4yN4b2HrnqV6lUOSBKlcC3" },
+  { title:"Schunder-Song", artist:"Die Ärzte", url:"https://open.spotify.com/track/2OLPgRjanLolNsJLkI3cms" },
+  { title:"Together On The Sand", artist:"NOFX", url:"https://open.spotify.com/track/7wyuKMQjuII5e1mr59iiKV" },
+  { title:"Der Traum ist aus", artist:"Ton Steine Scherben", url:"https://open.spotify.com/track/568gbsCi6Byp9VnQZmE6OV" },
+  { title:"Halt dich an deiner Liebe fest", artist:"Ton Steine Scherben", url:"https://open.spotify.com/track/0UIJh1j0OqO7se1J3JeX1X" },
+];
+
+const ROUND_MS = 30000;
+const FREE_MS = 5000;
+const DRAW_MS = 7000;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const stage = document.getElementById('stage');
+const progressBar = document.getElementById('progressBar');
+const optionsEl = document.getElementById('options');
+const resultEl = document.getElementById('result');
+const verdictEl = document.getElementById('verdict');
+const resultTextEl = document.getElementById('resultText');
+const nextBtn = document.getElementById('nextBtn');
+const roundNumEl = document.getElementById('roundNum');
+const scoreValEl = document.getElementById('scoreVal');
+const finalEl = document.getElementById('final');
+const finalScoreEl = document.getElementById('finalScore');
+const boardList = document.getElementById('boardList');
+const playerNameInput = document.getElementById('playerName');
+
+let order = [];
+let roundIdx = 0;
+let score = 0;
+let rafId = null;
+let strokes = [];
+let startTime = null;
+let locked = false;
+let eliminationOrder = [];
+let eliminatedCount = 0;
+let optionButtons = {};
+let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+function resizeCanvas(){
+  const rect = stage.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize', resizeCanvas);
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function densify(verts, res){
+  res = res || 8;
+  const out = [];
+  for(let i=0;i<verts.length-1;i++){
+    const x1=verts[i][0], y1=verts[i][1], x2=verts[i+1][0], y2=verts[i+1][1];
+    for(let j=0;j<res;j++){
+      const t = j/res;
+      out.push([x1+(x2-x1)*t, y1+(y2-y1)*t]);
+    }
+  }
+  out.push(verts[verts.length-1]);
+  return out;
+}
+
+function circleVerts(cx,cy,r,n){
+  const out = [];
+  for(let i=0;i<=n;i++){
+    const t = (i/n)*Math.PI*2;
+    out.push([cx+r*Math.cos(t), cy+r*Math.sin(t)]);
+  }
+  return out;
+}
+
+function arcVerts(cx,cy,r,a0,a1,n){
+  const out = [];
+  for(let i=0;i<=n;i++){
+    const t = a0+(a1-a0)*(i/n);
+    out.push([cx+r*Math.cos(t), cy+r*Math.sin(t)]);
+  }
+  return out;
+}
+
+function cloudVerts(cx,cy,r,n){
+  n = n || 16;
+  const out = [];
+  for(let i=0;i<=n;i++){
+    const t = (i/n)*Math.PI*2;
+    const bump = 1 + 0.25*Math.sin(t*3);
+    out.push([cx+r*bump*Math.cos(t), cy+r*0.6*bump*Math.sin(t)]);
+  }
+  return out;
+}
+
+// A little Bob-Ross backdrop painted behind every icon: sky, rolling
+// hill, a happy sun and a couple of happy little clouds.
+function buildBackground(){
+  return [
+    { v:[[0.0,0.0],[1.0,0.0],[1.0,0.58],[0.0,0.58],[0.0,0.0]], c:'#cfe0ea' },
+    { v:[[0.0,1.0],[0.0,0.68],[0.25,0.58],[0.5,0.66],[0.75,0.56],[1.0,0.66],[1.0,1.0],[0.0,1.0]], c:'#7fae6a' },
+    { v:circleVerts(0.14,0.16,0.07,14), c:'#e8c04a' },
+    { v:cloudVerts(0.78,0.14,0.09,16), c:'#f5f1e6' },
+    { v:cloudVerts(0.55,0.10,0.06,16), c:'#f5f1e6' }
+  ];
+}
+
+// Each icon = a small set of painterly "brush" strokes (vertex lists,
+// normalized 0–1) with their own color, sketching something tied to the title.
+const ICON_VERTS = {
+  "Hard to Be a Girl": [ // a dress
+    { v:[[0.44,0.16],[0.40,0.28]], c:'#d98aa8' },
+    { v:[[0.56,0.16],[0.60,0.28]], c:'#d98aa8' },
+    { v:[[0.40,0.28],[0.30,0.45],[0.26,0.78],[0.74,0.78],[0.70,0.45],[0.60,0.28]], c:'#c94f7c' },
+    { v:[[0.36,0.55],[0.40,0.72]], c:'#e8b6cc' },
+    { v:[[0.64,0.55],[0.60,0.72]], c:'#e8b6cc' }
+  ],
+  "Falling out of Love": [ // a cracked, falling heart
+    { v:[[0.50,0.80],[0.32,0.62],[0.22,0.46],[0.24,0.30],[0.34,0.22],[0.44,0.26],[0.50,0.36],[0.56,0.26],[0.66,0.22],[0.76,0.30],[0.78,0.46],[0.68,0.62],[0.50,0.80]], c:'#c9403a' },
+    { v:[[0.50,0.30],[0.44,0.45],[0.54,0.55],[0.47,0.72]], c:'#2b2320' },
+    { v:[[0.36,0.30],[0.40,0.24]], c:'#e8b6cc' }
+  ],
+  "Honey Bucket": [ // a bucket with honey
+    { v:[[0.32,0.38],[0.30,0.76],[0.70,0.76],[0.68,0.38],[0.32,0.38]], c:'#8a5a2b' },
+    { v:[[0.34,0.38],[0.30,0.20],[0.70,0.20],[0.66,0.38]], c:'#6b4226' },
+    { v:[[0.78,0.50],[0.83,0.58],[0.81,0.67],[0.76,0.67],[0.73,0.58],[0.78,0.50]], c:'#d99a2b' },
+    { v:[[0.36,0.42],[0.64,0.42]], c:'#d99a2b' }
+  ],
+  "Milktoast": [ // a slice of toast
+    { v:[[0.28,0.76],[0.28,0.46],[0.32,0.30],[0.40,0.22],[0.50,0.20],[0.60,0.22],[0.68,0.30],[0.72,0.46],[0.72,0.76],[0.28,0.76]], c:'#c9903f' },
+    { v:[[0.36,0.40],[0.42,0.32]], c:'#8a5a2b' },
+    { v:[[0.58,0.32],[0.64,0.40]], c:'#8a5a2b' }
+  ],
+  "Jolene - Live": [ // a microphone
+    { v:circleVerts(0.5,0.34,0.11,16), c:'#7a7a82' },
+    { v:[[0.5,0.45],[0.5,0.66]], c:'#3a3a40' },
+    { v:[[0.36,0.66],[0.5,0.74],[0.64,0.66]], c:'#3a3a40' }
+  ],
+  "Black Balloon": [ // a balloon on a string
+    { v:circleVerts(0.5,0.38,0.16,16), c:'#2b2320' },
+    { v:[[0.46,0.53],[0.5,0.58],[0.54,0.53]], c:'#2b2320' },
+    { v:[[0.5,0.58],[0.48,0.65],[0.52,0.72],[0.48,0.79],[0.5,0.85]], c:'#7a756c' },
+    { v:[[0.42,0.32],[0.46,0.28]], c:'#8a8a8a' }
+  ],
+  "Guten Morgen": [ // sunrise over a horizon
+    { v:[[0.15,0.65],[0.85,0.65]], c:'#3d7a4a' },
+    { v:arcVerts(0.5,0.65,0.18,Math.PI,Math.PI*2,14), c:'#d9a02b' },
+    { v:[[0.5,0.40],[0.5,0.30]], c:'#e8b83f' },
+    { v:[[0.64,0.44],[0.72,0.35]], c:'#e8b83f' },
+    { v:[[0.36,0.44],[0.28,0.35]], c:'#e8b83f' },
+    { v:[[0.20,0.72],[0.80,0.72]], c:'#2c4f36' }
+  ],
+  "Sexy Boy": [ // sunglasses
+    { v:circleVerts(0.36,0.45,0.09,12), c:'#1e1e22' },
+    { v:circleVerts(0.64,0.45,0.09,12), c:'#1e1e22' },
+    { v:[[0.45,0.45],[0.55,0.45]], c:'#1e1e22' },
+    { v:[[0.27,0.45],[0.18,0.40]], c:'#1e1e22' },
+    { v:[[0.73,0.45],[0.82,0.40]], c:'#1e1e22' },
+    { v:[[0.33,0.42],[0.37,0.40]], c:'#bcd4e8' }
+  ],
+  "Wonderwall": [ // a wall with a window
+    { v:[[0.25,0.30],[0.75,0.30],[0.75,0.80],[0.25,0.80],[0.25,0.30]], c:'#a5603a' },
+    { v:[[0.25,0.47],[0.75,0.47]], c:'#7a4326' },
+    { v:[[0.25,0.63],[0.75,0.63]], c:'#7a4326' },
+    { v:circleVerts(0.5,0.55,0.12,12), c:'#7fb3d9' }
+  ],
+  "Lonely Boy": [ // a lone stick figure
+    { v:circleVerts(0.5,0.28,0.08,12), c:'#d9b48a' },
+    { v:[[0.5,0.36],[0.5,0.58]], c:'#3a5a7a' },
+    { v:[[0.38,0.45],[0.5,0.42],[0.62,0.45]], c:'#3a5a7a' },
+    { v:[[0.5,0.58],[0.42,0.75]], c:'#2b3a4a' },
+    { v:[[0.5,0.58],[0.58,0.75]], c:'#2b3a4a' }
+  ],
+  "Psycho Killer": [ // a knife
+    { v:[[0.30,0.30],[0.65,0.45],[0.30,0.50],[0.30,0.30]], c:'#b8bcc2' },
+    { v:[[0.65,0.45],[0.80,0.55]], c:'#5a3a26' },
+    { v:[[0.62,0.40],[0.68,0.50]], c:'#8a8a8a' }
+  ],
+  "Are You Gonna Go My Way": [ // a fork in the road
+    { v:[[0.5,0.80],[0.5,0.55]], c:'#7a5a3a' },
+    { v:[[0.5,0.55],[0.30,0.30]], c:'#7a5a3a' },
+    { v:[[0.5,0.55],[0.70,0.30]], c:'#3d7a4a' },
+    { v:[[0.63,0.33],[0.70,0.30],[0.68,0.38]], c:'#3d7a4a' }
+  ],
+  "Space Lord": [ // a rocket
+    { v:[[0.5,0.22],[0.42,0.45],[0.42,0.65],[0.58,0.65],[0.58,0.45],[0.5,0.22]], c:'#c9403a' },
+    { v:[[0.42,0.60],[0.32,0.72],[0.42,0.68]], c:'#3a5a7a' },
+    { v:[[0.58,0.60],[0.68,0.72],[0.58,0.68]], c:'#3a5a7a' },
+    { v:[[0.46,0.68],[0.5,0.80],[0.54,0.68]], c:'#e8a02b' },
+    { v:[[0.30,0.28],[0.35,0.30]], c:'#e8d840' },
+    { v:[[0.68,0.32],[0.72,0.34]], c:'#e8d840' }
+  ],
+  "Billie Jean": [ // the sequined glove
+    { v:[[0.40,0.30],[0.38,0.45],[0.40,0.60],[0.60,0.60],[0.62,0.45],[0.60,0.30],[0.56,0.24],[0.52,0.30],[0.50,0.20],[0.46,0.30],[0.44,0.24],[0.40,0.30]], c:'#e8e4d8' },
+    { v:[[0.68,0.26],[0.73,0.22]], c:'#e8d840' },
+    { v:[[0.72,0.32],[0.77,0.30]], c:'#e8d840' }
+  ],
+  "Under the Bridge": [ // a bridge over water
+    { v:arcVerts(0.5,0.62,0.28,Math.PI,Math.PI*2,14), c:'#8a6a4a' },
+    { v:[[0.22,0.62],[0.22,0.80]], c:'#5a4530' },
+    { v:[[0.78,0.62],[0.78,0.80]], c:'#5a4530' },
+    { v:[[0.15,0.82],[0.85,0.82]], c:'#3a6a8a' }
+  ],
+  "Immigrant Song": [ // a viking helmet
+    { v:arcVerts(0.5,0.44,0.18,Math.PI,Math.PI*2,12), c:'#8a8a92' },
+    { v:[[0.32,0.44],[0.68,0.44]], c:'#6a6a72' },
+    { v:[[0.32,0.44],[0.20,0.28],[0.27,0.31]], c:'#d9c07a' },
+    { v:[[0.68,0.44],[0.80,0.28],[0.73,0.31]], c:'#d9c07a' }
+  ],
+  "Praise You": [ // two raised hands
+    { v:[[0.38,0.80],[0.36,0.50],[0.30,0.26]], c:'#c9903f' },
+    { v:[[0.26,0.20],[0.30,0.26]], c:'#c9903f' },
+    { v:[[0.34,0.20],[0.30,0.26]], c:'#c9903f' },
+    { v:[[0.62,0.80],[0.64,0.50],[0.70,0.26]], c:'#c9403a' },
+    { v:[[0.74,0.20],[0.70,0.26]], c:'#c9403a' },
+    { v:[[0.66,0.20],[0.70,0.26]], c:'#c9403a' }
+  ],
+  "Forever Young": [ // an hourglass
+    { v:[[0.35,0.25],[0.65,0.25],[0.5,0.5],[0.35,0.25]], c:'#7fb3d9' },
+    { v:[[0.35,0.75],[0.65,0.75],[0.5,0.5],[0.35,0.75]], c:'#d9a02b' },
+    { v:[[0.30,0.22],[0.70,0.22]], c:'#5a4530' },
+    { v:[[0.30,0.78],[0.70,0.78]], c:'#5a4530' }
+  ],
+  "Don't Stop Me Now": [ // a lightning bolt
+    { v:[[0.56,0.18],[0.36,0.52],[0.48,0.52],[0.40,0.82],[0.66,0.44],[0.50,0.44],[0.56,0.18]], c:'#e8b83f' }
+  ],
+  "Cannonball": [ // a cannon firing
+    { v:[[0.24,0.66],[0.55,0.50]], c:'#5a4530' },
+    { v:circleVerts(0.26,0.70,0.10,10), c:'#3a3a40' },
+    { v:circleVerts(0.72,0.35,0.07,10), c:'#2b2320' },
+    { v:[[0.58,0.46],[0.64,0.42]], c:'#c9403a' }
+  ],
+  "Sternenhimmel": [ // a starry night sky
+    { v:[[0.15,0.75],[0.85,0.75]], c:'#3a6a8a' },
+    { v:[[0.30,0.24],[0.30,0.34]], c:'#e8d840' },
+    { v:[[0.25,0.29],[0.35,0.29]], c:'#e8d840' },
+    { v:[[0.55,0.16],[0.55,0.24]], c:'#e8d840' },
+    { v:[[0.51,0.20],[0.59,0.20]], c:'#e8d840' },
+    { v:[[0.72,0.31],[0.72,0.39]], c:'#e8d840' },
+    { v:[[0.68,0.35],[0.76,0.35]], c:'#e8d840' }
+  ],
+  "Major Tom": [ // an astronaut helmet
+    { v:circleVerts(0.5,0.42,0.16,14), c:'#bcd4e8' },
+    { v:[[0.42,0.36],[0.46,0.40]], c:'#ffffff' },
+    { v:[[0.5,0.26],[0.5,0.17]], c:'#8a8a92' },
+    { v:circleVerts(0.5,0.15,0.02,8), c:'#c9403a' },
+    { v:[[0.36,0.56],[0.64,0.56]], c:'#5a5a62' }
+  ],
+  "Jeanny": [ // a rose
+    { v:[[0.5,0.85],[0.5,0.52]], c:'#3d7a4a' },
+    { v:[[0.5,0.68],[0.60,0.63],[0.5,0.60]], c:'#3d7a4a' },
+    { v:circleVerts(0.5,0.42,0.12,12), c:'#c9403a' }
+  ],
+  "Sleeper In Metropolis": [ // a city skyline under a crescent moon
+    { v:[[0.20,0.75],[0.20,0.45],[0.32,0.45],[0.32,0.75]], c:'#5a5a62' },
+    { v:[[0.35,0.75],[0.35,0.35],[0.47,0.35],[0.47,0.75]], c:'#7a7a82' },
+    { v:[[0.50,0.75],[0.50,0.55],[0.62,0.55],[0.62,0.75]], c:'#5a5a62' },
+    { v:arcVerts(0.75,0.28,0.10,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
+    { v:[[0.15,0.75],[0.85,0.75]], c:'#3a3a40' }
+  ],
+  "Where Is My Mind?": [ // a spiral inside a head
+    { v:circleVerts(0.5,0.45,0.22,16), c:'#c9903f' },
+    { v:[[0.5,0.30],[0.62,0.35],[0.60,0.48],[0.46,0.50],[0.44,0.40],[0.52,0.36],[0.56,0.42],[0.50,0.45]], c:'#3a6a8a' },
+    { v:[[0.42,0.64],[0.58,0.64]], c:'#c9903f' }
+  ],
+  "Sultans Of Swing": [ // an electric guitar
+    { v:circleVerts(0.42,0.62,0.16,14), c:'#a5603a' },
+    { v:[[0.50,0.50],[0.72,0.20]], c:'#3a3a40' },
+    { v:[[0.70,0.22],[0.76,0.18]], c:'#3a3a40' },
+    { v:[[0.44,0.50],[0.44,0.76]], c:'#e8e4d8' }
+  ],
+  "Mr. Jones": [ // a crow
+    { v:[[0.35,0.55],[0.5,0.40],[0.68,0.50],[0.60,0.60],[0.5,0.58],[0.42,0.65],[0.35,0.55]], c:'#2b2320' },
+    { v:[[0.45,0.50],[0.55,0.35]], c:'#3a3a40' },
+    { v:[[0.66,0.48],[0.75,0.45]], c:'#e8b83f' }
+  ],
+  "Alive": [ // a heartbeat line
+    { v:[[0.15,0.55],[0.30,0.55],[0.36,0.30],[0.42,0.75],[0.48,0.55],[0.85,0.55]], c:'#c9403a' }
+  ],
+  "Little Black Submarines": [ // a submarine
+    { v:[[0.20,0.55],[0.30,0.45],[0.65,0.45],[0.75,0.55],[0.65,0.62],[0.30,0.62],[0.20,0.55]], c:'#2b2320' },
+    { v:[[0.45,0.45],[0.45,0.28],[0.52,0.28]], c:'#3a3a40' },
+    { v:[[0.75,0.55],[0.82,0.50]], c:'#5a5a62' },
+    { v:[[0.75,0.55],[0.82,0.60]], c:'#5a5a62' }
+  ],
+  "Sheena Is a Punk Rocker": [ // a mohawk head
+    { v:circleVerts(0.5,0.52,0.16,14), c:'#d9b48a' },
+    { v:[[0.42,0.38],[0.44,0.20]], c:'#c9403a' },
+    { v:[[0.5,0.36],[0.5,0.16]], c:'#c9403a' },
+    { v:[[0.58,0.38],[0.56,0.20]], c:'#c9403a' },
+    { v:[[0.42,0.66],[0.58,0.66]], c:'#d9b48a' }
+  ],
+  "There Is a Light That Never Goes Out": [ // a glowing lightbulb
+    { v:circleVerts(0.5,0.42,0.15,14), c:'#e8d840' },
+    { v:[[0.42,0.56],[0.58,0.56],[0.56,0.66],[0.44,0.66],[0.42,0.56]], c:'#8a8a92' },
+    { v:[[0.5,0.22],[0.5,0.14]], c:'#e8b83f' },
+    { v:[[0.68,0.30],[0.76,0.24]], c:'#e8b83f' },
+    { v:[[0.32,0.30],[0.24,0.24]], c:'#e8b83f' }
+  ],
+  "God Is a DJ": [ // a turntable
+    { v:circleVerts(0.5,0.5,0.22,16), c:'#2b2320' },
+    { v:circleVerts(0.5,0.5,0.06,10), c:'#c9403a' },
+    { v:[[0.72,0.30],[0.60,0.42]], c:'#8a8a92' }
+  ],
+  "I Bet You Look Good On The Dancefloor": [ // a disco ball
+    { v:circleVerts(0.5,0.45,0.16,16), c:'#bcd4e8' },
+    { v:[[0.34,0.45],[0.66,0.45]], c:'#7fb3d9' },
+    { v:[[0.5,0.29],[0.5,0.61]], c:'#7fb3d9' },
+    { v:[[0.5,0.29],[0.5,0.16]], c:'#3a3a40' },
+    { v:[[0.68,0.30],[0.72,0.26]], c:'#ffffff' },
+    { v:[[0.30,0.32],[0.26,0.28]], c:'#ffffff' }
+  ],
+  "Love Will Tear Us Apart": [ // a heart torn in two
+    { v:[[0.5,0.75],[0.36,0.58],[0.28,0.42],[0.32,0.28],[0.42,0.24],[0.48,0.32]], c:'#c9403a' },
+    { v:[[0.5,0.75],[0.64,0.58],[0.72,0.42],[0.68,0.28],[0.58,0.24],[0.52,0.32]], c:'#c9403a' },
+    { v:[[0.48,0.32],[0.44,0.40]], c:'#2b2320' },
+    { v:[[0.52,0.32],[0.56,0.40]], c:'#2b2320' }
+  ],
+  "Black Dog": [ // a dog
+    { v:[[0.25,0.60],[0.30,0.45],[0.45,0.40],[0.55,0.42],[0.65,0.38],[0.72,0.45],[0.68,0.55],[0.72,0.62],[0.60,0.62],[0.58,0.55],[0.40,0.55],[0.38,0.62],[0.28,0.62],[0.25,0.60]], c:'#2b2320' },
+    { v:[[0.62,0.38],[0.66,0.30]], c:'#2b2320' },
+    { v:[[0.25,0.55],[0.16,0.48]], c:'#2b2320' }
+  ],
+  "Even Flow": [ // flowing water waves
+    { v:[[0.15,0.45],[0.25,0.32],[0.35,0.45],[0.45,0.32],[0.55,0.45],[0.65,0.32],[0.75,0.45],[0.85,0.32]], c:'#3a6a8a' },
+    { v:[[0.15,0.60],[0.25,0.50],[0.35,0.60],[0.45,0.50],[0.55,0.60],[0.65,0.50],[0.75,0.60],[0.85,0.50]], c:'#7fb3d9' }
+  ],
+  "Kelly Watch the Stars": [ // a telescope pointed at stars
+    { v:[[0.30,0.72],[0.60,0.40]], c:'#5a5a62' },
+    { v:[[0.30,0.72],[0.24,0.82]], c:'#3a3a40' },
+    { v:[[0.30,0.72],[0.36,0.82]], c:'#3a3a40' },
+    { v:[[0.68,0.28],[0.68,0.36]], c:'#e8d840' },
+    { v:[[0.64,0.32],[0.72,0.32]], c:'#e8d840' },
+    { v:[[0.80,0.44],[0.80,0.50]], c:'#e8d840' },
+    { v:[[0.77,0.47],[0.83,0.47]], c:'#e8d840' }
+  ],
+  "Helden": [ // a hero's star
+    { v:[[0.5,0.20],[0.58,0.40],[0.78,0.40],[0.62,0.53],[0.68,0.74],[0.5,0.62],[0.32,0.74],[0.38,0.53],[0.22,0.40],[0.42,0.40],[0.5,0.20]], c:'#e8b83f' }
+  ],
+  "Mrs. Robinson": [ // a martini glass
+    { v:[[0.28,0.30],[0.72,0.30],[0.5,0.55],[0.5,0.75]], c:'#bcd4e8' },
+    { v:[[0.36,0.75],[0.64,0.75]], c:'#bcd4e8' },
+    { v:circleVerts(0.58,0.35,0.035,8), c:'#3d7a4a' }
+  ],
+  "Touch Me I'm Sick": [ // a thermometer
+    { v:[[0.5,0.24],[0.5,0.64]], c:'#c9403a' },
+    { v:circleVerts(0.5,0.70,0.08,10), c:'#c9403a' },
+    { v:[[0.44,0.32],[0.5,0.32]], c:'#5a5a62' },
+    { v:[[0.44,0.42],[0.5,0.42]], c:'#5a5a62' },
+    { v:[[0.44,0.52],[0.5,0.52]], c:'#5a5a62' }
+  ],
+  "Blitzkrieg Bop": [ // a combat boot
+    { v:[[0.30,0.35],[0.30,0.60],[0.25,0.65],[0.25,0.75],[0.65,0.75],[0.65,0.65],[0.45,0.65],[0.45,0.35],[0.30,0.35]], c:'#2b2320' },
+    { v:[[0.25,0.78],[0.65,0.78]], c:'#5a5a62' }
+  ],
+  "Hate To Say I Told You So": [ // a pointing finger
+    { v:[[0.28,0.72],[0.52,0.56]], c:'#d9b48a' },
+    { v:[[0.52,0.56],[0.76,0.38]], c:'#d9b48a' },
+    { v:[[0.58,0.53],[0.62,0.48]], c:'#c9903f' },
+    { v:[[0.64,0.48],[0.68,0.43]], c:'#c9903f' }
+  ],
+  "Someday": [ // a calendar with a star
+    { v:[[0.28,0.30],[0.72,0.30],[0.72,0.74],[0.28,0.74],[0.28,0.30]], c:'#e8e4d8' },
+    { v:[[0.28,0.40],[0.72,0.40]], c:'#c9403a' },
+    { v:[[0.40,0.22],[0.40,0.32]], c:'#5a5a62' },
+    { v:[[0.60,0.22],[0.60,0.32]], c:'#5a5a62' },
+    { v:[[0.5,0.50],[0.5,0.64]], c:'#e8b83f' },
+    { v:[[0.43,0.57],[0.57,0.57]], c:'#e8b83f' }
+  ],
+  "When The Sun Goes Down": [ // sunset over a horizon
+    { v:[[0.2,0.60],[0.8,0.60]], c:'#2c4f36' },
+    { v:arcVerts(0.5,0.60,0.16,Math.PI,Math.PI*2,12), c:'#c9403a' },
+    { v:[[0.5,0.40],[0.5,0.32]], c:'#e8843f' },
+    { v:[[0.35,0.45],[0.28,0.52]], c:'#e8843f' },
+    { v:[[0.65,0.45],[0.72,0.52]], c:'#e8843f' }
+  ],
+  "Bigmouth Strikes Again": [ // a shouting face
+    { v:circleVerts(0.45,0.45,0.20,14), c:'#d9b48a' },
+    { v:circleVerts(0.45,0.56,0.09,10), c:'#7a1f18' },
+    { v:[[0.72,0.36],[0.83,0.30]], c:'#3a3a40' },
+    { v:[[0.72,0.48],[0.83,0.50]], c:'#3a3a40' }
+  ],
+  "Heaven Knows I'm Miserable Now": [ // a rain cloud over a sad figure
+    { v:cloudVerts(0.5,0.28,0.14,16), c:'#7a7a82' },
+    { v:[[0.40,0.42],[0.38,0.52]], c:'#3a6a8a' },
+    { v:[[0.5,0.42],[0.48,0.52]], c:'#3a6a8a' },
+    { v:[[0.60,0.42],[0.58,0.52]], c:'#3a6a8a' },
+    { v:circleVerts(0.5,0.62,0.06,10), c:'#d9b48a' },
+    { v:[[0.5,0.68],[0.5,0.84]], c:'#3a3a40' }
+  ],
+  "1000 und 1 Nacht": [ // a mosque dome under a crescent moon
+    { v:arcVerts(0.5,0.56,0.18,Math.PI,Math.PI*2,12), c:'#3a7a6a' },
+    { v:[[0.32,0.56],[0.32,0.76],[0.68,0.76],[0.68,0.56]], c:'#2b5a4a' },
+    { v:[[0.5,0.38],[0.5,0.28]], c:'#c9903f' },
+    { v:arcVerts(0.74,0.24,0.06,Math.PI*0.9,Math.PI*2.1,10), c:'#e8d840' }
+  ],
+  "Cello (feat. Clueso)": [ // a cello
+    { v:[[0.42,0.30],[0.36,0.45],[0.38,0.60],[0.34,0.75],[0.66,0.75],[0.62,0.60],[0.64,0.45],[0.58,0.30],[0.42,0.30]], c:'#8a5a2b' },
+    { v:[[0.5,0.30],[0.5,0.15]], c:'#5a3a1e' },
+    { v:[[0.46,0.32],[0.46,0.70]], c:'#e8e4d8' }
+  ],
+  "Just Another Victim": [ // a boxing glove
+    { v:[[0.35,0.45],[0.32,0.60],[0.38,0.72],[0.55,0.75],[0.65,0.68],[0.68,0.55],[0.62,0.42],[0.50,0.38],[0.35,0.45]], c:'#c9403a' },
+    { v:[[0.35,0.45],[0.26,0.42]], c:'#c9403a' },
+    { v:[[0.42,0.72],[0.60,0.72]], c:'#7a1f18' }
+  ],
+  "Midlife Crisis": [ // a sports car
+    { v:[[0.20,0.60],[0.28,0.50],[0.45,0.46],[0.55,0.46],[0.72,0.50],[0.80,0.60],[0.20,0.60]], c:'#c9403a' },
+    { v:circleVerts(0.32,0.62,0.06,10), c:'#2b2320' },
+    { v:circleVerts(0.68,0.62,0.06,10), c:'#2b2320' }
+  ],
+  "Killing Me Softly With His Song": [ // a guitar and a musical note
+    { v:circleVerts(0.40,0.60,0.14,12), c:'#a5603a' },
+    { v:[[0.48,0.50],[0.68,0.24]], c:'#3a3a40' },
+    { v:circleVerts(0.72,0.28,0.04,8), c:'#e8b83f' },
+    { v:[[0.76,0.28],[0.76,0.16]], c:'#e8b83f' }
+  ],
+  "Easy": [ // an armchair
+    { v:[[0.28,0.55],[0.28,0.72],[0.72,0.72],[0.72,0.55]], c:'#a5603a' },
+    { v:[[0.28,0.55],[0.28,0.35],[0.72,0.35],[0.72,0.55]], c:'#c9903f' },
+    { v:[[0.20,0.45],[0.20,0.68],[0.28,0.68],[0.28,0.45],[0.20,0.45]], c:'#8a5a2b' },
+    { v:[[0.72,0.45],[0.72,0.68],[0.80,0.68],[0.80,0.45],[0.72,0.45]], c:'#8a5a2b' }
+  ],
+  "One Way": [ // an arrow sign
+    { v:[[0.25,0.45],[0.65,0.45],[0.75,0.55],[0.65,0.65],[0.25,0.65],[0.25,0.45]], c:'#3d7a4a' },
+    { v:[[0.45,0.65],[0.45,0.85]], c:'#5a5a62' }
+  ],
+  "Sunday Bloody Sunday": [ // a calendar with a dove
+    { v:[[0.30,0.30],[0.70,0.30],[0.70,0.72],[0.30,0.72],[0.30,0.30]], c:'#e8e4d8' },
+    { v:[[0.30,0.40],[0.70,0.40]], c:'#3a3a40' },
+    { v:[[0.42,0.56],[0.55,0.51],[0.62,0.56],[0.55,0.59],[0.42,0.56]], c:'#7fb3d9' },
+    { v:[[0.48,0.53],[0.55,0.46]], c:'#7fb3d9' }
+  ],
+  "Try (Just a Little Bit Harder)": [ // a clenched fist
+    { v:[[0.35,0.55],[0.33,0.42],[0.40,0.35],[0.50,0.35],[0.55,0.30],[0.62,0.32],[0.65,0.40],[0.62,0.55],[0.55,0.62],[0.40,0.62],[0.35,0.55]], c:'#d9b48a' },
+    { v:[[0.45,0.62],[0.45,0.80]], c:'#c9903f' }
+  ],
+  "Temple of Love": [ // temple columns
+    { v:[[0.25,0.35],[0.5,0.20],[0.75,0.35]], c:'#8a8a92' },
+    { v:[[0.25,0.35],[0.75,0.35]], c:'#8a8a92' },
+    { v:[[0.32,0.35],[0.32,0.70]], c:'#a5a5ac' },
+    { v:[[0.46,0.35],[0.46,0.70]], c:'#a5a5ac' },
+    { v:[[0.54,0.35],[0.54,0.70]], c:'#a5a5ac' },
+    { v:[[0.68,0.35],[0.68,0.70]], c:'#a5a5ac' },
+    { v:[[0.25,0.72],[0.75,0.72]], c:'#5a5a62' }
+  ],
+  "I Love You Mary Jane": [ // a heart with a leaf
+    { v:[[0.5,0.68],[0.36,0.54],[0.30,0.42],[0.35,0.32],[0.45,0.35],[0.5,0.42],[0.55,0.35],[0.65,0.32],[0.70,0.42],[0.64,0.54],[0.5,0.68]], c:'#c9403a' },
+    { v:[[0.5,0.68],[0.5,0.80],[0.58,0.75]], c:'#3d7a4a' }
+  ],
+  "The Outdoor Type": [ // a mountain and a tent
+    { v:[[0.20,0.65],[0.38,0.35],[0.50,0.55],[0.60,0.40],[0.75,0.65],[0.20,0.65]], c:'#7a9a7a' },
+    { v:[[0.42,0.65],[0.50,0.50],[0.58,0.65],[0.42,0.65]], c:'#e8843f' }
+  ],
+  "Our Darkness": [ // a crescent moon with clouds
+    { v:arcVerts(0.5,0.35,0.14,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
+    { v:cloudVerts(0.5,0.62,0.14,14), c:'#7a7a82' }
+  ],
+  "Ich geh weg": [ // an open door with a walking arrow
+    { v:[[0.35,0.25],[0.35,0.75],[0.60,0.75],[0.60,0.25],[0.35,0.25]], c:'#8a5a2b' },
+    { v:[[0.38,0.28],[0.38,0.72],[0.56,0.75],[0.56,0.25],[0.38,0.28]], c:'#c9903f' },
+    { v:[[0.62,0.50],[0.78,0.50]], c:'#3a3a40' },
+    { v:[[0.72,0.44],[0.78,0.50],[0.72,0.56]], c:'#3a3a40' }
+  ],
+  "Marliese": [ // a flower
+    { v:circleVerts(0.5,0.32,0.07,10), c:'#c9403a' },
+    { v:circleVerts(0.5,0.58,0.07,10), c:'#c9403a' },
+    { v:circleVerts(0.38,0.45,0.07,10), c:'#c9403a' },
+    { v:circleVerts(0.62,0.45,0.07,10), c:'#c9403a' },
+    { v:circleVerts(0.5,0.45,0.05,10), c:'#e8b83f' },
+    { v:[[0.5,0.52],[0.5,0.80]], c:'#3d7a4a' }
+  ],
+  "The Worker": [ // a wrench
+    { v:[[0.30,0.70],[0.55,0.45]], c:'#5a5a62' },
+    { v:[[0.55,0.45],[0.60,0.35],[0.70,0.35],[0.72,0.42],[0.65,0.50],[0.55,0.45]], c:'#8a8a92' }
+  ],
+  "So Long": [ // a suitcase and a waving hand
+    { v:[[0.30,0.55],[0.30,0.72],[0.62,0.72],[0.62,0.55],[0.30,0.55]], c:'#8a5a2b' },
+    { v:[[0.40,0.55],[0.40,0.48],[0.52,0.48],[0.52,0.55]], c:'#5a3a1e' },
+    { v:[[0.68,0.35],[0.75,0.30]], c:'#c9903f' },
+    { v:[[0.68,0.42],[0.78,0.40]], c:'#c9903f' }
+  ],
+  "Never in My Wildest Dreams": [ // a cloud with zzz
+    { v:cloudVerts(0.45,0.45,0.14,14), c:'#7fb3d9' },
+    { v:[[0.66,0.30],[0.74,0.30],[0.66,0.38],[0.74,0.38]], c:'#3a3a40' }
+  ],
+  "Say It Ain't So": [ // a speech bubble
+    { v:[[0.28,0.30],[0.72,0.30],[0.72,0.58],[0.45,0.58],[0.38,0.68],[0.38,0.58],[0.28,0.58],[0.28,0.30]], c:'#e8e4d8' },
+    { v:[[0.5,0.38],[0.5,0.48]], c:'#c9403a' },
+    { v:[[0.5,0.52],[0.5,0.53]], c:'#c9403a' }
+  ],
+  "Insomnia": [ // a moon and a sleepless eye
+    { v:arcVerts(0.5,0.38,0.14,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
+    { v:[[0.35,0.62],[0.5,0.55],[0.65,0.62],[0.5,0.69],[0.35,0.62]], c:'#3a6a8a' },
+    { v:circleVerts(0.5,0.62,0.025,8), c:'#2b2320' }
+  ],
+  "Nowhere Girl": [ // a girl and a question map pin
+    { v:circleVerts(0.42,0.35,0.08,12), c:'#d9b48a' },
+    { v:[[0.42,0.43],[0.32,0.68],[0.52,0.68],[0.42,0.43]], c:'#c9403a' },
+    { v:[[0.68,0.35],[0.68,0.50],[0.62,0.58],[0.68,0.66],[0.74,0.58],[0.68,0.50]], c:'#3a6a8a' }
+  ],
+  "Ich verabscheue Euch": [ // a thumbs down
+    { v:[[0.42,0.35],[0.42,0.55],[0.35,0.55],[0.32,0.62],[0.38,0.70],[0.55,0.70],[0.60,0.60],[0.58,0.45],[0.58,0.35],[0.42,0.35]], c:'#d9b48a' },
+    { v:[[0.42,0.35],[0.42,0.25],[0.58,0.25],[0.58,0.35]], c:'#c9903f' }
+  ],
+  "Die Welt kann mich nicht mehr verstehen": [ // a globe
+    { v:circleVerts(0.5,0.5,0.20,16), c:'#3a6a8a' },
+    { v:[[0.30,0.5],[0.70,0.5]], c:'#7fb3d9' },
+    { v:arcVerts(0.5,0.5,0.20,Math.PI*0.5,Math.PI*1.5,10), c:'#7fb3d9' }
+  ],
+  "Was hat dich bloß so ruiniert": [ // shattered glass
+    { v:[[0.35,0.30],[0.5,0.45],[0.35,0.60]], c:'#7fb3d9' },
+    { v:[[0.5,0.45],[0.65,0.30],[0.65,0.55]], c:'#a5c4d9' },
+    { v:[[0.5,0.45],[0.45,0.70],[0.6,0.65]], c:'#bcd4e8' }
+  ],
+  "Schunder-Song": [ // a musical note
+    { v:circleVerts(0.45,0.65,0.07,10), c:'#c9403a' },
+    { v:[[0.52,0.65],[0.52,0.30]], c:'#3a3a40' },
+    { v:[[0.52,0.30],[0.62,0.35],[0.52,0.42]], c:'#3a3a40' }
+  ],
+  "Together On The Sand": [ // a beach umbrella
+    { v:[[0.30,0.40],[0.5,0.28],[0.70,0.40],[0.30,0.40]], c:'#c9403a' },
+    { v:[[0.5,0.40],[0.5,0.75]], c:'#8a5a2b' },
+    { v:[[0.20,0.75],[0.80,0.75]], c:'#c9a05a' },
+    { v:circleVerts(0.75,0.22,0.06,10), c:'#e8b83f' }
+  ],
+  "Der Traum ist aus": [ // a broken dream bubble
+    { v:cloudVerts(0.5,0.40,0.16,14), c:'#7fb3d9' },
+    { v:[[0.42,0.34],[0.48,0.44],[0.44,0.50]], c:'#2b2320' },
+    { v:circleVerts(0.62,0.58,0.02,8), c:'#7fb3d9' },
+    { v:circleVerts(0.68,0.64,0.025,8), c:'#7fb3d9' }
+  ],
+  "Halt dich an deiner Liebe fest": [ // a heart held by two hands
+    { v:[[0.5,0.55],[0.40,0.45],[0.36,0.36],[0.42,0.30],[0.5,0.34],[0.58,0.30],[0.64,0.36],[0.60,0.45],[0.5,0.55]], c:'#c9403a' },
+    { v:[[0.30,0.60],[0.40,0.55],[0.45,0.62]], c:'#d9b48a' },
+    { v:[[0.70,0.60],[0.60,0.55],[0.55,0.62]], c:'#d9b48a' }
+  ]
+};
+
+function hexToRgba(hex, a){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function buildIcon(title){
+  const raw = ICON_VERTS[title] || [{ v:[[0.3,0.5],[0.7,0.5]], c:'#c9403a' }];
+  return raw.map(seg => ({
+    color: seg.c,
+    points: densify(seg.v, 14),
+    closed: seg.v.length>2 && seg.v[0][0]===seg.v[seg.v.length-1][0] && seg.v[0][1]===seg.v[seg.v.length-1][1]
+  }));
+}
+
+function generatePath(song, w, h){
+  return buildIcon(song.title).map(stroke => ({
+    color: stroke.color,
+    closed: stroke.closed,
+    points: stroke.points.map(v => ({x:v[0]*w, y:v[1]*h}))
+  }));
+}
+
+function totalPoints(strokes){
+  return strokes.reduce((sum, s) => sum + s.points.length, 0);
+}
+
+function drawFrame(elapsed){
+  const rect = stage.getBoundingClientRect();
+  ctx.clearRect(0,0,rect.width,rect.height);
+  const frac = Math.min(1, elapsed/DRAW_MS);
+  const total = totalPoints(strokes);
+  let remaining = Math.max(2, Math.floor(total*frac));
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for(const stroke of strokes){
+    if(remaining <= 0) break;
+    const pts = stroke.points;
+    const n = Math.min(pts.length, remaining);
+    if(n >= 2){
+      ctx.shadowColor = hexToRgba(stroke.color, 0.5);
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = stroke.color;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for(let i=1;i<n;i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+      if(stroke.closed && n >= pts.length){
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = hexToRgba(stroke.color, 0.45);
+        ctx.fill();
+      }
+      // wet-paint dab at the brush tip
+      const tip = pts[n-1];
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = hexToRgba(stroke.color, 0.4);
+      ctx.beginPath();
+      ctx.arc(tip.x, tip.y, 5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    remaining -= pts.length;
+  }
+}
+
+function loop(ts){
+  if(startTime===null) startTime = ts;
+  const elapsed = ts - startTime;
+  drawFrame(elapsed);
+  progressBar.style.transform = `scaleX(${1 - Math.min(1, elapsed/ROUND_MS)})`;
+  const segMs = (ROUND_MS - FREE_MS)/5;
+  const segIdx = Math.min(eliminationOrder.length, Math.floor(Math.max(0, elapsed-FREE_MS)/segMs));
+  while(eliminatedCount < segIdx){
+    eliminateNext();
+  }
+  if(elapsed < ROUND_MS && !locked){
+    rafId = requestAnimationFrame(loop);
+  } else if(!locked){
+    finishRound(null);
+  }
+}
+
+function eliminateNext(){
+  const title = eliminationOrder[eliminatedCount];
+  eliminatedCount++;
+  const btn = optionButtons[title];
+  if(btn){
+    btn.classList.add('eliminated');
+    setTimeout(() => { if(btn.parentNode) btn.parentNode.removeChild(btn); }, 300);
+  }
+}
+
+function renderOptions(song){
+  optionsEl.innerHTML = '';
+  optionButtons = {};
+  const distractors = shuffle(SONGS.filter(s => s.title !== song.title)).slice(0,4);
+  const opts = shuffle([song, ...distractors]);
+  eliminationOrder = shuffle(distractors.map(s => s.title));
+  eliminatedCount = 0;
+  opts.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `${s.title}<br><span style="color:var(--muted);font-size:12px;">${s.artist}</span>`;
+    btn.addEventListener('click', () => finishRound(s, btn));
+    optionsEl.appendChild(btn);
+    optionButtons[s.title] = btn;
+  });
+}
+
+function startRound(){
+  locked = false;
+  startTime = null;
+  resultEl.style.display = 'none';
+  nextBtn.style.display = 'none';
+  progressBar.style.transform = 'scaleX(1)';
+  roundNumEl.textContent = roundIdx+1;
+  const song = SONGS[order[roundIdx]];
+  strokes = generatePath(song, stage.clientWidth, stage.clientHeight);
+  renderOptions(song);
+  resizeCanvas();
+  rafId = requestAnimationFrame(loop);
+}
+
+function finishRound(chosen, btnEl){
+  if(locked) return;
+  locked = true;
+  cancelAnimationFrame(rafId);
+  const song = SONGS[order[roundIdx]];
+  const elapsed = performance.now() - (startTime||performance.now());
+  const timeLeftFrac = Math.max(0, 1 - Math.min(1, elapsed/ROUND_MS));
+  const correct = chosen && chosen.title === song.title;
+
+  [...optionsEl.children].forEach(b => {
+    b.classList.add('locked');
+    const label = b.textContent.trim();
+    if(label.startsWith(song.title)) b.classList.add('correct');
+  });
+  if(btnEl && !correct) btnEl.classList.add('wrong');
+
+  let gained = 0;
+  if(correct){
+    gained = Math.max(15, Math.round(100 * timeLeftFrac));
+    score += gained;
+  }
+  scoreValEl.textContent = score;
+
+  resultEl.style.display = 'block';
+  if(chosen === null){
+    verdictEl.textContent = 'Zeit um!';
+    resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}. `;
+  } else if(correct){
+    verdictEl.textContent = 'Richtig!';
+    resultTextEl.innerHTML = `+${gained} Punkte für <b>${song.title}</b>. `;
+  } else {
+    verdictEl.textContent = 'Daneben.';
+    resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}, nicht ${chosen.title}. `;
+  }
+  resultTextEl.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
+
+  nextBtn.style.display = 'none';
+  setTimeout(goNext, 4000);
+}
+
+function goNext(){
+  roundIdx++;
+  if(roundIdx >= order.length){
+    showFinal();
+  } else {
+    startRound();
+  }
+}
+
+nextBtn.addEventListener('click', goNext);
+
+function showFinal(){
+  document.querySelector('.stage').style.display = 'none';
+  document.querySelector('.progress').style.display = 'none';
+  optionsEl.style.display = 'none';
+  resultEl.style.display = 'none';
+  nextBtn.style.display = 'none';
+  finalEl.style.display = 'block';
+  finalScoreEl.textContent = score;
+}
+
+async function loadBoard(){
+  boardList.innerHTML = '<li class="empty">Lade…</li>';
+  try{
+    const api = await withTimeout(window.leaderboardReady, 6000);
+    const list = await api.getEntries();
+    renderBoard(list);
+  }catch(e){
+    boardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
+  }
+}
+
+function renderBoard(list){
+  if(!list.length){
+    boardList.innerHTML = '<li class="empty">Noch keine Einträge — sei die/der Erste.</li>';
+    return;
+  }
+  boardList.innerHTML = '';
+  list.slice(0,10).forEach(entry => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${entry.name}</span><b class="score-val">${entry.score}</b>`;
+    boardList.appendChild(li);
+  });
+}
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const name = (playerNameInput.value || 'Anonym').trim().slice(0,24) || 'Anonym';
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Speichere…';
+  try{
+    const api = await withTimeout(window.leaderboardReady, 6000);
+    let list = [];
+    try{
+      list = await api.getEntries();
+    }catch(e){ list = []; }
+    list.push({ name, score, ts: Date.now() });
+    list.sort((a,b) => b.score - a.score);
+    list = list.slice(0,10);
+    await api.saveEntries(list);
+    renderBoard(list);
+    saveBtn.textContent = 'Gespeichert ✓';
+  }catch(e){
+    saveBtn.textContent = 'Fehler — nochmal versuchen';
+    saveBtn.disabled = false;
+  }
+});
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.querySelector('.stage').style.display = 'block';
+  document.querySelector('.progress').style.display = 'block';
+  optionsEl.style.display = 'grid';
+  finalEl.style.display = 'none';
+  document.getElementById('saveBtn').disabled = false;
+  document.getElementById('saveBtn').textContent = 'Im Leaderboard speichern';
+  score = 0;
+  roundIdx = 0;
+  scoreValEl.textContent = 0;
+  order = pickRoundOrder();
+  startRound();
+});
+
+function pickRoundOrder(){
+  return shuffle(SONGS.map((_,i) => i)).slice(0,5);
+}
+
+const startGameBtn = document.getElementById('startGameBtn');
+const gameArea = document.getElementById('gameArea');
+
+startGameBtn.addEventListener('click', () => {
+  try{
+    const name = playerNameInput.value.trim();
+    if(!name){
+      playerNameInput.focus();
+      playerNameInput.style.borderColor = 'var(--pen)';
+      return;
+    }
+    document.querySelector('.name-row').style.display = 'none';
+    gameArea.style.display = 'block';
+    order = pickRoundOrder();
+    resizeCanvas();
+    startRound();
+  }catch(err){
+    const b = document.getElementById('errBanner');
+    b.style.display = 'block';
+    b.textContent = 'Fehler beim Start: ' + err.message;
+  }
+});
+
+playerNameInput.addEventListener('input', () => {
+  playerNameInput.style.borderColor = '';
+});
+playerNameInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') startGameBtn.click();
+});
+
+loadBoard();
+
+const fsBtn = document.getElementById('fsBtn');
+const fsNote = document.getElementById('fsNote');
+let fsNoteTimer = null;
+
+function isFullscreen(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function showFsNote(){
+  fsNote.style.display = 'block';
+  clearTimeout(fsNoteTimer);
+  fsNoteTimer = setTimeout(() => { fsNote.style.display = 'none'; }, 3200);
+}
+
+function updateFsBtn(){
+  fsBtn.textContent = isFullscreen() ? '✕' : '⛶';
+  fsBtn.title = isFullscreen() ? 'Vollbild verlassen' : 'Vollbild';
+}
+
+fsBtn.addEventListener('click', () => {
+  if(isFullscreen()){
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    if(ex) ex.call(document);
+    return;
+  }
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(req){
+    const result = req.call(el);
+    if(result && result.catch) result.catch(() => showFsNote());
+  } else {
+    showFsNote();
+  }
+});
+
+document.addEventListener('fullscreenchange', updateFsBtn);
+document.addEventListener('webkitfullscreenchange', updateFsBtn);
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCohKqGNjgGoqFmPDmhP77hUJAVlwzg91w",
+    authDomain: "kritzel-karaoke.firebaseapp.com",
+    projectId: "kritzel-karaoke",
+    storageBucket: "kritzel-karaoke.firebasestorage.app",
+    messagingSenderId: "1099323447149",
+    appId: "1:1099323447149:web:90bc1e1848ea21353f6c64"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const boardRef = doc(db, "kritzel", "leaderboard");
+
+  async function getEntries(){
+    const snap = await getDoc(boardRef);
+    return snap.exists() ? (snap.data().entries || []) : [];
+  }
+
+  async function saveEntries(list){
+    await setDoc(boardRef, { entries: list });
+  }
+
+  if(window.__resolveLeaderboard){
+    window.__resolveLeaderboard({ getEntries, saveEntries });
+  }
+</script>
+</body>
+</html>
