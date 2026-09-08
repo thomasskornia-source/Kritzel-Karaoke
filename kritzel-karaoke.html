@@ -227,6 +227,19 @@
   .stage.mp-live{animation:mpBlinkBorder 1s ease-in-out infinite;}
   #mpClearBtn{width:auto;display:inline-block;margin:8px 0;padding:8px 14px;font-size:12.5px;}
 
+  /* Zeichner im Querformat: Bühne füllt den ganzen Bildschirm */
+  .stage.mp-fullscreen-draw{
+    position:fixed;inset:0;z-index:80;
+    aspect-ratio:auto;max-height:none;max-width:none;
+    border-radius:0;margin:0;
+  }
+  body.mp-fullscreen-active #mpDrawWrap > .progress{
+    position:fixed;top:0;left:0;right:0;margin:0;height:5px;border-radius:0;z-index:85;
+  }
+  body.mp-fullscreen-active #mpClearBtn{
+    position:fixed;bottom:16px;right:16px;z-index:85;
+  }
+
   /* --- Splash / intro logo --- */
   .splash{
     position:fixed;inset:0;background:#000;z-index:200;
@@ -389,13 +402,8 @@
       <span id="mpDrawerLabel"></span>
     </div>
 
-    <div id="mpChooseWrap" style="display:none;">
-      <p class="sub">Wähl den Song, den du zeichnen willst:</p>
-      <div class="options" id="mpChooseOptions"></div>
-    </div>
-
     <div id="mpWaitChoose" style="display:none;">
-      <p class="sub"><b id="mpDrawerName2"></b> wählt gerade einen Song…</p>
+      <p class="sub">Nächste Runde wird vorbereitet…</p>
     </div>
 
     <div id="mpThinkWrap" style="display:none;">
@@ -1667,8 +1675,8 @@ document.addEventListener('webkitfullscreenchange', updateFsBtn);
    Sync läuft über Firestore (Raum-Dokument + players-Subcollection).
    ========================================================= */
 
-const THINK_MS = 5000;      // Bedenkzeit des Zeichners, bevor geraten wird
-const MP_GUESS_MS = 25000;  // Rate-/Zeichenfenster (4 Segmente à ~6.25s)
+const THINK_MS = 5000;      // Bedenkzeit des Zeichners, bevor gezeichnet/geraten wird (frei, mit Countdown)
+const MP_GUESS_MS = 60000;  // Zeit zum Zeichnen/Raten (4 Segmente à 15s, je eins fällt eine Option weg)
 const MP_ELIM_SEGMENTS = 4; // Anzahl Distraktoren, die nacheinander wegfallen
 const MP_REVEAL_MS = 4000;  // Wie lange die Auflösung angezeigt wird
 const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1683,7 +1691,6 @@ let mpRoomData = null;
 let mpPlayers = [];
 let mpOptionButtons = null;
 let mpOptionsRenderedFor = null;
-let mpChooseRenderedFor = null;
 let mpProgressLoopKey = null;
 let mpDrawRafId = null;
 let mpThinkTimerId = null;
@@ -1732,10 +1739,7 @@ const mpWaitNote = document.getElementById('mpWaitNote');
 const mpRoundNum = document.getElementById('mpRoundNum');
 const mpRoundTotal = document.getElementById('mpRoundTotal');
 const mpDrawerLabel = document.getElementById('mpDrawerLabel');
-const mpChooseWrap = document.getElementById('mpChooseWrap');
-const mpChooseOptions = document.getElementById('mpChooseOptions');
 const mpWaitChoose = document.getElementById('mpWaitChoose');
-const mpDrawerName2 = document.getElementById('mpDrawerName2');
 const mpThinkWrap = document.getElementById('mpThinkWrap');
 const mpThinkNum = document.getElementById('mpThinkNum');
 const mpThinkNote = document.getElementById('mpThinkNote');
@@ -1909,15 +1913,19 @@ async function mpStartRoundForDrawer(idx, order){
   if(pool.length < 5) pool = sourcePool.map((_, i) => i);
   const chosenIdxs = shuffle(pool).slice(0, 5);
   const candidates = chosenIdxs.map(i => ({ title: sourcePool[i].title, artist: sourcePool[i].artist, url: sourcePool[i].url, idx: i }));
+  // Das Programm entscheidet, welchen der 5 Songs der Zeichner zeichnen muss —
+  // kein manuelles Auswählen mehr durch den Zeichner.
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  const eliminationOrder = shuffle(candidates.filter(c => c.title !== target.title).map(c => c.title));
   await roomRef.update({
     round: {
       drawerId: order[idx],
       candidates,
-      chosenIdx: null,
-      chosenTitle: null,
-      eliminationOrder: [],
-      phase: 'choosing',
-      thinkStartTs: null,
+      chosenIdx: target.idx,
+      chosenTitle: target.title,
+      eliminationOrder,
+      phase: 'thinking',
+      thinkStartTs: Date.now(),
       drawStartTs: null,
       revealStartTs: null,
       strokes: [],
@@ -1929,12 +1937,13 @@ async function mpStartRoundForDrawer(idx, order){
 }
 
 function hideAllMpPhaseBlocks(){
-  mpChooseWrap.style.display = 'none';
   mpWaitChoose.style.display = 'none';
   mpThinkWrap.style.display = 'none';
   mpDrawWrap.style.display = 'none';
   mpResult.style.display = 'none';
   mpStage.classList.remove('mp-live');
+  mpStage.classList.remove('mp-fullscreen-draw');
+  document.body.classList.remove('mp-fullscreen-active');
 }
 
 function renderMpRound(){
@@ -1944,7 +1953,6 @@ function renderMpRound(){
   if(!r || r.phase === 'pending'){
     hideAllMpPhaseBlocks();
     mpWaitChoose.style.display = 'block';
-    mpDrawerName2.textContent = '…';
     return;
   }
   const iAmDrawer = myPlayerId === r.drawerId;
@@ -1954,17 +1962,14 @@ function renderMpRound(){
 
   hideAllMpPhaseBlocks();
 
-  if(r.phase === 'choosing'){
-    if(iAmDrawer){
-      mpChooseWrap.style.display = 'block';
-      renderMpChooseOptions(r);
-    } else {
-      mpWaitChoose.style.display = 'block';
-      mpDrawerName2.textContent = drawerName;
-    }
-  } else if(r.phase === 'thinking'){
+  if(r.phase === 'thinking'){
     mpThinkWrap.style.display = 'block';
-    mpThinkNote.textContent = iAmDrawer ? 'Gleich geht\'s los — überleg dir schon mal, wie du zeichnest!' : 'Der Zeichner denkt nach…';
+    if(iAmDrawer){
+      const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
+      mpThinkNote.innerHTML = `Dein Song: <b>${song.title||''}</b> von ${song.artist||''} — merk dir, wie du das zeichnest!`;
+    } else {
+      mpThinkNote.textContent = 'Der Zeichner denkt nach…';
+    }
     runMpThinkCountdown(r.thinkStartTs);
   } else if(r.phase === 'drawing'){
     mpDrawWrap.style.display = 'block';
@@ -1977,52 +1982,10 @@ function renderMpRound(){
       drawSyncedCanvas(r);
     }
     ensureMpProgressLoop(r, mpRoomData.currentRoundIdx);
+    updateMpDrawLayout();
   } else if(r.phase === 'reveal'){
     showMpReveal(r);
   }
-}
-
-function renderMpChooseOptions(r){
-  const key = mpRoomData.currentRoundIdx + ':choose';
-  if(mpChooseRenderedFor === key) return;
-  mpChooseRenderedFor = key;
-  mpChooseOptions.innerHTML = '';
-  r.candidates.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = 'opt';
-    btn.innerHTML = `${c.title}<br><span style="color:var(--muted);font-size:12px;">${c.artist}</span>`;
-    btn.addEventListener('click', () => mpChooseSong(c));
-    mpChooseOptions.appendChild(btn);
-  });
-}
-
-async function mpChooseSong(candidate){
-  [...mpChooseOptions.children].forEach(b => b.disabled = true);
-  const distractors = mpRoomData.round.candidates.filter(c => c.title !== candidate.title);
-  const eliminationOrder = shuffle(distractors.map(c => c.title));
-  const roomRef = mp.roomsCol.doc(currentRoomCode);
-  await roomRef.update({
-    'round.chosenIdx': candidate.idx,
-    'round.chosenTitle': candidate.title,
-    'round.eliminationOrder': eliminationOrder,
-    'round.phase': 'thinking',
-    'round.thinkStartTs': Date.now()
-  });
-  scheduleMpDrawStart();
-}
-
-function scheduleMpDrawStart(){
-  clearTimeout(mpThinkTimerId);
-  mpThinkTimerId = setTimeout(async () => {
-    try{
-      await mp.roomsCol.doc(currentRoomCode).update({
-        'round.phase': 'drawing',
-        'round.drawStartTs': Date.now(),
-        'round.strokes': [],
-        'round.liveStroke': null
-      });
-    }catch(e){ /* room might be gone */ }
-  }, THINK_MS);
 }
 
 function runMpThinkCountdown(thinkStartTs){
@@ -2147,11 +2110,30 @@ function mpRefereeTick(){
   if(!isHost || !mpRoomData || mpRoomData.status !== 'playing' || !mpRoomData.round) return;
   const r = mpRoomData.round;
   const now = Date.now();
-  if(r.phase === 'drawing' && r.drawStartTs && (now - r.drawStartTs) >= MP_GUESS_MS){
+  if(r.phase === 'thinking' && r.thinkStartTs && (now - r.thinkStartTs) >= THINK_MS){
+    mpBeginDrawingPhase();
+  } else if(r.phase === 'drawing' && r.drawStartTs && (now - r.drawStartTs) >= MP_GUESS_MS){
     mpAttemptReveal({}, true);
   } else if(r.phase === 'reveal' && r.revealStartTs && (now - r.revealStartTs) >= MP_REVEAL_MS){
     mpAdvanceRound();
   }
+}
+
+async function mpBeginDrawingPhase(){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  try{
+    await mp.db.runTransaction(async (tx) => {
+      const snap = await tx.get(roomRef);
+      const room = snap.data();
+      if(!room || !room.round || room.round.phase !== 'thinking') return;
+      tx.update(roomRef, {
+        'round.phase': 'drawing',
+        'round.drawStartTs': Date.now(),
+        'round.strokes': [],
+        'round.liveStroke': null
+      });
+    });
+  }catch(e){ /* room might be gone, or already advanced */ }
 }
 
 async function mpAdvanceRound(){
@@ -2176,6 +2158,22 @@ async function mpAdvanceRound(){
   }catch(e){ return; }
   if(nextInfo) await mpStartRoundForDrawer(nextInfo.nextIdx, nextInfo.turnOrder);
 }
+
+// ---- Vollbild-Zeichnen im Querformat (nur für den aktuell zeichnenden Spieler) ----
+function isLandscapeTouchDevice(){
+  return window.matchMedia('(orientation: landscape)').matches &&
+         window.matchMedia('(hover: none), (pointer: coarse)').matches;
+}
+function updateMpDrawLayout(){
+  const r = mpRoomData && mpRoomData.round;
+  const amDrawing = r && r.phase === 'drawing' && myPlayerId === r.drawerId;
+  const fullscreen = !!amDrawing && isLandscapeTouchDevice();
+  mpStage.classList.toggle('mp-fullscreen-draw', fullscreen);
+  document.body.classList.toggle('mp-fullscreen-active', fullscreen);
+  if(amDrawing) drawLocalCanvas();
+}
+window.addEventListener('resize', updateMpDrawLayout);
+window.addEventListener('orientationchange', updateMpDrawLayout);
 
 // ---- Drawing canvas (drawer's own input) ----
 function drawLocalCanvas(){
@@ -2349,7 +2347,7 @@ function mpTeardown(){
   cancelAnimationFrame(mpDrawRafId);
   mpRefereeIntervalId = null;
   currentRoomCode = null; isHost = false; mpRoomData = null; mpPlayers = [];
-  mpProgressLoopKey = null; mpOptionsRenderedFor = null; mpChooseRenderedFor = null;
+  mpProgressLoopKey = null; mpOptionsRenderedFor = null;
   mpLocalStrokes = []; mpLocalLiveStroke = null;
   document.getElementById('mpCodeInput').value = '';
 }
