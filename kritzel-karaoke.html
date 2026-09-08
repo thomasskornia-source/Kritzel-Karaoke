@@ -151,6 +151,14 @@
     display:none;
   }
 
+  #revealListenBtn{
+    margin-top:10px;width:100%;
+    background:transparent;color:var(--gold);border:1px solid var(--gold);
+    padding:11px;border-radius:8px;font-weight:600;
+    font-family:inherit;font-size:14px;cursor:pointer;
+  }
+  #revealListenBtn:active{ background:rgba(212,175,55,0.15); }
+
   .final{display:none;text-align:center;padding:30px 10px;}
   .final .score{font-family:'Caveat',cursive;font-size:64px;color:var(--pen);line-height:1;}
   .final p{color:var(--muted);font-size:14px;}
@@ -398,6 +406,7 @@
   <div class="result" id="result">
     <span class="verdict" id="verdict"></span>
     <span id="resultText"></span>
+    <button id="revealListenBtn" style="display:none;">🔊 Songende anhören</button>
   </div>
 
   <button class="next-btn" id="nextBtn">Nächste Runde</button>
@@ -1088,6 +1097,7 @@ const resultEl = document.getElementById('result');
 const verdictEl = document.getElementById('verdict');
 const resultTextEl = document.getElementById('resultText');
 const nextBtn = document.getElementById('nextBtn');
+const revealListenBtn = document.getElementById('revealListenBtn');
 const roundNumEl = document.getElementById('roundNum');
 const scoreValEl = document.getElementById('scoreVal');
 const finalEl = document.getElementById('final');
@@ -1112,6 +1122,7 @@ function setModeBadge(mode){
 let strokes = [];
 let startTime = null;
 let locked = false;
+let goNextTimerId = null;
 let eliminationOrder = [];
 let eliminatedCount = 0;
 let optionButtons = {};
@@ -4194,12 +4205,24 @@ function finishRound(chosen, btnEl){
   scoreValEl.textContent = score;
 
   resultEl.style.display = 'block';
-  let revealDelay = 4000;
+  revealListenBtn.style.display = 'none';
+  if(goNextTimerId) clearTimeout(goNextTimerId);
   if(chosen === null){
     verdictEl.textContent = 'Zeit um!';
     resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}. `;
-    playSongEnding(song, REVEAL_SNIPPET_SECONDS);
-    revealDelay = (REVEAL_SNIPPET_SECONDS * 1000) + 1500;
+    // Autoplay per Timer wird von Mobil-Browsern (v.a. iOS Safari) stumm blockiert, weil kein
+    // echter Tap dahintersteckt — deshalb hier ein Button, der beim Antippen (= echte
+    // Nutzer-Geste) den Spotify-Schnipsel abspielt und die Wartezeit bis zur nächsten Runde
+    // passend verlängert.
+    revealListenBtn.style.display = 'block';
+    revealListenBtn.textContent = '🔊 Songende anhören';
+    revealListenBtn.onclick = () => {
+      revealListenBtn.disabled = true;
+      revealListenBtn.textContent = '🔊 Spielt …';
+      playSongEnding(song, REVEAL_SNIPPET_SECONDS);
+      if(goNextTimerId) clearTimeout(goNextTimerId);
+      goNextTimerId = setTimeout(goNext, (REVEAL_SNIPPET_SECONDS * 1000) + 1500);
+    };
   } else if(correct){
     verdictEl.textContent = 'Richtig!';
     resultTextEl.innerHTML = `+${gained} Punkte für <b>${song.title}</b>. `;
@@ -4210,10 +4233,13 @@ function finishRound(chosen, btnEl){
   resultTextEl.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
 
   nextBtn.style.display = 'none';
-  setTimeout(goNext, revealDelay);
+  goNextTimerId = setTimeout(goNext, 4000);
 }
 
 function goNext(){
+  goNextTimerId = null;
+  revealListenBtn.style.display = 'none';
+  revealListenBtn.disabled = false;
   stopSongEnding();
   roundIdx++;
   if(roundIdx >= order.length){
