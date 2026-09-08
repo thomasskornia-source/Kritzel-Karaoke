@@ -247,10 +247,12 @@
   }
   #mpMeetingNote, #mpPersistentNote{color:var(--gold);}
   .mp-new-round-btn{
-    background:var(--pen);color:#0a0a0a;border:none;
+    background:#000;color:var(--pen);border:1px solid var(--pen);
     padding:12px 22px;border-radius:8px;font-weight:600;
     font-family:inherit;cursor:pointer;margin-top:6px;margin-right:8px;
   }
+  .mp-lobby-actions-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+  .mp-lobby-actions-row .restart-btn, .mp-lobby-actions-row .mp-notify-btn{margin:0;}
   .mp-notify-btn{
     background:transparent;color:var(--ink);border:1px solid var(--line);
     padding:9px 16px;border-radius:6px;font-family:inherit;font-size:13px;
@@ -342,7 +344,7 @@
     transition:opacity .4s ease;
   }
   .splash-logo{display:flex;flex-direction:column;align-items:center;transition:transform .7s ease;}
-  .splash-logo.risen{transform:translateY(-16vh);}
+  .splash-logo.risen{transform:translateY(-8vh);}
   .splash-kritzel{
     font-family:'Caveat',cursive;font-weight:700;color:var(--pen);
     font-size:clamp(46px,14vw,84px);line-height:1;white-space:nowrap;min-height:1.1em;
@@ -372,13 +374,21 @@
     opacity:0;transform:scale(0.92);
     transition:opacity .6s ease, transform .6s ease;
   }
-  .splash-karaoke.shown{opacity:1;transform:scale(1);}
+  .splash-karaoke.shown{opacity:1;transform:scale(1);animation:splashKaraokeGlowPulse 2.4s ease-in-out .5s 1;}
+  @keyframes splashKaraokeGlowPulse{
+    0%,100%{filter:drop-shadow(0 4px 3px rgba(0,0,0,0.85)) drop-shadow(0 0 20px rgba(230,196,74,0.45)) drop-shadow(0 0 2px rgba(255,255,255,0.35));}
+    50%{filter:drop-shadow(0 4px 3px rgba(0,0,0,0.85)) drop-shadow(0 0 34px rgba(230,196,74,0.75)) drop-shadow(0 0 2px rgba(255,255,255,0.35));}
+  }
+  /* Positioned independently of .splash-logo (not part of the centered flex flow)
+     so the logo itself can sit truly centered on screen instead of being pushed
+     up by the buttons' reserved space underneath it. */
   .splash-modes{
-    margin-top:40px;display:flex;flex-direction:column;gap:12px;width:min(78vw,320px);
-    opacity:0;transform:translateY(14px);
+    position:absolute;left:50%;bottom:9%;
+    display:flex;flex-direction:column;gap:12px;width:min(78vw,320px);
+    opacity:0;transform:translateX(-50%) translateY(14px);
     transition:opacity .5s ease, transform .5s ease;
   }
-  .splash-modes.shown{opacity:1;transform:translateY(0);}
+  .splash-modes.shown{opacity:1;transform:translateX(-50%) translateY(0);}
   .mode-box{
     background:transparent;border:1px solid rgba(230,196,74,0.55);color:var(--ink);
     padding:14px;border-radius:8px;font-family:inherit;font-size:16px;font-weight:600;
@@ -492,12 +502,12 @@
   <div class="mp-wrap" id="mpLobby" style="display:none;">
     <h2>Raum <span class="mp-room-code-badge" id="mpRoomCode"></span></h2>
     <div class="sub">Teile den Code mit deinen Mitspieler:innen (bis zu 8 insgesamt).</div>
-    <button class="restart-btn" id="mpInviteBtn" style="margin-left:0;">📤 Einladen</button>
+    <div class="mp-lobby-actions-row">
+      <button class="restart-btn" id="mpInviteBtn">📤 Einladen</button>
+      <button class="mp-notify-btn" id="mpNotifyBtn" style="display:none;">🔔 Bei neuem Spieler benachrichtigen</button>
+    </div>
     <p class="sub" id="mpMeetingNote" style="display:none;"></p>
     <p class="sub" id="mpPersistentNote" style="display:none;">🔁 Dauerhafter Treffpunkt — bleibt nach dem Spiel offen.</p>
-    <br>
-    <button class="mp-notify-btn" id="mpNotifyBtn" style="display:none;">🔔 Bei neuem Spieler benachrichtigen</button>
-    <p class="sub" id="mpNotifyNote" style="display:none;font-size:11px;"></p>
 
     <!-- Spotify-Playlist-Anbindung: aktuell ausgeblendet, solange Spotify die
          Neuanlage von Dev-Apps pausiert hat und die Funktion nicht nutzbar ist.
@@ -516,7 +526,6 @@
     <ol class="mp-player-list" id="mpPlayerList"></ol>
     <button class="start-btn" id="mpStartBtn" style="display:none;">Spiel starten</button>
     <p class="sub" id="mpWaitNote"></p>
-    <button class="restart-btn" id="mpLobbyLeaveBtn" style="margin-left:0;">Raum verlassen</button>
   </div>
 
   <!-- ===== Multiplayer: Game ===== -->
@@ -581,7 +590,7 @@
     <h2>Fertig!</h2>
     <p class="mp-team-result" id="mpTeamResult" style="display:none;"></p>
     <ol class="mp-player-list" id="mpFinalScores"></ol>
-    <button class="save-btn" id="mpSaveBtn">Im Multiplayer-Leaderboard speichern</button>
+    <p class="sub" id="mpSaveStatus"></p>
     <button class="mp-new-round-btn" id="mpNewRoundBtn" style="display:none;">🔁 Neue Runde in diesem Raum</button>
     <button class="restart-btn" id="mpLeaveBtn">Zurück zum Start</button>
   </div>
@@ -4427,6 +4436,12 @@ let mpLocalLiveStroke = null;
 let mpLastStrokeWrite = 0;
 let mpCanvasDrawing = false;
 let mpCanvasStageRect = null;
+let mpLocalStrokesRoundKey = null; // tracks which round mpLocalStrokes belongs to,
+                                    // so a leftover drawing from an earlier turn
+                                    // never bleeds into a new round's blank canvas
+let mpAutoSaveDone = false; // guards against saving the score more than once
+                             // per game on the final screen (no manual save
+                             // button anymore — this fires automatically)
 
 // ---- Telestrationsplayer (chain-mode) state ----
 let pendingChainMode = false;
@@ -4498,7 +4513,7 @@ const mpResult = document.getElementById('mpResult');
 const mpVerdict = document.getElementById('mpVerdict');
 const mpResultText = document.getElementById('mpResultText');
 const mpFinalScores = document.getElementById('mpFinalScores');
-const mpSaveBtn = document.getElementById('mpSaveBtn');
+const mpSaveStatus = document.getElementById('mpSaveStatus');
 const mpBoardList = document.getElementById('mpBoardList');
 
 // ---- Telestrationsplayer (chain-mode) DOM refs ----
@@ -4571,7 +4586,6 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   // on whether "Multiplayer" or "Teamplayer" was chosen on the splash screen.)
 });
 
-document.getElementById('mpLobbyLeaveBtn').addEventListener('click', () => { mpTeardown(); showStartScreen(); });
 const mpLeaveBtn = document.getElementById('mpLeaveBtn');
 mpLeaveBtn.addEventListener('click', () => { mpTeardown(); showStartScreen(); });
 
@@ -4655,16 +4669,11 @@ const mpOriginalTitle = document.title;
 
 function updateMpNotifyBtnVisibility(){
   const btn = document.getElementById('mpNotifyBtn');
-  const note = document.getElementById('mpNotifyNote');
   if(!btn) return;
   btn.style.display = isHost ? 'inline-block' : 'none';
-  if(!isHost){ note.style.display = 'none'; return; }
+  if(!isHost) return;
   btn.classList.toggle('on', mpNotifyEnabled);
   btn.textContent = mpNotifyEnabled ? '🔔 Benachrichtigung aktiv' : '🔔 Bei neuem Spieler benachrichtigen';
-  note.style.display = 'block';
-  note.textContent = (typeof Notification === 'undefined')
-    ? 'Auf dem iPhone gibt es dafür leider keine Systembenachrichtigung (Safari unterstützt das für normale Webseiten nicht) — stattdessen Ton + blinkender Tab-Titel, solange diese Seite offen/sichtbar ist.'
-    : 'Funktioniert per Ton + blinkendem Titel, solange diese Seite offen ist — bei erteilter Berechtigung zusätzlich als echte Benachrichtigung. Nicht bei komplett geschlossenem Tab.';
 }
 
 function beep(){
@@ -4805,6 +4814,9 @@ function onRoomUpdate(){
   setModeBadge(mpRoomData.gameMode === 'chain' ? 'chain' : (mpRoomData.teamMode ? 'tp' : 'mp'));
   if(mpRoomData.status === 'lobby'){
     showMpScreen('lobby');
+    mpAutoSaveDone = false; // a fresh game (initial or via "Neue Runde") always
+                             // passes through 'lobby' first, so this is the
+                             // right place to arm the next final-screen save
     const teamMode = !!mpRoomData.teamMode;
     mpTeamNote.style.display = teamMode ? 'block' : 'none';
     document.getElementById('mpChainNote').style.display = mpRoomData.gameMode === 'chain' ? 'block' : 'none';
@@ -5003,6 +5015,16 @@ function renderMpRound(){
     mpWaitChoose.style.display = 'block';
     return;
   }
+  // A fresh round (even one where I'm drawing again after an earlier turn)
+  // must start with a blank canvas — mpLocalStrokes otherwise still holds
+  // whatever I last drew, since it's only ever cleared by the "Löschen"
+  // button or a full session teardown.
+  if(mpLocalStrokesRoundKey !== mpRoomData.currentRoundIdx){
+    mpLocalStrokesRoundKey = mpRoomData.currentRoundIdx;
+    mpLocalStrokes = [];
+    mpLocalLiveStroke = null;
+  }
+
   const iAmDrawer = myPlayerId === r.drawerId;
   const drawerPlayer = mpPlayers.find(p => p.id === r.drawerId);
   const drawerName = drawerPlayer ? drawerPlayer.name : '…';
@@ -5028,7 +5050,7 @@ function renderMpRound(){
     if(iAmDrawer){
       const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
       mpDrawingSongNote.style.display = 'block';
-      mpDrawingSongNote.innerHTML = `Du zeichnest:<br><b>${song.title||''}</b><br>von ${song.artist||''}`;
+      mpDrawingSongNote.innerHTML = `<b>${song.title||''}</b> - ${song.artist||''}`;
       drawLocalCanvas();
     } else {
       renderMpGuessOptions(r);
@@ -5671,12 +5693,14 @@ function renderMpFinal(){
   } else {
     mpTeamResult.style.display = 'none';
   }
-  mpSaveBtn.disabled = false;
-  mpSaveBtn.textContent = 'Im Multiplayer-Leaderboard speichern';
   const newRoundBtn = document.getElementById('mpNewRoundBtn');
   newRoundBtn.style.display = (isHost && mpRoomData && mpRoomData.persistent) ? 'inline-block' : 'none';
   newRoundBtn.disabled = false;
   newRoundBtn.textContent = '🔁 Neue Runde in diesem Raum';
+  if(!mpAutoSaveDone){
+    mpAutoSaveDone = true;
+    mpAutoSaveScore();
+  }
 }
 
 // Nur bei "Dauerhafter Treffpunkt"-Räumen sichtbar: setzt den Raum zurück in die
@@ -5705,10 +5729,11 @@ document.getElementById('mpNewRoundBtn').addEventListener('click', async () => {
 
 // Multiplayer and Teamplayer each save to their own separate Top-10
 // leaderboard (mp.mpBoardRef / mp.tpBoardRef), chosen by whether the room
-// that was just played had team mode on.
-mpSaveBtn.addEventListener('click', async () => {
-  mpSaveBtn.disabled = true;
-  mpSaveBtn.textContent = 'Speichere…';
+// that was just played had team mode on. Runs automatically once per game
+// as soon as the final screen appears (see renderMpFinal/mpAutoSaveDone) —
+// no manual "speichern" button anymore.
+async function mpAutoSaveScore(){
+  if(mpSaveStatus) mpSaveStatus.textContent = 'Speichere Punktestand…';
   try{
     const mine = mpPlayers.find(p => p.id === myPlayerId);
     if(!mine) throw new Error('Kein Punktestand gefunden.');
@@ -5724,12 +5749,12 @@ mpSaveBtn.addEventListener('click', async () => {
     list = list.slice(0, 10);
     await boardRef.set({ entries: list });
     if(isTeamGame) renderTpBoard(list); else renderMpBoard(list);
-    mpSaveBtn.textContent = 'Gespeichert ✓';
+    if(mpSaveStatus) mpSaveStatus.textContent = '✓ Im Leaderboard gespeichert';
   }catch(e){
-    mpSaveBtn.textContent = 'Fehler — nochmal versuchen';
-    mpSaveBtn.disabled = false;
+    if(mpSaveStatus) mpSaveStatus.textContent = 'Punktestand konnte nicht gespeichert werden.';
+    mpAutoSaveDone = false; // allow a retry the next time renderMpFinal() runs
   }
-});
+}
 
 function renderBoardEntries(listEl, list){
   if(!list.length){
@@ -5781,7 +5806,8 @@ function mpTeardown(){
   mpRefereeIntervalId = null;
   currentRoomCode = null; isHost = false; mpRoomData = null; mpPlayers = [];
   mpProgressLoopKey = null; mpOptionsRenderedFor = null; mpNowDrawingShownFor = null;
-  mpLocalStrokes = []; mpLocalLiveStroke = null;
+  mpLocalStrokes = []; mpLocalLiveStroke = null; mpLocalStrokesRoundKey = null;
+  mpAutoSaveDone = false;
   document.getElementById('mpCodeInput').value = '';
   mpNotifyEnabled = false;
   mpLastPlayerCount = null;
@@ -5815,7 +5841,7 @@ function runSplash(){
       span.textContent = word[i];
       el.insertBefore(span, cursor);
       i++;
-      setTimeout(typeNext, fast ? 18 : 95);
+      setTimeout(typeNext, fast ? 18 : 150);
     } else {
       cursor.remove();
       document.getElementById('splashKaraoke').classList.add('shown');
