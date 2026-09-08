@@ -151,15 +151,6 @@
     display:none;
   }
 
-  #revealListenBtn{
-    margin-top:10px;width:100%;
-    background:transparent;color:var(--gold);border:1px solid var(--gold);
-    padding:11px;border-radius:8px;font-weight:600;
-    font-family:inherit;font-size:14px;cursor:pointer;
-  }
-  #revealListenBtn:active{ background:rgba(212,175,55,0.15); }
-  #revealSpotifyEmbed{ margin-top:4px; border-radius:8px; overflow:hidden; }
-
   .final{display:none;text-align:center;padding:30px 10px;}
   .final .score{font-family:'Caveat',cursive;font-size:64px;color:var(--pen);line-height:1;}
   .final p{color:var(--muted);font-size:14px;}
@@ -407,9 +398,6 @@
   <div class="result" id="result">
     <span class="verdict" id="verdict"></span>
     <span id="resultText"></span>
-    <button id="revealListenBtn" style="display:none;">🔊 Songende anhören</button>
-    <p class="sub" id="revealEmbedHint" style="display:none;margin:8px 0 4px;">Tipp unten auf ▶, um reinzuhören:</p>
-    <div id="revealSpotifyEmbed" style="display:none;"></div>
   </div>
 
   <button class="next-btn" id="nextBtn">Nächste Runde</button>
@@ -521,8 +509,6 @@
   </div>
 
 </div>
-
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 
 <script>
 window.leaderboardReady = new Promise((resolve) => { window.__resolveLeaderboard = resolve; });
@@ -1098,7 +1084,6 @@ const resultEl = document.getElementById('result');
 const verdictEl = document.getElementById('verdict');
 const resultTextEl = document.getElementById('resultText');
 const nextBtn = document.getElementById('nextBtn');
-const revealListenBtn = document.getElementById('revealListenBtn');
 const roundNumEl = document.getElementById('roundNum');
 const scoreValEl = document.getElementById('scoreVal');
 const finalEl = document.getElementById('final');
@@ -1123,7 +1108,6 @@ function setModeBadge(mode){
 let strokes = [];
 let startTime = null;
 let locked = false;
-let goNextTimerId = null;
 let eliminationOrder = [];
 let eliminatedCount = 0;
 let optionButtons = {};
@@ -4121,69 +4105,6 @@ function renderOptions(song){
   });
 }
 
-// ===== Spotify-Reveal-Snippet: zeigt einen echten (kleinen) Spotify-Player, schon zu den
-// letzten Sekunden des Songs vorgespult, wenn die Zeit abläuft. Wichtig: Wir rufen NICHT
-// selbst play()/resume() über die iFrame-API auf — Safari/iOS behandelt einen per postMessage
-// (also aus einer anderen Frame heraus) ausgelösten Play-Befehl nicht als echte Nutzer-Geste
-// und blockt die Wiedergabe dann stumm (das war der Bug in der Vorversion: der Button hat
-// zwar den Befehl geschickt, aber iOS hat die tatsächliche Wiedergabe/App-Übergabe verweigert).
-// Deshalb: wir laden den Track nur vor und spulen ihn (im pausierten Zustand, das braucht keine
-// Geste) ans Songende — den eigentlichen Play-Tap macht der Mensch direkt auf Spotifys eigenem,
-// jetzt sichtbarem Player-Button, das zählt als echte, vertrauenswürdige Geste.
-const REVEAL_SNIPPET_SECONDS = 8; // wie viele Sekunden vom Songende gespielt werden
-let spotifyEmbedController = null;
-let spotifyEmbedReady = false;
-
-window.onSpotifyIframeApiReady = (IFrameAPI) => {
-  const el = document.getElementById('revealSpotifyEmbed');
-  if(!el) return;
-  const options = { width: '100%', height: '80', uri: '' };
-  IFrameAPI.createController(el, options, (controller) => {
-    spotifyEmbedController = controller;
-    spotifyEmbedReady = true;
-  });
-};
-
-function extractSpotifyTrackId(url){
-  const m = /track\/([a-zA-Z0-9]+)/.exec(url || '');
-  return m ? m[1] : null;
-}
-
-function playSongEnding(song, seconds){
-  if(!spotifyEmbedReady || !spotifyEmbedController || !song || !song.url) return;
-  const trackId = extractSpotifyTrackId(song.url);
-  if(!trackId) return;
-  const embedEl = document.getElementById('revealSpotifyEmbed');
-  const hintEl = document.getElementById('revealEmbedHint');
-  if(embedEl) embedEl.style.display = 'block';
-  if(hintEl) hintEl.style.display = 'block';
-  let seeked = false;
-  const onUpdate = (e) => {
-    if(seeked) return;
-    const duration = e && e.data && e.data.duration;
-    if(duration && duration > 0){
-      seeked = true;
-      spotifyEmbedController.removeListener('playback_update', onUpdate);
-      const startAtSec = Math.max(0, Math.round(duration/1000) - seconds);
-      spotifyEmbedController.seek(startAtSec);
-    }
-  };
-  try{
-    spotifyEmbedController.addListener('playback_update', onUpdate);
-    spotifyEmbedController.loadEntity(`spotify:track:${trackId}`);
-  }catch(e){ /* Spotify-Embed nicht verfügbar — kein Problem, Feature ist optional */ }
-}
-
-function stopSongEnding(){
-  if(spotifyEmbedReady && spotifyEmbedController){
-    try{ spotifyEmbedController.pause(); }catch(e){}
-  }
-  const embedEl = document.getElementById('revealSpotifyEmbed');
-  const hintEl = document.getElementById('revealEmbedHint');
-  if(embedEl) embedEl.style.display = 'none';
-  if(hintEl) hintEl.style.display = 'none';
-}
-
 function startRound(){
   locked = false;
   startTime = null;
@@ -4222,25 +4143,9 @@ function finishRound(chosen, btnEl){
   scoreValEl.textContent = score;
 
   resultEl.style.display = 'block';
-  revealListenBtn.style.display = 'none';
-  stopSongEnding(); // blendet auch einen evtl. noch sichtbaren Player der Vorrunde aus
-  if(goNextTimerId) clearTimeout(goNextTimerId);
   if(chosen === null){
     verdictEl.textContent = 'Zeit um!';
     resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}. `;
-    // Ein per Timer/JS ausgelöster play()-Aufruf über die iFrame-API wird von Safari/iOS
-    // stumm blockiert (postMessage an eine andere Frame zählt dort nicht als echte
-    // Nutzer-Geste) — deshalb lädt der Klick hier nur den Track vor und spult ihn ans
-    // Songende (das braucht im pausierten Zustand keine Geste); den eigentlichen Play-Tap
-    // macht die Person direkt auf Spotifys eigenem, jetzt sichtbarem Player-Button.
-    revealListenBtn.style.display = 'block';
-    revealListenBtn.textContent = '🔊 Songende anhören';
-    revealListenBtn.onclick = () => {
-      revealListenBtn.style.display = 'none';
-      playSongEnding(song, REVEAL_SNIPPET_SECONDS);
-      if(goNextTimerId) clearTimeout(goNextTimerId);
-      goNextTimerId = setTimeout(goNext, (REVEAL_SNIPPET_SECONDS * 1000) + 6000);
-    };
   } else if(correct){
     verdictEl.textContent = 'Richtig!';
     resultTextEl.innerHTML = `+${gained} Punkte für <b>${song.title}</b>. `;
@@ -4251,14 +4156,10 @@ function finishRound(chosen, btnEl){
   resultTextEl.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
 
   nextBtn.style.display = 'none';
-  goNextTimerId = setTimeout(goNext, 4000);
+  setTimeout(goNext, 4000);
 }
 
 function goNext(){
-  goNextTimerId = null;
-  revealListenBtn.style.display = 'none';
-  revealListenBtn.disabled = false;
-  stopSongEnding();
   roundIdx++;
   if(roundIdx >= order.length){
     showFinal();
