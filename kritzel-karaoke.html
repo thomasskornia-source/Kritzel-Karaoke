@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kritzel-Karaoke</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Grotesk:wght@400;500;600&family=Anton&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#f2ece2;
@@ -192,9 +192,110 @@
     .opt{font-size:11.5px;padding:9px 9px;}
     .options{gap:7px;}
   }
+
+  /* --- Multiplayer --- */
+  .mp-btn{background:transparent;border:1px solid var(--pen-dim);color:var(--pen);}
+  .mp-wrap{display:flex;flex-direction:column;min-height:0;}
+  .mp-wrap h2{font-family:'Caveat',cursive;font-weight:700;color:var(--pen);font-size:28px;margin:0 0 10px;}
+  .mp-actions{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+  .mp-join-row{display:flex;gap:8px;}
+  .mp-join-row input{
+    flex:1;background:transparent;border:1px solid var(--line);color:var(--ink);
+    padding:8px 10px;border-radius:6px;font-family:inherit;font-size:16px;
+    text-transform:uppercase;letter-spacing:2px;
+  }
+  .mp-join-row input:focus{outline:none;border-color:var(--pen-dim);}
+  .mp-room-code-badge{
+    font-family:'Caveat',cursive;font-size:34px;color:var(--gold);
+    letter-spacing:3px;
+  }
+  .mp-player-list{list-style:none;margin:10px 0;padding:0;}
+  .mp-player-list li{
+    display:flex;justify-content:space-between;padding:8px 4px;
+    font-size:14px;border-bottom:1px solid var(--line);
+  }
+  .mp-player-list li .host-tag{color:var(--gold);font-size:11px;margin-left:6px;}
+  #mpThinkWrap{text-align:center;padding:20px 0;}
+  .mp-think-num{
+    font-family:'Caveat',cursive;font-weight:700;color:var(--pen);
+    font-size:72px;line-height:1;
+  }
+  @keyframes mpBlinkBorder{
+    0%,100%{border-color:var(--line);box-shadow:0 0 0 rgba(230,57,43,0);}
+    50%{border-color:#ff5c4d;box-shadow:0 0 16px rgba(230,57,43,0.6);}
+  }
+  .stage.mp-live{animation:mpBlinkBorder 1s ease-in-out infinite;}
+  #mpClearBtn{width:auto;display:inline-block;margin:8px 0;padding:8px 14px;font-size:12.5px;}
+
+  /* --- Splash / intro logo --- */
+  .splash{
+    position:fixed;inset:0;background:#000;z-index:200;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:opacity .4s ease;
+  }
+  .splash-logo{display:flex;flex-direction:column;align-items:center;transition:transform .7s ease;}
+  .splash-logo.risen{transform:translateY(-16vh);}
+  .splash-kritzel{
+    font-family:'Caveat',cursive;font-weight:700;color:var(--pen);
+    font-size:clamp(46px,14vw,84px);line-height:1;white-space:nowrap;min-height:1.1em;
+  }
+  .splash-kritzel .cursor{
+    display:inline-block;width:2px;height:0.85em;margin-left:2px;vertical-align:-0.1em;
+    background:var(--pen);animation:splashCursorBlink .8s step-end infinite;
+  }
+  @keyframes splashCursorBlink{50%{opacity:0;}}
+  .splash-karaoke{
+    font-family:'Anton',sans-serif;font-weight:400;font-style:italic;
+    font-size:clamp(32px,9.5vw,60px);letter-spacing:3px;text-align:center;
+    text-transform:uppercase;
+    background:linear-gradient(180deg,#f7fafc 0%,#aeb9c4 22%,#6d7680 42%,#e8c877 58%,#9a6f2e 78%,#c9a24a 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#aeb9c4;
+    -webkit-text-stroke:1px rgba(20,20,22,0.5);
+    text-shadow:
+      0 1px 0 rgba(255,255,255,0.5),
+      0 -1px 1px rgba(0,0,0,0.6);
+    filter:drop-shadow(0 3px 2px rgba(0,0,0,0.75)) drop-shadow(0 0 10px rgba(230,57,43,0.15));
+    margin-top:-0.32em;
+    opacity:0;transform:scale(0.92);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .splash-karaoke.shown{opacity:1;transform:scale(1);}
+  .splash-modes{
+    margin-top:40px;display:flex;flex-direction:column;gap:12px;width:min(78vw,320px);
+    opacity:0;transform:translateY(14px);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .splash-modes.shown{opacity:1;transform:translateY(0);}
+  .mode-box{
+    background:transparent;border:1px solid var(--line);color:var(--ink);
+    padding:14px;border-radius:8px;font-family:inherit;font-size:16px;font-weight:600;
+    cursor:pointer;letter-spacing:0.5px;transition:border-color .15s, background .15s;
+  }
+  .mode-box:hover{border-color:var(--pen-dim);background:rgba(230,57,43,0.08);}
+
+  /* --- Spotify / invite --- */
+  #mpSpotifyWrap{margin-top:14px;}
+  .spotify-playlist-list{list-style:none;margin:8px 0;padding:0;max-height:220px;overflow-y:auto;}
+  .spotify-playlist-list li{
+    padding:9px 10px;border:1px solid var(--line);border-radius:7px;margin-bottom:6px;
+    font-size:13.5px;cursor:pointer;
+  }
+  .spotify-playlist-list li:hover{border-color:var(--pen-dim);}
 </style>
 </head>
 <body>
+
+<div class="splash" id="splashScreen">
+  <div class="splash-logo" id="splashLogo">
+    <div class="splash-kritzel" id="splashKritzel"><span class="cursor"></span></div>
+    <div class="splash-karaoke" id="splashKaraoke">Karaoke</div>
+  </div>
+  <div class="splash-modes" id="splashModes">
+    <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
+    <button class="mode-box" id="splashMpBtn">Multiplayer</button>
+  </div>
+</div>
+
 <div class="wrap">
 
   <h1>Kritzel-Karaoke</h1>
@@ -203,6 +304,7 @@
   <div class="name-row">
     <input id="playerName" type="text" placeholder="Dein Spielername" maxlength="24">
     <button class="start-btn" id="startGameBtn">Los geht's</button>
+    <button class="start-btn mp-btn" id="mpModeBtn">👥 Multiplayer</button>
   </div>
 
   <button class="fs-btn" id="fsBtn" title="Vollbild">⛶</button>
@@ -243,10 +345,92 @@
     <ol id="boardList"></ol>
   </div>
 
+  <div class="board" id="mpBoardWrap">
+    <h2>Multiplayer Top 10</h2>
+    <ol id="mpBoardList"></ol>
+  </div>
+
+  <!-- ===== Multiplayer: Entry (create/join) ===== -->
+  <div class="mp-wrap" id="mpEntry" style="display:none;">
+    <h2>Multiplayer</h2>
+    <div class="mp-actions">
+      <button class="start-btn" id="mpCreateBtn">Raum erstellen</button>
+      <div class="mp-join-row">
+        <input id="mpCodeInput" maxlength="5" placeholder="CODE">
+        <button class="start-btn" id="mpJoinBtn">Beitreten</button>
+      </div>
+    </div>
+    <button class="restart-btn" id="mpBackBtn" style="margin-left:0;margin-top:16px;">Zurück</button>
+  </div>
+
+  <!-- ===== Multiplayer: Lobby ===== -->
+  <div class="mp-wrap" id="mpLobby" style="display:none;">
+    <h2>Raum <span class="mp-room-code-badge" id="mpRoomCode"></span></h2>
+    <div class="sub">Teile den Code mit deinen Mitspieler:innen (bis zu 4 insgesamt).</div>
+    <button class="restart-btn" id="mpInviteBtn" style="margin-left:0;">📤 Einladen</button>
+
+    <div id="mpSpotifyWrap" style="display:none;">
+      <button class="restart-btn" id="mpSpotifyBtn" style="margin-left:0;">🎧 Eigene Playlist verbinden</button>
+      <div class="sub" id="mpSpotifyStatus"></div>
+      <ol class="spotify-playlist-list" id="mpPlaylistPicker" style="display:none;"></ol>
+    </div>
+    <p class="sub" id="mpSongPoolNote"></p>
+
+    <ol class="mp-player-list" id="mpPlayerList"></ol>
+    <button class="start-btn" id="mpStartBtn" style="display:none;">Spiel starten</button>
+    <p class="sub" id="mpWaitNote"></p>
+    <button class="restart-btn" id="mpLobbyLeaveBtn" style="margin-left:0;">Raum verlassen</button>
+  </div>
+
+  <!-- ===== Multiplayer: Game ===== -->
+  <div class="mp-wrap game-area" id="mpGameArea" style="display:none;">
+    <div class="hud">
+      <span>Runde <b id="mpRoundNum">1</b>/<b id="mpRoundTotal">4</b></span>
+      <span id="mpDrawerLabel"></span>
+    </div>
+
+    <div id="mpChooseWrap" style="display:none;">
+      <p class="sub">Wähl den Song, den du zeichnen willst:</p>
+      <div class="options" id="mpChooseOptions"></div>
+    </div>
+
+    <div id="mpWaitChoose" style="display:none;">
+      <p class="sub"><b id="mpDrawerName2"></b> wählt gerade einen Song…</p>
+    </div>
+
+    <div id="mpThinkWrap" style="display:none;">
+      <div class="mp-think-num" id="mpThinkNum">5</div>
+      <p class="sub" id="mpThinkNote"></p>
+    </div>
+
+    <div id="mpDrawWrap" style="display:none;">
+      <div class="stage" id="mpStage">
+        <canvas id="mpCanvas"></canvas>
+      </div>
+      <div class="progress"><i id="mpProgressBar"></i></div>
+      <button class="restart-btn" id="mpClearBtn" style="display:none;">Löschen</button>
+      <div class="options" id="mpOptions"></div>
+    </div>
+
+    <div class="result" id="mpResult">
+      <span class="verdict" id="mpVerdict"></span>
+      <span id="mpResultText"></span>
+    </div>
+  </div>
+
+  <!-- ===== Multiplayer: Final ===== -->
+  <div class="mp-wrap final" id="mpFinal" style="display:none;">
+    <h2>Fertig!</h2>
+    <ol class="mp-player-list" id="mpFinalScores"></ol>
+    <button class="save-btn" id="mpSaveBtn">Im Multiplayer-Leaderboard speichern</button>
+    <button class="restart-btn" id="mpLeaveBtn">Zurück zum Start</button>
+  </div>
+
 </div>
 
 <script>
 window.leaderboardReady = new Promise((resolve) => { window.__resolveLeaderboard = resolve; });
+window.mpReady = new Promise((resolve) => { window.__resolveMp = resolve; });
 
 function withTimeout(promise, ms){
   return Promise.race([
@@ -1475,6 +1659,937 @@ fsBtn.addEventListener('click', () => {
 
 document.addEventListener('fullscreenchange', updateFsBtn);
 document.addEventListener('webkitfullscreenchange', updateFsBtn);
+
+/* =========================================================
+   MULTIPLAYER — "Zeichner-Rate-Duell"
+   Bis zu 4 Spieler pro Raum. Ein Spieler zeichnet live per
+   Freihand auf dem Canvas, die anderen raten den Songtitel.
+   Sync läuft über Firestore (Raum-Dokument + players-Subcollection).
+   ========================================================= */
+
+const THINK_MS = 5000;      // Bedenkzeit des Zeichners, bevor geraten wird
+const MP_GUESS_MS = 25000;  // Rate-/Zeichenfenster (4 Segmente à ~6.25s)
+const MP_ELIM_SEGMENTS = 4; // Anzahl Distraktoren, die nacheinander wegfallen
+const MP_REVEAL_MS = 4000;  // Wie lange die Auflösung angezeigt wird
+const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+let mp = null;                 // { db, roomsCol, mpBoardRef, FieldValue }
+let myPlayerId = null;
+let myName = '';
+let currentRoomCode = null;
+let isHost = false;
+let roomUnsub = null, playersUnsub = null;
+let mpRoomData = null;
+let mpPlayers = [];
+let mpOptionButtons = null;
+let mpOptionsRenderedFor = null;
+let mpChooseRenderedFor = null;
+let mpProgressLoopKey = null;
+let mpDrawRafId = null;
+let mpThinkTimerId = null;
+let mpThinkIntervalId = null;
+let mpRefereeIntervalId = null;
+let mpLocalStrokes = [];
+let mpLocalLiveStroke = null;
+let mpLastStrokeWrite = 0;
+let mpCanvasDrawing = false;
+let mpCanvasStageRect = null;
+
+function getOrCreatePlayerId(){
+  try{
+    let id = localStorage.getItem('kritzel_pid');
+    if(!id){ id = 'p_' + Math.random().toString(36).slice(2,10); localStorage.setItem('kritzel_pid', id); }
+    return id;
+  }catch(e){
+    return 'p_' + Math.random().toString(36).slice(2,10);
+  }
+}
+myPlayerId = getOrCreatePlayerId();
+
+function makeRoomCode(len){
+  len = len || 5;
+  let s = '';
+  for(let i=0;i<len;i++) s += ROOM_CODE_CHARS[Math.floor(Math.random()*ROOM_CODE_CHARS.length)];
+  return s;
+}
+
+function showMpError(msg){
+  const b = document.getElementById('errBanner');
+  b.style.display = 'block';
+  b.textContent = msg;
+}
+
+// ---- DOM refs ----
+const mpEntry = document.getElementById('mpEntry');
+const mpLobby = document.getElementById('mpLobby');
+const mpGameArea = document.getElementById('mpGameArea');
+const mpFinal = document.getElementById('mpFinal');
+const mpBoardWrap = document.getElementById('mpBoardWrap');
+const mpRoomCodeEl = document.getElementById('mpRoomCode');
+const mpPlayerList = document.getElementById('mpPlayerList');
+const mpStartBtn = document.getElementById('mpStartBtn');
+const mpWaitNote = document.getElementById('mpWaitNote');
+const mpRoundNum = document.getElementById('mpRoundNum');
+const mpRoundTotal = document.getElementById('mpRoundTotal');
+const mpDrawerLabel = document.getElementById('mpDrawerLabel');
+const mpChooseWrap = document.getElementById('mpChooseWrap');
+const mpChooseOptions = document.getElementById('mpChooseOptions');
+const mpWaitChoose = document.getElementById('mpWaitChoose');
+const mpDrawerName2 = document.getElementById('mpDrawerName2');
+const mpThinkWrap = document.getElementById('mpThinkWrap');
+const mpThinkNum = document.getElementById('mpThinkNum');
+const mpThinkNote = document.getElementById('mpThinkNote');
+const mpDrawWrap = document.getElementById('mpDrawWrap');
+const mpStage = document.getElementById('mpStage');
+const mpCanvas = document.getElementById('mpCanvas');
+const mpProgressBar = document.getElementById('mpProgressBar');
+const mpClearBtn = document.getElementById('mpClearBtn');
+const mpOptions = document.getElementById('mpOptions');
+const mpResult = document.getElementById('mpResult');
+const mpVerdict = document.getElementById('mpVerdict');
+const mpResultText = document.getElementById('mpResultText');
+const mpFinalScores = document.getElementById('mpFinalScores');
+const mpSaveBtn = document.getElementById('mpSaveBtn');
+const mpBoardList = document.getElementById('mpBoardList');
+
+function showMpScreen(name){
+  document.querySelector('.name-row').style.display = 'none';
+  document.querySelector('.board').style.display = 'none';
+  mpBoardWrap.style.display = 'none';
+  gameArea.style.display = 'none';
+  finalEl.style.display = 'none';
+  mpEntry.style.display = name === 'entry' ? 'block' : 'none';
+  mpLobby.style.display = name === 'lobby' ? 'block' : 'none';
+  mpGameArea.style.display = name === 'game' ? 'flex' : 'none';
+  mpFinal.style.display = name === 'final' ? 'block' : 'none';
+}
+
+function showStartScreen(){
+  showMpScreen(null);
+  document.querySelector('.name-row').style.display = 'flex';
+  document.querySelector('.board').style.display = 'block';
+  mpBoardWrap.style.display = 'block';
+}
+
+document.getElementById('mpModeBtn').addEventListener('click', () => {
+  const name = playerNameInput.value.trim();
+  if(!name){
+    playerNameInput.focus();
+    playerNameInput.style.borderColor = 'var(--pen)';
+    return;
+  }
+  myName = name;
+  showMpScreen('entry');
+});
+
+document.getElementById('mpBackBtn').addEventListener('click', showStartScreen);
+document.getElementById('mpLobbyLeaveBtn').addEventListener('click', () => { mpTeardown(); showStartScreen(); });
+const mpLeaveBtn = document.getElementById('mpLeaveBtn');
+mpLeaveBtn.addEventListener('click', () => { mpTeardown(); showStartScreen(); });
+
+document.getElementById('mpCreateBtn').addEventListener('click', mpCreateRoom);
+document.getElementById('mpJoinBtn').addEventListener('click', mpJoinRoom);
+document.getElementById('mpCodeInput').addEventListener('input', () => {
+  document.getElementById('mpCodeInput').style.borderColor = '';
+  document.getElementById('mpCodeInput').value = document.getElementById('mpCodeInput').value.toUpperCase();
+});
+
+async function mpCreateRoom(){
+  try{
+    mp = await withTimeout(window.mpReady, 6000);
+    const code = makeRoomCode();
+    const roomRef = mp.roomsCol.doc(code);
+    await roomRef.set({
+      code, hostId: myPlayerId, status: 'lobby',
+      createdAt: mp.FieldValue.serverTimestamp(),
+      turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null
+    });
+    await roomRef.collection('players').doc(myPlayerId).set({
+      name: myName, score: 0, joinedAt: mp.FieldValue.serverTimestamp()
+    });
+    isHost = true;
+    enterRoom(code);
+  }catch(e){
+    showMpError('Raum konnte nicht erstellt werden: ' + e.message);
+  }
+}
+
+async function mpJoinRoom(){
+  const code = document.getElementById('mpCodeInput').value.trim().toUpperCase();
+  if(!code){
+    document.getElementById('mpCodeInput').focus();
+    document.getElementById('mpCodeInput').style.borderColor = 'var(--pen)';
+    return;
+  }
+  try{
+    mp = await withTimeout(window.mpReady, 6000);
+    const roomRef = mp.roomsCol.doc(code);
+    const snap = await roomRef.get();
+    if(!snap.exists){ showMpError('Raum "' + code + '" nicht gefunden.'); return; }
+    if(snap.data().status !== 'lobby'){ showMpError('Dieses Spiel läuft schon oder ist beendet.'); return; }
+    await roomRef.collection('players').doc(myPlayerId).set({
+      name: myName, score: 0, joinedAt: mp.FieldValue.serverTimestamp()
+    }, { merge: true });
+    isHost = (snap.data().hostId === myPlayerId);
+    enterRoom(code);
+  }catch(e){
+    showMpError('Beitritt fehlgeschlagen: ' + e.message);
+  }
+}
+
+function enterRoom(code){
+  currentRoomCode = code;
+  mpRoomCodeEl.textContent = code;
+  showMpScreen('lobby');
+  const roomRef = mp.roomsCol.doc(code);
+  roomUnsub = roomRef.onSnapshot(snap => {
+    if(!snap.exists){ mpTeardown(); showStartScreen(); showMpError('Der Raum wurde geschlossen.'); return; }
+    mpRoomData = snap.data();
+    onRoomUpdate();
+  }, err => showMpError('Verbindung verloren: ' + err.message));
+  playersUnsub = roomRef.collection('players').orderBy('joinedAt', 'asc').onSnapshot(qs => {
+    mpPlayers = qs.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderMpPlayerList();
+    if(mpRoomData){
+      if(mpRoomData.status === 'lobby') onRoomUpdate();
+      else if(mpRoomData.status === 'finished') renderMpFinal();
+    }
+  });
+}
+
+function renderMpPlayerList(){
+  if(!mpRoomData) return;
+  mpPlayerList.innerHTML = mpPlayers.map(p => {
+    const tag = p.id === mpRoomData.hostId ? '<span class="host-tag">HOST</span>' : '';
+    return `<li><span>${p.name}${tag}</span><b class="score-val">${p.score||0}</b></li>`;
+  }).join('') || '<li class="empty">Warte auf Spieler…</li>';
+}
+
+function onRoomUpdate(){
+  if(!mpRoomData) return;
+  if(mpRoomData.status === 'lobby'){
+    showMpScreen('lobby');
+    mpStartBtn.style.display = isHost ? 'block' : 'none';
+    mpStartBtn.disabled = mpPlayers.length < 2;
+    mpWaitNote.textContent = isHost
+      ? (mpPlayers.length < 2 ? 'Warte auf mindestens 2 Spieler…' : 'Bereit — du kannst starten!')
+      : 'Warte, bis der Host das Spiel startet…';
+    document.getElementById('mpSpotifyWrap').style.display = isHost ? 'block' : 'none';
+    document.getElementById('mpSongPoolNote').textContent = mpRoomData.songPoolName
+      ? `🎧 Playlist verbunden: "${mpRoomData.songPoolName}" (${(mpRoomData.songPool||[]).length} Songs)`
+      : (isHost ? '' : 'Es wird der eingebaute Songpool gespielt (Host hat keine eigene Playlist verbunden).');
+    return;
+  }
+  if(mpRoomData.status === 'finished'){
+    showMpScreen('final');
+    renderMpFinal();
+    return;
+  }
+  showMpScreen('game');
+  renderMpRound();
+}
+
+mpStartBtn.addEventListener('click', async () => {
+  if(!isHost || mpPlayers.length < 2) return;
+  mpStartBtn.disabled = true;
+  const order = mpPlayers.map(p => p.id);
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  await roomRef.update({ status: 'playing', turnOrder: order, currentRoundIdx: 0 });
+  await mpStartRoundForDrawer(0, order);
+  if(!mpRefereeIntervalId) mpRefereeIntervalId = setInterval(mpRefereeTick, 300);
+});
+
+async function mpStartRoundForDrawer(idx, order){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  const snap = await roomRef.get();
+  const roomData = snap.data();
+  const used = roomData.usedSongIdx || [];
+  const sourcePool = (roomData.songPool && roomData.songPool.length >= 5) ? roomData.songPool : SONGS;
+  let pool = sourcePool.map((_, i) => i).filter(i => !used.includes(i));
+  if(pool.length < 5) pool = sourcePool.map((_, i) => i);
+  const chosenIdxs = shuffle(pool).slice(0, 5);
+  const candidates = chosenIdxs.map(i => ({ title: sourcePool[i].title, artist: sourcePool[i].artist, url: sourcePool[i].url, idx: i }));
+  await roomRef.update({
+    round: {
+      drawerId: order[idx],
+      candidates,
+      chosenIdx: null,
+      chosenTitle: null,
+      eliminationOrder: [],
+      phase: 'choosing',
+      thinkStartTs: null,
+      drawStartTs: null,
+      revealStartTs: null,
+      strokes: [],
+      liveStroke: null,
+      correctGuess: null,
+      scored: false
+    }
+  });
+}
+
+function hideAllMpPhaseBlocks(){
+  mpChooseWrap.style.display = 'none';
+  mpWaitChoose.style.display = 'none';
+  mpThinkWrap.style.display = 'none';
+  mpDrawWrap.style.display = 'none';
+  mpResult.style.display = 'none';
+  mpStage.classList.remove('mp-live');
+}
+
+function renderMpRound(){
+  const r = mpRoomData.round;
+  mpRoundNum.textContent = mpRoomData.currentRoundIdx + 1;
+  mpRoundTotal.textContent = mpRoomData.turnOrder.length;
+  if(!r || r.phase === 'pending'){
+    hideAllMpPhaseBlocks();
+    mpWaitChoose.style.display = 'block';
+    mpDrawerName2.textContent = '…';
+    return;
+  }
+  const iAmDrawer = myPlayerId === r.drawerId;
+  const drawerPlayer = mpPlayers.find(p => p.id === r.drawerId);
+  const drawerName = drawerPlayer ? drawerPlayer.name : '…';
+  mpDrawerLabel.textContent = iAmDrawer ? 'Du zeichnest ✏️' : (drawerName + ' zeichnet');
+
+  hideAllMpPhaseBlocks();
+
+  if(r.phase === 'choosing'){
+    if(iAmDrawer){
+      mpChooseWrap.style.display = 'block';
+      renderMpChooseOptions(r);
+    } else {
+      mpWaitChoose.style.display = 'block';
+      mpDrawerName2.textContent = drawerName;
+    }
+  } else if(r.phase === 'thinking'){
+    mpThinkWrap.style.display = 'block';
+    mpThinkNote.textContent = iAmDrawer ? 'Gleich geht\'s los — überleg dir schon mal, wie du zeichnest!' : 'Der Zeichner denkt nach…';
+    runMpThinkCountdown(r.thinkStartTs);
+  } else if(r.phase === 'drawing'){
+    mpDrawWrap.style.display = 'block';
+    mpStage.classList.add('mp-live');
+    mpClearBtn.style.display = iAmDrawer ? 'inline-block' : 'none';
+    if(iAmDrawer){
+      drawLocalCanvas();
+    } else {
+      renderMpGuessOptions(r);
+      drawSyncedCanvas(r);
+    }
+    ensureMpProgressLoop(r, mpRoomData.currentRoundIdx);
+  } else if(r.phase === 'reveal'){
+    showMpReveal(r);
+  }
+}
+
+function renderMpChooseOptions(r){
+  const key = mpRoomData.currentRoundIdx + ':choose';
+  if(mpChooseRenderedFor === key) return;
+  mpChooseRenderedFor = key;
+  mpChooseOptions.innerHTML = '';
+  r.candidates.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `${c.title}<br><span style="color:var(--muted);font-size:12px;">${c.artist}</span>`;
+    btn.addEventListener('click', () => mpChooseSong(c));
+    mpChooseOptions.appendChild(btn);
+  });
+}
+
+async function mpChooseSong(candidate){
+  [...mpChooseOptions.children].forEach(b => b.disabled = true);
+  const distractors = mpRoomData.round.candidates.filter(c => c.title !== candidate.title);
+  const eliminationOrder = shuffle(distractors.map(c => c.title));
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  await roomRef.update({
+    'round.chosenIdx': candidate.idx,
+    'round.chosenTitle': candidate.title,
+    'round.eliminationOrder': eliminationOrder,
+    'round.phase': 'thinking',
+    'round.thinkStartTs': Date.now()
+  });
+  scheduleMpDrawStart();
+}
+
+function scheduleMpDrawStart(){
+  clearTimeout(mpThinkTimerId);
+  mpThinkTimerId = setTimeout(async () => {
+    try{
+      await mp.roomsCol.doc(currentRoomCode).update({
+        'round.phase': 'drawing',
+        'round.drawStartTs': Date.now(),
+        'round.strokes': [],
+        'round.liveStroke': null
+      });
+    }catch(e){ /* room might be gone */ }
+  }, THINK_MS);
+}
+
+function runMpThinkCountdown(thinkStartTs){
+  clearInterval(mpThinkIntervalId);
+  function update(){
+    const left = Math.max(0, Math.ceil((THINK_MS - (Date.now() - thinkStartTs)) / 1000));
+    mpThinkNum.textContent = left > 0 ? left : '🎨';
+    if(left <= 0) clearInterval(mpThinkIntervalId);
+  }
+  update();
+  mpThinkIntervalId = setInterval(update, 200);
+}
+
+function ensureMpProgressLoop(r, roundKey){
+  if(mpProgressLoopKey === roundKey) return;
+  mpProgressLoopKey = roundKey;
+  cancelAnimationFrame(mpDrawRafId);
+  const drawStartTs = r.drawStartTs;
+  const eliminationOrder = r.eliminationOrder;
+  const segMs = MP_GUESS_MS / MP_ELIM_SEGMENTS;
+  function tick(){
+    if(mpProgressLoopKey !== roundKey) return;
+    const elapsed = Date.now() - drawStartTs;
+    mpProgressBar.style.transform = `scaleX(${Math.max(0, 1 - elapsed / MP_GUESS_MS)})`;
+    const segIdx = Math.min(MP_ELIM_SEGMENTS, Math.floor(elapsed / segMs));
+    applyMpEliminations(eliminationOrder, segIdx);
+    if(elapsed < MP_GUESS_MS){
+      mpDrawRafId = requestAnimationFrame(tick);
+    }
+  }
+  tick();
+}
+
+function applyMpEliminations(order, segIdx){
+  if(!mpOptionButtons) return;
+  for(let i = 0; i < segIdx && i < order.length; i++){
+    const btn = mpOptionButtons[order[i]];
+    if(btn && !btn.classList.contains('eliminated')){
+      btn.classList.add('eliminated');
+      setTimeout(() => { if(btn.parentNode) btn.parentNode.removeChild(btn); }, 300);
+    }
+  }
+}
+
+function renderMpGuessOptions(r){
+  const key = mpRoomData.currentRoundIdx + ':guess';
+  if(mpOptionsRenderedFor === key) return;
+  mpOptionsRenderedFor = key;
+  mpOptions.innerHTML = '';
+  mpOptionButtons = {};
+  const shuffled = shuffle(r.candidates);
+  shuffled.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `${c.title}<br><span style="color:var(--muted);font-size:12px;">${c.artist}</span>`;
+    btn.addEventListener('click', () => mpGuess(c, btn));
+    mpOptions.appendChild(btn);
+    mpOptionButtons[c.title] = btn;
+  });
+}
+
+async function mpGuess(song, btnEl){
+  if(!mpRoomData || !mpRoomData.round || mpRoomData.round.phase !== 'drawing') return;
+  if(myPlayerId === mpRoomData.round.drawerId) return;
+  if(btnEl.classList.contains('locked') || btnEl.classList.contains('eliminated')) return;
+  const correct = song.title === mpRoomData.round.chosenTitle;
+  if(correct){
+    [...mpOptions.children].forEach(b => b.classList.add('locked'));
+    btnEl.classList.add('correct');
+    await mpAttemptReveal({ correctPlayerId: myPlayerId, correctPlayerName: myName }, false);
+  } else {
+    btnEl.classList.add('wrong');
+    btnEl.classList.add('locked');
+  }
+}
+
+async function mpAttemptReveal(guess, isTimeout){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  try{
+    await mp.db.runTransaction(async (tx) => {
+      const snap = await tx.get(roomRef);
+      const room = snap.data();
+      if(!room || !room.round || room.round.phase !== 'drawing') return;
+      const r = room.round;
+      const now = Date.now();
+      let correctGuess = null;
+      const scoreUpdates = [];
+      if(!isTimeout){
+        const timeLeftFrac = Math.max(0, 1 - (now - r.drawStartTs) / MP_GUESS_MS);
+        const gained = Math.max(15, Math.round(100 * timeLeftFrac));
+        correctGuess = { playerId: guess.correctPlayerId, name: guess.correctPlayerName, ts: now, gained };
+        scoreUpdates.push(guess.correctPlayerId);
+        scoreUpdates.push(r.drawerId);
+      }
+      tx.update(roomRef, {
+        'round.phase': 'reveal',
+        'round.correctGuess': correctGuess,
+        'round.revealStartTs': now,
+        'round.scored': true
+      });
+      for(const pid of scoreUpdates){
+        tx.update(roomRef.collection('players').doc(pid), { score: mp.FieldValue.increment(correctGuess.gained) });
+      }
+    });
+  }catch(e){ /* lost the race or room gone — fine, no-op */ }
+}
+
+function showMpReveal(r){
+  mpResult.style.display = 'block';
+  const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
+  if(r.correctGuess){
+    mpVerdict.textContent = 'Richtig!';
+    mpResultText.innerHTML = `<b>${r.correctGuess.name}</b> hat's erraten (+${r.correctGuess.gained} Punkte für Rater:in & Zeichner:in)! Es war <b>${song.title}</b> von ${song.artist}. `;
+  } else {
+    mpVerdict.textContent = 'Zeit um!';
+    mpResultText.innerHTML = `Niemand hat's erraten. Es war <b>${song.title}</b> von ${song.artist}. `;
+  }
+  if(song.url) mpResultText.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
+}
+
+function mpRefereeTick(){
+  if(!isHost || !mpRoomData || mpRoomData.status !== 'playing' || !mpRoomData.round) return;
+  const r = mpRoomData.round;
+  const now = Date.now();
+  if(r.phase === 'drawing' && r.drawStartTs && (now - r.drawStartTs) >= MP_GUESS_MS){
+    mpAttemptReveal({}, true);
+  } else if(r.phase === 'reveal' && r.revealStartTs && (now - r.revealStartTs) >= MP_REVEAL_MS){
+    mpAdvanceRound();
+  }
+}
+
+async function mpAdvanceRound(){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  let nextInfo = null;
+  try{
+    await mp.db.runTransaction(async (tx) => {
+      const snap = await tx.get(roomRef);
+      const room = snap.data();
+      if(!room || !room.round || room.round.phase !== 'reveal') return;
+      const usedSongIdx = [...(room.usedSongIdx || [])];
+      const drawn = room.round.candidates.find(c => c.title === room.round.chosenTitle);
+      if(drawn) usedSongIdx.push(drawn.idx);
+      const nextIdx = room.currentRoundIdx + 1;
+      if(nextIdx >= room.turnOrder.length){
+        tx.update(roomRef, { status: 'finished', usedSongIdx, round: null });
+      } else {
+        tx.update(roomRef, { currentRoundIdx: nextIdx, usedSongIdx, round: { phase: 'pending' } });
+        nextInfo = { nextIdx, turnOrder: room.turnOrder };
+      }
+    });
+  }catch(e){ return; }
+  if(nextInfo) await mpStartRoundForDrawer(nextInfo.nextIdx, nextInfo.turnOrder);
+}
+
+// ---- Drawing canvas (drawer's own input) ----
+function drawLocalCanvas(){
+  const rect = mpStage.getBoundingClientRect();
+  mpCanvas.width = rect.width * dpr;
+  mpCanvas.height = rect.height * dpr;
+  const c = mpCanvas.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, rect.width, rect.height);
+  c.lineWidth = 6; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = '#e6392b';
+  const all = mpLocalLiveStroke ? [...mpLocalStrokes, mpLocalLiveStroke] : mpLocalStrokes;
+  for(const s of all){
+    if(!s.points || s.points.length < 2) continue;
+    c.beginPath();
+    c.moveTo(s.points[0].x, s.points[0].y);
+    for(let i = 1; i < s.points.length; i++) c.lineTo(s.points[i].x, s.points[i].y);
+    c.stroke();
+  }
+}
+
+function drawSyncedCanvas(r){
+  const rect = mpStage.getBoundingClientRect();
+  mpCanvas.width = rect.width * dpr;
+  mpCanvas.height = rect.height * dpr;
+  const c = mpCanvas.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, rect.width, rect.height);
+  c.lineWidth = 6; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = '#e6392b';
+  const all = [...(r.strokes || [])];
+  if(r.liveStroke && r.liveStroke.points && r.liveStroke.points.length > 1) all.push(r.liveStroke);
+  for(const s of all){
+    if(!s.points || s.points.length < 2) continue;
+    c.beginPath();
+    c.moveTo(s.points[0].x * rect.width, s.points[0].y * rect.height);
+    for(let i = 1; i < s.points.length; i++) c.lineTo(s.points[i].x * rect.width, s.points[i].y * rect.height);
+    c.stroke();
+  }
+}
+
+function mpCanEdit(){
+  return mp && mpRoomData && mpRoomData.round && mpRoomData.round.phase === 'drawing' && myPlayerId === mpRoomData.round.drawerId;
+}
+function mpPointFromEvent(e){
+  const rect = mpStage.getBoundingClientRect();
+  const t = (e.touches && e.touches[0]) || e;
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top, w: rect.width, h: rect.height };
+}
+function mpCanvasStart(e){
+  if(!mpCanEdit()) return;
+  e.preventDefault();
+  mpCanvasDrawing = true;
+  const p = mpPointFromEvent(e);
+  mpCanvasStageRect = { w: p.w, h: p.h };
+  mpLocalLiveStroke = { points: [{ x: p.x, y: p.y }] };
+  mpLastStrokeWrite = 0;
+}
+function mpCanvasMove(e){
+  if(!mpCanvasDrawing || !mpCanEdit()) return;
+  e.preventDefault();
+  const p = mpPointFromEvent(e);
+  mpLocalLiveStroke.points.push({ x: p.x, y: p.y });
+  drawLocalCanvas();
+  const now = performance.now();
+  if(now - mpLastStrokeWrite > 90){
+    mpLastStrokeWrite = now;
+    mpWriteLiveStroke();
+  }
+}
+function mpCanvasEnd(){
+  if(!mpCanvasDrawing) return;
+  mpCanvasDrawing = false;
+  if(mpLocalLiveStroke && mpLocalLiveStroke.points.length > 1){
+    mpLocalStrokes.push(mpLocalLiveStroke);
+    mpFinalizeStroke(mpLocalLiveStroke);
+  }
+  mpLocalLiveStroke = null;
+  drawLocalCanvas();
+}
+async function mpWriteLiveStroke(){
+  if(!mp || !mpCanvasStageRect || !mpLocalLiveStroke) return;
+  const norm = mpLocalLiveStroke.points.map(p => ({ x: p.x / mpCanvasStageRect.w, y: p.y / mpCanvasStageRect.h }));
+  try{ await mp.roomsCol.doc(currentRoomCode).update({ 'round.liveStroke': { points: norm } }); }catch(e){}
+}
+async function mpFinalizeStroke(stroke){
+  if(!mp || !mpCanvasStageRect) return;
+  const norm = stroke.points.map(p => ({ x: p.x / mpCanvasStageRect.w, y: p.y / mpCanvasStageRect.h }));
+  try{
+    await mp.roomsCol.doc(currentRoomCode).update({
+      'round.strokes': mp.FieldValue.arrayUnion({ points: norm }),
+      'round.liveStroke': null
+    });
+  }catch(e){}
+}
+mpCanvas.addEventListener('pointerdown', mpCanvasStart);
+mpCanvas.addEventListener('pointermove', mpCanvasMove);
+window.addEventListener('pointerup', mpCanvasEnd);
+mpCanvas.addEventListener('pointercancel', mpCanvasEnd);
+
+mpClearBtn.addEventListener('click', () => {
+  mpLocalStrokes = []; mpLocalLiveStroke = null; drawLocalCanvas();
+  if(mp && currentRoomCode){
+    mp.roomsCol.doc(currentRoomCode).update({ 'round.strokes': [], 'round.liveStroke': null }).catch(() => {});
+  }
+});
+
+// ---- Final screen ----
+function renderMpFinal(){
+  const sorted = [...mpPlayers].sort((a, b) => (b.score||0) - (a.score||0));
+  mpFinalScores.innerHTML = sorted.map(p => `<li><span>${p.name}</span><b class="score-val">${p.score||0}</b></li>`).join('');
+  mpSaveBtn.disabled = false;
+  mpSaveBtn.textContent = 'Im Multiplayer-Leaderboard speichern';
+}
+
+mpSaveBtn.addEventListener('click', async () => {
+  mpSaveBtn.disabled = true;
+  mpSaveBtn.textContent = 'Speichere…';
+  try{
+    const mine = mpPlayers.find(p => p.id === myPlayerId);
+    if(!mine) throw new Error('Kein Punktestand gefunden.');
+    let list = [];
+    try{
+      const snap = await mp.mpBoardRef.get();
+      list = snap.exists ? (snap.data().entries || []) : [];
+    }catch(e){ list = []; }
+    list.push({ name: mine.name, score: mine.score || 0, ts: Date.now() });
+    list.sort((a, b) => b.score - a.score);
+    list = list.slice(0, 10);
+    await mp.mpBoardRef.set({ entries: list });
+    renderMpBoard(list);
+    mpSaveBtn.textContent = 'Gespeichert ✓';
+  }catch(e){
+    mpSaveBtn.textContent = 'Fehler — nochmal versuchen';
+    mpSaveBtn.disabled = false;
+  }
+});
+
+function renderMpBoard(list){
+  if(!list.length){
+    mpBoardList.innerHTML = '<li class="empty">Noch keine Einträge.</li>';
+    return;
+  }
+  mpBoardList.innerHTML = '';
+  list.slice(0, 10).forEach(entry => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${entry.name}</span><b class="score-val">${entry.score}</b>`;
+    mpBoardList.appendChild(li);
+  });
+}
+
+async function loadMpBoard(){
+  mpBoardList.innerHTML = '<li class="empty">Lade…</li>';
+  try{
+    const api = await withTimeout(window.mpReady, 6000);
+    const snap = await api.mpBoardRef.get();
+    renderMpBoard(snap.exists ? (snap.data().entries || []) : []);
+  }catch(e){
+    mpBoardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
+  }
+}
+loadMpBoard();
+
+function mpTeardown(){
+  if(roomUnsub) roomUnsub();
+  if(playersUnsub) playersUnsub();
+  roomUnsub = null; playersUnsub = null;
+  clearTimeout(mpThinkTimerId);
+  clearInterval(mpThinkIntervalId);
+  clearInterval(mpRefereeIntervalId);
+  cancelAnimationFrame(mpDrawRafId);
+  mpRefereeIntervalId = null;
+  currentRoomCode = null; isHost = false; mpRoomData = null; mpPlayers = [];
+  mpProgressLoopKey = null; mpOptionsRenderedFor = null; mpChooseRenderedFor = null;
+  mpLocalStrokes = []; mpLocalLiveStroke = null;
+  document.getElementById('mpCodeInput').value = '';
+}
+
+/* =========================================================
+   SPLASH / INTRO LOGO
+   ========================================================= */
+const inviteRoomCode = (new URLSearchParams(location.search).get('room') || '').trim().toUpperCase();
+
+function hideSplash(fast){
+  const s = document.getElementById('splashScreen');
+  if(!s) return;
+  s.style.transition = fast ? 'none' : 'opacity .4s ease';
+  s.style.opacity = '0';
+  setTimeout(() => { s.style.display = 'none'; }, fast ? 0 : 400);
+}
+
+function runSplash(){
+  const word = 'Kritzel';
+  const el = document.getElementById('splashKritzel');
+  const cursor = el.querySelector('.cursor');
+  const fast = !!inviteRoomCode;
+  let i = 0;
+  function typeNext(){
+    if(i < word.length){
+      const span = document.createElement('span');
+      span.textContent = word[i];
+      el.insertBefore(span, cursor);
+      i++;
+      setTimeout(typeNext, fast ? 18 : 95);
+    } else {
+      cursor.remove();
+      document.getElementById('splashKaraoke').classList.add('shown');
+      setTimeout(() => {
+        document.getElementById('splashLogo').classList.add('risen');
+        document.getElementById('splashModes').classList.add('shown');
+        if(inviteRoomCode) goToMultiplayerEntry(inviteRoomCode);
+      }, fast ? 150 : 1000);
+    }
+  }
+  setTimeout(typeNext, fast ? 50 : 300);
+}
+runSplash();
+
+function goToSingleplayerEntry(){
+  hideSplash();
+  document.getElementById('mpModeBtn').style.display = 'none';
+  document.getElementById('startGameBtn').style.display = '';
+  playerNameInput.focus();
+}
+function goToMultiplayerEntry(prefillCode){
+  hideSplash(!!prefillCode);
+  document.getElementById('startGameBtn').style.display = 'none';
+  document.getElementById('mpModeBtn').style.display = '';
+  if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
+  playerNameInput.focus();
+}
+document.getElementById('splashSoloBtn').addEventListener('click', () => goToSingleplayerEntry());
+document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
+
+/* =========================================================
+   INVITE VIA SHARE SHEET
+   ========================================================= */
+document.getElementById('mpInviteBtn').addEventListener('click', async () => {
+  const url = new URL(location.href);
+  url.search = '';
+  url.searchParams.set('room', currentRoomCode);
+  const text = `Hallo, ${myName || 'Ich'} hat Dich zu einer Multiplayer Runde Kritzel Karaoke eingeladen.`;
+  const shareData = { title: 'Kritzel-Karaoke', text, url: url.toString() };
+  try{
+    if(navigator.share){
+      await navigator.share(shareData);
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text + '\n' + url.toString());
+      showMpError('Einladungstext kopiert — jetzt in eine Nachricht einfügen.');
+    } else {
+      window.prompt('Text kopieren und verschicken:', text + '\n' + url.toString());
+    }
+  }catch(e){ /* Nutzer hat das Teilen-Menü abgebrochen — kein Fehler */ }
+});
+
+/* =========================================================
+   SPOTIFY — eigene Playlist als Songpool fürs Multiplayer-Zimmer
+   Client-side OAuth (Authorization Code + PKCE), kein Server nötig.
+   WICHTIG: SPOTIFY_CLIENT_ID unten mit deiner eigenen Client-ID aus dem
+   Spotify Developer Dashboard ersetzen, und dort als Redirect-URI exakt
+   diese Seiten-URL eintragen (siehe Anleitung).
+   ========================================================= */
+const SPOTIFY_CLIENT_ID = 'DEINE_SPOTIFY_CLIENT_ID'; // TODO: eintragen
+const SPOTIFY_REDIRECT_URI = location.origin + location.pathname;
+const SPOTIFY_SCOPES = 'playlist-read-private playlist-read-collaborative';
+
+function spBase64url(bytes){
+  let str = btoa(String.fromCharCode(...bytes));
+  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function spRandomVerifier(len){
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return spBase64url(arr);
+}
+async function spPkceChallenge(verifier){
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return spBase64url(new Uint8Array(digest));
+}
+
+async function spotifyLogin(){
+  if(!SPOTIFY_CLIENT_ID || SPOTIFY_CLIENT_ID === 'DEINE_SPOTIFY_CLIENT_ID'){
+    showMpError('Spotify ist noch nicht eingerichtet (SPOTIFY_CLIENT_ID fehlt im Code).');
+    return;
+  }
+  const verifier = spRandomVerifier(64);
+  sessionStorage.setItem('sp_verifier', verifier);
+  sessionStorage.setItem('sp_return_room', currentRoomCode || '');
+  const challenge = await spPkceChallenge(verifier);
+  const params = new URLSearchParams({
+    client_id: SPOTIFY_CLIENT_ID,
+    response_type: 'code',
+    redirect_uri: SPOTIFY_REDIRECT_URI,
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+    scope: SPOTIFY_SCOPES
+  });
+  location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
+}
+document.getElementById('mpSpotifyBtn').addEventListener('click', spotifyLogin);
+
+async function spFetch(url, token){
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  if(!resp.ok) throw new Error('Spotify-API-Fehler (' + resp.status + ')');
+  return resp.json();
+}
+
+async function fetchAllPlaylistTracks(playlistId, token){
+  let out = [];
+  let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(name,is_local,artists(name),external_urls))`;
+  while(url && out.length < 150){
+    const data = await spFetch(url, token);
+    for(const item of (data.items || [])){
+      const t = item.track;
+      if(!t || t.is_local || !t.name) continue;
+      out.push({
+        title: t.name,
+        artist: (t.artists || []).map(a => a.name).join(', ') || 'Unbekannt',
+        url: (t.external_urls && t.external_urls.spotify) || ''
+      });
+    }
+    url = data.next;
+  }
+  return out;
+}
+
+async function showSpotifyPlaylistPicker(token){
+  const picker = document.getElementById('mpPlaylistPicker');
+  const status = document.getElementById('mpSpotifyStatus');
+  status.textContent = 'Lade deine Playlists…';
+  picker.style.display = 'block';
+  picker.innerHTML = '';
+  try{
+    let playlists = [];
+    let url = 'https://api.spotify.com/v1/me/playlists?limit=50';
+    while(url){
+      const data = await spFetch(url, token);
+      playlists = playlists.concat(data.items || []);
+      url = data.next;
+    }
+    if(!playlists.length){
+      status.textContent = 'Keine Playlists gefunden.';
+      return;
+    }
+    status.textContent = 'Wähl eine Playlist:';
+    playlists.forEach(pl => {
+      const li = document.createElement('li');
+      li.textContent = `${pl.name} (${pl.tracks.total} Songs)`;
+      li.addEventListener('click', () => choosePlaylist(pl, token));
+      picker.appendChild(li);
+    });
+  }catch(e){
+    status.textContent = 'Fehler beim Laden der Playlists: ' + e.message;
+  }
+}
+
+async function choosePlaylist(playlist, token){
+  const status = document.getElementById('mpSpotifyStatus');
+  status.textContent = `Lade Songs aus "${playlist.name}"…`;
+  try{
+    const tracks = await fetchAllPlaylistTracks(playlist.id, token);
+    if(tracks.length < 5){
+      status.textContent = 'Diese Playlist hat zu wenige nutzbare Songs (mind. 5 nötig).';
+      return;
+    }
+    await mp.roomsCol.doc(currentRoomCode).update({ songPool: tracks, songPoolName: playlist.name });
+    status.textContent = `✓ "${playlist.name}" verbunden (${tracks.length} Songs).`;
+    document.getElementById('mpPlaylistPicker').style.display = 'none';
+  }catch(e){
+    status.textContent = 'Fehler: ' + e.message;
+  }
+}
+
+async function handleSpotifyRedirect(){
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  if(!code) return;
+  const verifier = sessionStorage.getItem('sp_verifier');
+  const returnRoom = sessionStorage.getItem('sp_return_room');
+  history.replaceState({}, '', location.pathname);
+  if(!verifier) return;
+  try{
+    const resp = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: SPOTIFY_REDIRECT_URI,
+        client_id: SPOTIFY_CLIENT_ID,
+        code_verifier: verifier
+      })
+    });
+    const data = await resp.json();
+    if(!data.access_token) throw new Error(data.error_description || 'Kein Access-Token erhalten.');
+    if(returnRoom){
+      mp = await withTimeout(window.mpReady, 6000);
+      const snap = await mp.roomsCol.doc(returnRoom).get();
+      if(snap.exists){
+        isHost = (snap.data().hostId === myPlayerId);
+        const meSnap = await mp.roomsCol.doc(returnRoom).collection('players').doc(myPlayerId).get();
+        if(meSnap.exists && meSnap.data().name) myName = meSnap.data().name;
+        hideSplash(true);
+        document.getElementById('startGameBtn').style.display = 'none';
+        enterRoom(returnRoom);
+        await showSpotifyPlaylistPicker(data.access_token);
+      }
+    }
+  }catch(e){
+    showMpError('Spotify-Login fehlgeschlagen: ' + e.message);
+  }
+}
+handleSpotifyRedirect();
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -1505,6 +2620,12 @@ document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
     if(window.__resolveLeaderboard){
       window.__resolveLeaderboard({ getEntries, saveEntries });
+    }
+
+    const roomsCol = db.collection('kritzel_rooms');
+    const mpBoardRef = db.collection('kritzel').doc('leaderboard_multiplayer');
+    if(window.__resolveMp){
+      window.__resolveMp({ db, roomsCol, mpBoardRef, FieldValue: firebase.firestore.FieldValue });
     }
   }catch(err){
     const b = document.getElementById('errBanner');
