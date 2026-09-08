@@ -17,6 +17,8 @@
     --line:#2a2825;
     --gold:#c9a227;
     --good:#5fae82;
+    --team-a:#e6392b;
+    --team-b:#3c8ce6;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
@@ -210,10 +212,42 @@
   }
   .mp-player-list{list-style:none;margin:10px 0;padding:0;}
   .mp-player-list li{
-    display:flex;justify-content:space-between;padding:8px 4px;
+    display:flex;justify-content:space-between;align-items:center;padding:8px 4px;
     font-size:14px;border-bottom:1px solid var(--line);
   }
   .mp-player-list li .host-tag{color:var(--gold);font-size:11px;margin-left:6px;}
+
+  /* --- Teamplayer-Modus --- */
+  .mp-team-toggle{
+    background:transparent;border:1px solid var(--pen-dim);color:var(--pen);
+    padding:8px 14px;border-radius:6px;font-family:inherit;font-size:13px;
+    font-weight:600;cursor:pointer;
+  }
+  .mp-team-toggle.on{background:var(--pen);color:#0a0a0a;border-color:var(--pen);}
+  .mp-player-list li .name-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+  .mp-player-list li .name-wrap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .team-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
+  .team-dot.team-A{background:var(--team-a);}
+  .team-dot.team-B{background:var(--team-b);}
+  .team-pick{display:flex;gap:6px;}
+  .team-pick button{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    font-family:inherit;font-size:11px;padding:4px 8px;border-radius:5px;cursor:pointer;
+  }
+  .team-pick button.team-A.active{background:var(--team-a);border-color:var(--team-a);color:#fff;}
+  .team-pick button.team-B.active{background:var(--team-b);border-color:var(--team-b);color:#fff;}
+  .mp-team-scores{
+    display:flex;justify-content:center;gap:18px;font-size:14px;font-weight:600;
+    margin:0 0 10px;
+  }
+  .mp-team-scores .team-A-score{color:var(--team-a);}
+  .mp-team-scores .team-B-score{color:var(--team-b);}
+  .mp-team-result{
+    text-align:center;font-family:'Caveat',cursive;font-weight:700;font-size:26px;
+    margin-bottom:6px;
+  }
+  .mp-team-result .team-A-score{color:var(--team-a);}
+  .mp-team-result .team-B-score{color:var(--team-b);}
   #mpThinkWrap{text-align:center;padding:20px 0;}
   .mp-think-num{
     font-family:'Caveat',cursive;font-weight:700;color:var(--pen);
@@ -329,6 +363,7 @@
   <div class="splash-modes" id="splashModes">
     <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
     <button class="mode-box" id="splashMpBtn">Multiplayer</button>
+    <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
   </div>
 </div>
 
@@ -390,6 +425,7 @@
     <h2>Multiplayer</h2>
     <div class="sub" style="font-size:0.75em;opacity:0.7;">Bis zu 8 Spieler gleichzeitig möglich</div>
     <div class="mp-actions">
+      <button class="mp-team-toggle" id="mpTeamToggleBtn">Teamplayer-Modus</button>
       <button class="start-btn" id="mpCreateBtn">Raum erstellen</button>
       <div class="mp-join-row">
         <input id="mpCodeInput" maxlength="5" placeholder="CODE">
@@ -405,12 +441,18 @@
     <div class="sub">Teile den Code mit deinen Mitspieler:innen (bis zu 8 insgesamt).</div>
     <button class="restart-btn" id="mpInviteBtn" style="margin-left:0;">📤 Einladen</button>
 
+    <!-- Spotify-Playlist-Anbindung: aktuell ausgeblendet, solange Spotify die
+         Neuanlage von Dev-Apps pausiert hat und die Funktion nicht nutzbar ist.
+         Elemente bleiben im DOM (dauerhaft display:none), damit sie sich später
+         mit einer Zeile wieder einblenden lassen, ohne den Code neu zu bauen. -->
     <div id="mpSpotifyWrap" style="display:none;">
       <button class="restart-btn" id="mpSpotifyBtn" style="margin-left:0;">🎧 Eigene Playlist verbinden</button>
       <div class="sub" id="mpSpotifyStatus"></div>
       <ol class="spotify-playlist-list" id="mpPlaylistPicker" style="display:none;"></ol>
     </div>
     <p class="sub" id="mpSongPoolNote"></p>
+
+    <p class="sub" id="mpTeamNote" style="display:none;">Jede:r wählt unten das eigene Team.</p>
 
     <ol class="mp-player-list" id="mpPlayerList"></ol>
     <button class="start-btn" id="mpStartBtn" style="display:none;">Spiel starten</button>
@@ -424,6 +466,7 @@
       <span>Runde <b id="mpRoundNum">1</b>/<b id="mpRoundTotal">4</b></span>
       <span id="mpDrawerLabel"></span>
     </div>
+    <div class="mp-team-scores" id="mpTeamScores" style="display:none;"></div>
 
     <div id="mpWaitChoose" style="display:none;">
       <p class="sub">Nächste Runde wird vorbereitet…</p>
@@ -454,6 +497,7 @@
   <!-- ===== Multiplayer: Final ===== -->
   <div class="mp-wrap final" id="mpFinal" style="display:none;">
     <h2>Fertig!</h2>
+    <p class="mp-team-result" id="mpTeamResult" style="display:none;"></p>
     <ol class="mp-player-list" id="mpFinalScores"></ol>
     <button class="save-btn" id="mpSaveBtn">Im Multiplayer-Leaderboard speichern</button>
     <button class="restart-btn" id="mpLeaveBtn">Zurück zum Start</button>
@@ -4318,6 +4362,10 @@ const mpRoomCodeEl = document.getElementById('mpRoomCode');
 const mpPlayerList = document.getElementById('mpPlayerList');
 const mpStartBtn = document.getElementById('mpStartBtn');
 const mpWaitNote = document.getElementById('mpWaitNote');
+const mpTeamToggleBtn = document.getElementById('mpTeamToggleBtn');
+const mpTeamNote = document.getElementById('mpTeamNote');
+const mpTeamScores = document.getElementById('mpTeamScores');
+const mpTeamResult = document.getElementById('mpTeamResult');
 const mpRoundNum = document.getElementById('mpRoundNum');
 const mpRoundTotal = document.getElementById('mpRoundTotal');
 const mpDrawerLabel = document.getElementById('mpDrawerLabel');
@@ -4378,6 +4426,8 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'block';
+  // (pendingTeamMode was already set/reset in goToMultiplayerEntry(), depending
+  // on whether "Multiplayer" or "Teamplayer" was chosen on the splash screen.)
 });
 
 document.getElementById('mpBackBtn').addEventListener('click', showStartScreen);
@@ -4400,10 +4450,11 @@ async function mpCreateRoom(){
     await roomRef.set({
       code, hostId: myPlayerId, status: 'lobby',
       createdAt: mp.FieldValue.serverTimestamp(),
-      turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null
+      turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null,
+      teamMode: pendingTeamMode
     });
     await roomRef.collection('players').doc(myPlayerId).set({
-      name: myName, score: 0, joinedAt: mp.FieldValue.serverTimestamp()
+      name: myName, score: 0, team: null, joinedAt: mp.FieldValue.serverTimestamp()
     });
     isHost = true;
     enterRoom(code);
@@ -4426,7 +4477,7 @@ async function mpJoinRoom(){
     if(!snap.exists){ showMpError('Raum "' + code + '" nicht gefunden.'); return; }
     if(snap.data().status !== 'lobby'){ showMpError('Dieses Spiel läuft schon oder ist beendet.'); return; }
     await roomRef.collection('players').doc(myPlayerId).set({
-      name: myName, score: 0, joinedAt: mp.FieldValue.serverTimestamp()
+      name: myName, score: 0, team: null, joinedAt: mp.FieldValue.serverTimestamp()
     }, { merge: true });
     isHost = (snap.data().hostId === myPlayerId);
     enterRoom(code);
@@ -4457,25 +4508,63 @@ function enterRoom(code){
 
 function renderMpPlayerList(){
   if(!mpRoomData) return;
+  const teamMode = !!mpRoomData.teamMode;
   mpPlayerList.innerHTML = mpPlayers.map(p => {
     const tag = p.id === mpRoomData.hostId ? '<span class="host-tag">HOST</span>' : '';
-    return `<li><span>${p.name}${tag}</span><b class="score-val">${p.score||0}</b></li>`;
+    let teamPart = '';
+    if(teamMode){
+      if(p.id === myPlayerId){
+        teamPart = `<span class="team-pick" data-pid="${p.id}">
+          <button type="button" class="team-A${p.team==='A'?' active':''}" data-team="A">Team Rot</button>
+          <button type="button" class="team-B${p.team==='B'?' active':''}" data-team="B">Team Blau</button>
+        </span>`;
+      } else if(p.team){
+        teamPart = `<span class="team-dot team-${p.team}" title="${p.team === 'A' ? 'Team Rot' : 'Team Blau'}"></span>`;
+      }
+    }
+    return `<li><span class="name-wrap">${teamPart}<span>${p.name}${tag}</span></span><b class="score-val">${p.score||0}</b></li>`;
   }).join('') || '<li class="empty">Warte auf Spieler…</li>';
+}
+
+mpPlayerList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.team-pick button');
+  if(!btn || !mp || !currentRoomCode) return;
+  const team = btn.dataset.team;
+  try{
+    await mp.roomsCol.doc(currentRoomCode).collection('players').doc(myPlayerId).update({ team });
+  }catch(err){ /* ignore transient errors */ }
+});
+
+// Summe der Punkte aller Spieler eines Teams (für Team-Anzeige/Ergebnis).
+function mpTeamScoreSum(team){
+  return mpPlayers.filter(p => p.team === team).reduce((sum, p) => sum + (p.score||0), 0);
+}
+function mpTeamPlayerCount(team){
+  return mpPlayers.filter(p => p.team === team).length;
 }
 
 function onRoomUpdate(){
   if(!mpRoomData) return;
   if(mpRoomData.status === 'lobby'){
     showMpScreen('lobby');
+    const teamMode = !!mpRoomData.teamMode;
+    mpTeamNote.style.display = teamMode ? 'block' : 'none';
+    renderMpPlayerList();
+    const teamsReady = !teamMode || (mpPlayers.every(p => p.team) && mpTeamPlayerCount('A') >= 1 && mpTeamPlayerCount('B') >= 1);
     mpStartBtn.style.display = isHost ? 'block' : 'none';
-    mpStartBtn.disabled = mpPlayers.length < 2;
+    mpStartBtn.disabled = mpPlayers.length < 2 || !teamsReady;
     mpWaitNote.textContent = isHost
-      ? (mpPlayers.length < 2 ? 'Warte auf mindestens 2 Spieler…' : 'Bereit — du kannst starten!')
-      : 'Warte, bis der Host das Spiel startet…';
-    document.getElementById('mpSpotifyWrap').style.display = isHost ? 'block' : 'none';
+      ? (mpPlayers.length < 2
+          ? 'Warte auf mindestens 2 Spieler…'
+          : (!teamsReady ? 'Warte, bis alle ein Team gewählt haben (mind. 1 pro Team)…' : 'Bereit — du kannst starten!'))
+      : (teamMode && !(mpPlayers.find(p => p.id === myPlayerId) || {}).team
+          ? 'Wähle dein Team, um bereit zu sein…'
+          : 'Warte, bis der Host das Spiel startet…');
+    // Spotify-Playlist-Anbindung ist aktuell ausgeblendet (siehe Kommentar am
+    // #mpSpotifyWrap-Element), daher bleibt der eingebaute Songpool immer aktiv.
     document.getElementById('mpSongPoolNote').textContent = mpRoomData.songPoolName
       ? `🎧 Playlist verbunden: "${mpRoomData.songPoolName}" (${(mpRoomData.songPool||[]).length} Songs)`
-      : (isHost ? '' : 'Es wird der eingebaute Songpool gespielt (Host hat keine eigene Playlist verbunden).');
+      : 'Es wird der eingebaute Songpool gespielt.';
     return;
   }
   if(mpRoomData.status === 'finished'){
@@ -4486,6 +4575,21 @@ function onRoomUpdate(){
   showMpScreen('game');
   renderMpRound();
 }
+
+// Teamplayer-Modus wird jetzt schon auf dem Multiplayer-Startbildschirm (vor
+// dem Erstellen des Raums) festgelegt, statt erst danach in der Lobby — hält
+// die Lobby aufgeräumt. `pendingTeamMode` ist der lokale An/Aus-Zustand des
+// Toggles, bevor überhaupt ein Raum existiert; er fließt beim Klick auf
+// "Raum erstellen" direkt in den neuen Raum ein (siehe mpCreateRoom).
+let pendingTeamMode = false;
+function renderTeamToggleBtn(){
+  mpTeamToggleBtn.classList.toggle('on', pendingTeamMode);
+  mpTeamToggleBtn.textContent = pendingTeamMode ? 'Teamplayer-Modus: An' : 'Teamplayer-Modus';
+}
+mpTeamToggleBtn.addEventListener('click', () => {
+  pendingTeamMode = !pendingTeamMode;
+  renderTeamToggleBtn();
+});
 
 // Jeder Spieler ist mindestens 3x dran (Zeichner) — der Umlauf durch alle
 // Spieler wird dafür 3x hintereinander gehängt (je Durchlauf neu gemischt).
@@ -4549,10 +4653,20 @@ function hideAllMpPhaseBlocks(){
   mpNowDrawingOverlay.classList.remove('shown');
 }
 
+function renderMpTeamScores(){
+  if(!mpRoomData || !mpRoomData.teamMode){
+    mpTeamScores.style.display = 'none';
+    return;
+  }
+  mpTeamScores.style.display = 'flex';
+  mpTeamScores.innerHTML = `<span class="team-A-score">🔴 Team Rot: ${mpTeamScoreSum('A')}</span><span class="team-B-score">🔵 Team Blau: ${mpTeamScoreSum('B')}</span>`;
+}
+
 function renderMpRound(){
   const r = mpRoomData.round;
   mpRoundNum.textContent = mpRoomData.currentRoundIdx + 1;
   mpRoundTotal.textContent = mpRoomData.turnOrder.length;
+  renderMpTeamScores();
   if(!r || r.phase === 'pending'){
     hideAllMpPhaseBlocks();
     mpWaitChoose.style.display = 'block';
@@ -4902,6 +5016,14 @@ mpClearBtn.addEventListener('click', () => {
 function renderMpFinal(){
   const sorted = [...mpPlayers].sort((a, b) => (b.score||0) - (a.score||0));
   mpFinalScores.innerHTML = sorted.map(p => `<li><span>${p.name}</span><b class="score-val">${p.score||0}</b></li>`).join('');
+  if(mpRoomData && mpRoomData.teamMode){
+    const aScore = mpTeamScoreSum('A'), bScore = mpTeamScoreSum('B');
+    const winner = aScore === bScore ? 'Unentschieden!' : (aScore > bScore ? '🔴 Team Rot gewinnt!' : '🔵 Team Blau gewinnt!');
+    mpTeamResult.style.display = 'block';
+    mpTeamResult.innerHTML = `${winner}<br><span class="team-A-score">Team Rot: ${aScore}</span> · <span class="team-B-score">Team Blau: ${bScore}</span>`;
+  } else {
+    mpTeamResult.style.display = 'none';
+  }
   mpSaveBtn.disabled = false;
   mpSaveBtn.textContent = 'Im Multiplayer-Leaderboard speichern';
 }
@@ -5020,7 +5142,7 @@ function goToSingleplayerEntry(){
   updateContinueButtons();
   playerNameInput.focus();
 }
-function goToMultiplayerEntry(prefillCode){
+function goToMultiplayerEntry(prefillCode, teamMode){
   hideSplash(!!prefillCode);
   setModeBadge('mp');
   document.querySelector('.name-row').style.display = 'flex';
@@ -5029,11 +5151,17 @@ function goToMultiplayerEntry(prefillCode){
   document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'block';
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
+  // "Teamplayer" on the splash is a shortcut into the same multiplayer flow
+  // with the team-mode toggle pre-set to on (still changeable on the entry
+  // screen); plain "Multiplayer" and invite links default it to off.
+  pendingTeamMode = !!teamMode;
+  renderTeamToggleBtn();
   updateContinueButtons();
   playerNameInput.focus();
 }
 document.getElementById('splashSoloBtn').addEventListener('click', () => goToSingleplayerEntry());
 document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
+document.getElementById('splashTeamBtn').addEventListener('click', () => goToMultiplayerEntry(null, true));
 
 // ---- Clicking the heading resets everything and goes back to the splash screen ----
 function goToSplash(){
