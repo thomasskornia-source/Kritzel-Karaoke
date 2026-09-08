@@ -420,6 +420,11 @@
     <ol id="mpBoardList"></ol>
   </div>
 
+  <div class="board" id="tpBoardWrap">
+    <h2>Teamplayer Top 10</h2>
+    <ol id="tpBoardList"></ol>
+  </div>
+
   <!-- ===== Multiplayer: Entry (create/join) ===== -->
   <div class="mp-wrap" id="mpEntry" style="display:none;">
     <h2>Multiplayer</h2>
@@ -1090,13 +1095,14 @@ let order = [];
 let roundIdx = 0;
 let score = 0;
 let rafId = null;
-let currentMode = null; // 'sp' | 'mp' | null — which mode was picked on the splash screen
+let currentMode = null; // 'sp' | 'mp' | 'tp' | null — which mode was picked on the splash screen ('tp' = multiplayer with team mode on)
 function setModeBadge(mode){
   currentMode = mode;
   const badge = document.getElementById('modeBadge');
   if(!badge) return;
   if(mode === 'sp'){ badge.textContent = 'SP'; badge.style.display = 'inline-block'; }
   else if(mode === 'mp'){ badge.textContent = 'MP'; badge.style.display = 'inline-block'; }
+  else if(mode === 'tp'){ badge.textContent = 'TP'; badge.style.display = 'inline-block'; }
   else { badge.style.display = 'none'; }
 }
 let strokes = [];
@@ -4358,6 +4364,8 @@ const mpLobby = document.getElementById('mpLobby');
 const mpGameArea = document.getElementById('mpGameArea');
 const mpFinal = document.getElementById('mpFinal');
 const mpBoardWrap = document.getElementById('mpBoardWrap');
+const tpBoardWrap = document.getElementById('tpBoardWrap');
+const tpBoardList = document.getElementById('tpBoardList');
 const mpRoomCodeEl = document.getElementById('mpRoomCode');
 const mpPlayerList = document.getElementById('mpPlayerList');
 const mpStartBtn = document.getElementById('mpStartBtn');
@@ -4388,10 +4396,18 @@ const mpFinalScores = document.getElementById('mpFinalScores');
 const mpSaveBtn = document.getElementById('mpSaveBtn');
 const mpBoardList = document.getElementById('mpBoardList');
 
+// Multiplayer Top 10 vs. Teamplayer Top 10 are two separate leaderboards —
+// which one is shown always follows `currentMode` ('mp' vs 'tp').
+function updateMultiplayerBoardVisibility(){
+  mpBoardWrap.style.display = currentMode === 'mp' ? 'block' : 'none';
+  tpBoardWrap.style.display = currentMode === 'tp' ? 'block' : 'none';
+}
+
 function showMpScreen(name){
   document.querySelector('.name-row').style.display = 'none';
   document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
+  tpBoardWrap.style.display = 'none';
   gameArea.style.display = 'none';
   finalEl.style.display = 'none';
   mpEntry.style.display = name === 'entry' ? 'block' : 'none';
@@ -4403,8 +4419,8 @@ function showMpScreen(name){
 function showStartScreen(){
   showMpScreen(null);
   document.querySelector('.name-row').style.display = 'flex';
-  document.querySelector('.board').style.display = currentMode === 'mp' ? 'none' : 'block';
-  mpBoardWrap.style.display = currentMode === 'sp' ? 'none' : 'block';
+  document.querySelector('.board').style.display = currentMode === 'sp' ? 'block' : 'none';
+  updateMultiplayerBoardVisibility();
   playerNameInput.disabled = false;
   if(currentMode === 'sp'){ startGameBtn.style.display = ''; mpModeBtn.style.display = 'none'; }
   else { mpModeBtn.style.display = ''; startGameBtn.style.display = 'none'; }
@@ -4425,6 +4441,7 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   mpModeBtn.style.display = 'none';
   document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
+  tpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'block';
   // (pendingTeamMode was already set/reset in goToMultiplayerEntry(), depending
   // on whether "Multiplayer" or "Teamplayer" was chosen on the splash screen.)
@@ -4545,6 +4562,11 @@ function mpTeamPlayerCount(team){
 
 function onRoomUpdate(){
   if(!mpRoomData) return;
+  // The room doc is the source of truth for team mode — keep the header
+  // badge (MP/TP) in sync with it. Matters most for a JOINING player, whose
+  // local guess (from which splash button they used) may not match the
+  // room they actually joined.
+  setModeBadge(mpRoomData.teamMode ? 'tp' : 'mp');
   if(mpRoomData.status === 'lobby'){
     showMpScreen('lobby');
     const teamMode = !!mpRoomData.teamMode;
@@ -4589,6 +4611,10 @@ function renderTeamToggleBtn(){
 mpTeamToggleBtn.addEventListener('click', () => {
   pendingTeamMode = !pendingTeamMode;
   renderTeamToggleBtn();
+  // Keep the header badge (MP/TP) and which Top-10 board would show in sync
+  // with the toggle, even though the boards themselves are hidden while on
+  // this entry screen — matters once the user later leaves back to start.
+  setModeBadge(pendingTeamMode ? 'tp' : 'mp');
 });
 
 // Jeder Spieler ist mindestens 3x dran (Zeichner) — der Umlauf durch alle
@@ -5028,22 +5054,27 @@ function renderMpFinal(){
   mpSaveBtn.textContent = 'Im Multiplayer-Leaderboard speichern';
 }
 
+// Multiplayer and Teamplayer each save to their own separate Top-10
+// leaderboard (mp.mpBoardRef / mp.tpBoardRef), chosen by whether the room
+// that was just played had team mode on.
 mpSaveBtn.addEventListener('click', async () => {
   mpSaveBtn.disabled = true;
   mpSaveBtn.textContent = 'Speichere…';
   try{
     const mine = mpPlayers.find(p => p.id === myPlayerId);
     if(!mine) throw new Error('Kein Punktestand gefunden.');
+    const isTeamGame = !!(mpRoomData && mpRoomData.teamMode);
+    const boardRef = isTeamGame ? mp.tpBoardRef : mp.mpBoardRef;
     let list = [];
     try{
-      const snap = await mp.mpBoardRef.get();
+      const snap = await boardRef.get();
       list = snap.exists ? (snap.data().entries || []) : [];
     }catch(e){ list = []; }
     list.push({ name: mine.name, score: mine.score || 0, ts: Date.now() });
     list.sort((a, b) => b.score - a.score);
     list = list.slice(0, 10);
-    await mp.mpBoardRef.set({ entries: list });
-    renderMpBoard(list);
+    await boardRef.set({ entries: list });
+    if(isTeamGame) renderTpBoard(list); else renderMpBoard(list);
     mpSaveBtn.textContent = 'Gespeichert ✓';
   }catch(e){
     mpSaveBtn.textContent = 'Fehler — nochmal versuchen';
@@ -5051,18 +5082,20 @@ mpSaveBtn.addEventListener('click', async () => {
   }
 });
 
-function renderMpBoard(list){
+function renderBoardEntries(listEl, list){
   if(!list.length){
-    mpBoardList.innerHTML = '<li class="empty">Noch keine Einträge.</li>';
+    listEl.innerHTML = '<li class="empty">Noch keine Einträge.</li>';
     return;
   }
-  mpBoardList.innerHTML = '';
+  listEl.innerHTML = '';
   list.slice(0, 10).forEach(entry => {
     const li = document.createElement('li');
     li.innerHTML = `<span>${entry.name}</span><b class="score-val">${entry.score}</b>`;
-    mpBoardList.appendChild(li);
+    listEl.appendChild(li);
   });
 }
+function renderMpBoard(list){ renderBoardEntries(mpBoardList, list); }
+function renderTpBoard(list){ renderBoardEntries(tpBoardList, list); }
 
 async function loadMpBoard(){
   mpBoardList.innerHTML = '<li class="empty">Lade…</li>';
@@ -5074,7 +5107,18 @@ async function loadMpBoard(){
     mpBoardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
   }
 }
+async function loadTpBoard(){
+  tpBoardList.innerHTML = '<li class="empty">Lade…</li>';
+  try{
+    const api = await withTimeout(window.mpReady, 6000);
+    const snap = await api.tpBoardRef.get();
+    renderTpBoard(snap.exists ? (snap.data().entries || []) : []);
+  }catch(e){
+    tpBoardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
+  }
+}
 loadMpBoard();
+loadTpBoard();
 
 function mpTeardown(){
   if(roomUnsub) roomUnsub();
@@ -5138,24 +5182,25 @@ function goToSingleplayerEntry(){
   document.getElementById('mpModeBtn').style.display = 'none';
   document.getElementById('startGameBtn').style.display = '';
   document.querySelector('.board').style.display = 'block';
-  mpBoardWrap.style.display = 'none';
+  updateMultiplayerBoardVisibility();
   updateContinueButtons();
   playerNameInput.focus();
 }
 function goToMultiplayerEntry(prefillCode, teamMode){
   hideSplash(!!prefillCode);
-  setModeBadge('mp');
+  // "Teamplayer" on the splash is a shortcut into the same multiplayer flow
+  // with the team-mode toggle pre-set to on (still changeable on the entry
+  // screen); plain "Multiplayer" and invite links default it to off. The
+  // header badge and which Top-10 board shows both follow this.
+  pendingTeamMode = !!teamMode;
+  setModeBadge(pendingTeamMode ? 'tp' : 'mp');
+  renderTeamToggleBtn();
   document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
   document.querySelector('.board').style.display = 'none';
-  mpBoardWrap.style.display = 'block';
+  updateMultiplayerBoardVisibility();
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
-  // "Teamplayer" on the splash is a shortcut into the same multiplayer flow
-  // with the team-mode toggle pre-set to on (still changeable on the entry
-  // screen); plain "Multiplayer" and invite links default it to off.
-  pendingTeamMode = !!teamMode;
-  renderTeamToggleBtn();
   updateContinueButtons();
   playerNameInput.focus();
 }
@@ -5172,6 +5217,7 @@ function goToSplash(){
   finalEl.style.display = 'none';
   document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
+  tpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'none';
   mpLobby.style.display = 'none';
   mpGameArea.style.display = 'none';
@@ -5411,8 +5457,9 @@ handleSpotifyRedirect();
 
     const roomsCol = db.collection('kritzel_rooms');
     const mpBoardRef = db.collection('kritzel').doc('leaderboard_multiplayer');
+    const tpBoardRef = db.collection('kritzel').doc('leaderboard_teamplayer');
     if(window.__resolveMp){
-      window.__resolveMp({ db, roomsCol, mpBoardRef, FieldValue: firebase.firestore.FieldValue });
+      window.__resolveMp({ db, roomsCol, mpBoardRef, tpBoardRef, FieldValue: firebase.firestore.FieldValue });
     }
   }catch(err){
     const b = document.getElementById('errBanner');
