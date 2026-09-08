@@ -407,7 +407,7 @@
     <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
     <button class="mode-box" id="splashMpBtn">Multiplayer</button>
     <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
-    <button class="mode-box" id="splashChainBtn">Telestrationsplayer</button>
+    <button class="mode-box" id="splashChainBtn">Stille Post Modus</button>
   </div>
 </div>
 
@@ -511,7 +511,7 @@
     <p class="sub" id="mpSongPoolNote"></p>
 
     <p class="sub" id="mpTeamNote" style="display:none;">Jede:r wählt unten das eigene Team.</p>
-    <p class="sub" id="mpChainNote" style="display:none;">🔗 Telestrationsplayer: Jede:r zeichnet und rät reihum an mehreren Ketten gleichzeitig — am Ende werden alle Ketten aufgedeckt.</p>
+    <p class="sub" id="mpChainNote" style="display:none;">🔗 Stille Post Modus: Jede:r zeichnet und rät reihum an mehreren Ketten gleichzeitig — am Ende werden alle Ketten aufgedeckt.</p>
 
     <ol class="mp-player-list" id="mpPlayerList"></ol>
     <button class="start-btn" id="mpStartBtn" style="display:none;">Spiel starten</button>
@@ -1194,7 +1194,7 @@ function setModeBadge(mode){
   if(mode === 'sp'){ badge.textContent = 'SP'; badge.style.display = 'inline-block'; }
   else if(mode === 'mp'){ badge.textContent = 'MP'; badge.style.display = 'inline-block'; }
   else if(mode === 'tp'){ badge.textContent = 'TP'; badge.style.display = 'inline-block'; }
-  else if(mode === 'chain'){ badge.textContent = 'CH'; badge.style.display = 'inline-block'; }
+  else if(mode === 'chain'){ badge.textContent = 'STP'; badge.style.display = 'inline-block'; }
   else { badge.style.display = 'none'; }
 }
 let strokes = [];
