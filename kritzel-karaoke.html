@@ -339,9 +339,10 @@
 
   <div class="name-row">
     <input id="playerName" type="text" placeholder="Dein Spielername" maxlength="24">
-    <button class="start-btn" id="startGameBtn">Los geht's</button>
-    <button class="start-btn mp-btn" id="mpModeBtn">👥 Multiplayer</button>
+    <button class="start-btn arrow-btn" id="startGameBtn">&#8594;</button>
+    <button class="start-btn mp-btn arrow-btn" id="mpModeBtn">&#8594;</button>
   </div>
+  <div class="sub">Im Querformat lässt sich am besten malen.</div>
 
   <div class="err-banner" id="errBanner"></div>
 
@@ -4223,18 +4224,17 @@ startGameBtn.addEventListener('click', () => {
 
 const mpModeBtn = document.getElementById('mpModeBtn');
 
-// Once a name is typed, the currently-visible mode button collapses from a
-// text label into a plain arrow — the mode itself was already picked on the
-// splash screen, so the label is redundant by this point.
+// The mode itself was already picked on the splash screen, so the
+// currently-visible mode button is always just a plain arrow — no text
+// label needed.
 function updateContinueButtons(){
-  const has = playerNameInput.value.trim().length > 0;
   if(startGameBtn.style.display !== 'none'){
-    startGameBtn.innerHTML = has ? '&#8594;' : "Los geht's";
-    startGameBtn.classList.toggle('arrow-btn', has);
+    startGameBtn.innerHTML = '&#8594;';
+    startGameBtn.classList.add('arrow-btn');
   }
   if(mpModeBtn.style.display !== 'none'){
-    mpModeBtn.innerHTML = has ? '&#8594;' : '👥 Multiplayer';
-    mpModeBtn.classList.toggle('arrow-btn', has);
+    mpModeBtn.innerHTML = '&#8594;';
+    mpModeBtn.classList.add('arrow-btn');
   }
 }
 
