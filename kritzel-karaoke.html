@@ -510,6 +510,10 @@
 
 </div>
 
+<!-- Versteckter Spotify-Embed-Player: spielt beim Rundenende ("Zeit um!") die letzten Sekunden des Songs -->
+<div id="revealSpotifyEmbed" style="position:fixed; bottom:0; right:0; width:1px; height:1px; opacity:0; pointer-events:none; overflow:hidden;" aria-hidden="true"></div>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+
 <script>
 window.leaderboardReady = new Promise((resolve) => { window.__resolveLeaderboard = resolve; });
 window.mpReady = new Promise((resolve) => { window.__resolveMp = resolve; });
@@ -4105,6 +4109,53 @@ function renderOptions(song){
   });
 }
 
+// ===== Spotify-Reveal-Snippet: spielt die letzten Sekunden des Songs, wenn die Zeit abläuft =====
+const REVEAL_SNIPPET_SECONDS = 8; // wie viele Sekunden vom Songende gespielt werden
+let spotifyEmbedController = null;
+let spotifyEmbedReady = false;
+
+window.onSpotifyIframeApiReady = (IFrameAPI) => {
+  const el = document.getElementById('revealSpotifyEmbed');
+  if(!el) return;
+  const options = { width: '1', height: '1', uri: '' };
+  IFrameAPI.createController(el, options, (controller) => {
+    spotifyEmbedController = controller;
+    spotifyEmbedReady = true;
+  });
+};
+
+function extractSpotifyTrackId(url){
+  const m = /track\/([a-zA-Z0-9]+)/.exec(url || '');
+  return m ? m[1] : null;
+}
+
+function playSongEnding(song, seconds){
+  if(!spotifyEmbedReady || !spotifyEmbedController || !song || !song.url) return;
+  const trackId = extractSpotifyTrackId(song.url);
+  if(!trackId) return;
+  let seeked = false;
+  const onUpdate = (e) => {
+    if(seeked) return;
+    const duration = e && e.data && e.data.duration;
+    if(duration && duration > 0){
+      seeked = true;
+      spotifyEmbedController.removeListener('playback_update', onUpdate);
+      const startAtSec = Math.max(0, Math.round(duration/1000) - seconds);
+      spotifyEmbedController.seek(startAtSec);
+    }
+  };
+  try{
+    spotifyEmbedController.addListener('playback_update', onUpdate);
+    spotifyEmbedController.loadEntity(`spotify:track:${trackId}`);
+  }catch(e){ /* Spotify-Embed nicht verfügbar — kein Problem, Feature ist optional */ }
+}
+
+function stopSongEnding(){
+  if(spotifyEmbedReady && spotifyEmbedController){
+    try{ spotifyEmbedController.pause(); }catch(e){}
+  }
+}
+
 function startRound(){
   locked = false;
   startTime = null;
@@ -4143,9 +4194,12 @@ function finishRound(chosen, btnEl){
   scoreValEl.textContent = score;
 
   resultEl.style.display = 'block';
+  let revealDelay = 4000;
   if(chosen === null){
     verdictEl.textContent = 'Zeit um!';
     resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}. `;
+    playSongEnding(song, REVEAL_SNIPPET_SECONDS);
+    revealDelay = (REVEAL_SNIPPET_SECONDS * 1000) + 1500;
   } else if(correct){
     verdictEl.textContent = 'Richtig!';
     resultTextEl.innerHTML = `+${gained} Punkte für <b>${song.title}</b>. `;
@@ -4156,10 +4210,11 @@ function finishRound(chosen, btnEl){
   resultTextEl.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
 
   nextBtn.style.display = 'none';
-  setTimeout(goNext, 4000);
+  setTimeout(goNext, revealDelay);
 }
 
 function goNext(){
+  stopSongEnding();
   roundIdx++;
   if(roundIdx >= order.length){
     showFinal();
