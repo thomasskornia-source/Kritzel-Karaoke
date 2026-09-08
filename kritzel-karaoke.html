@@ -340,7 +340,7 @@
   <div class="name-row">
     <input id="playerName" type="text" placeholder="Dein Spielername" maxlength="24">
     <button class="start-btn arrow-btn" id="startGameBtn">&#8594;</button>
-    <button class="start-btn mp-btn arrow-btn" id="mpModeBtn">&#8594;</button>
+    <button class="start-btn arrow-btn" id="mpModeBtn">&#8594;</button>
   </div>
   <div class="sub">Im Querformat lässt sich am besten malen.</div>
 
@@ -4487,10 +4487,17 @@ function onRoomUpdate(){
   renderMpRound();
 }
 
+// Jeder Spieler ist mindestens 3x dran (Zeichner) — der Umlauf durch alle
+// Spieler wird dafür 3x hintereinander gehängt (je Durchlauf neu gemischt).
+const MP_TURNS_PER_PLAYER = 3;
 mpStartBtn.addEventListener('click', async () => {
   if(!isHost || mpPlayers.length < 2) return;
   mpStartBtn.disabled = true;
-  const order = mpPlayers.map(p => p.id);
+  const basePlayerIds = mpPlayers.map(p => p.id);
+  let order = [];
+  for(let lap = 0; lap < MP_TURNS_PER_PLAYER; lap++){
+    order = order.concat(shuffle(basePlayerIds));
+  }
   const roomRef = mp.roomsCol.doc(currentRoomCode);
   await roomRef.update({ status: 'playing', turnOrder: order, currentRoundIdx: 0 });
   await mpStartRoundForDrawer(0, order);
