@@ -224,14 +224,26 @@
     font-weight:600;cursor:pointer;
   }
   .mp-team-toggle.on{background:var(--pen);color:#0a0a0a;border-color:var(--pen);}
+  .mp-options-box{
+    border:1px solid var(--line);border-radius:10px;padding:12px;
+    display:flex;flex-direction:column;gap:10px;
+  }
   .mp-schedule-row{
     display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;
   }
-  .mp-schedule-row label{font-size:12px;}
-  .mp-schedule-row input[type="time"]{
+  .mp-schedule-row label{font-size:12px;color:var(--muted);}
+  .mp-schedule-row input[type="time"],
+  .mp-schedule-row input[type="datetime-local"]{
     background:transparent;border:1px solid var(--line);color:var(--ink);
-    padding:7px 10px;border-radius:6px;font-family:inherit;font-size:14px;
+    padding:7px 10px;border-radius:6px;font-family:inherit;font-size:13px;
     color-scheme:dark;
+  }
+  .mp-divider{
+    display:flex;align-items:center;gap:10px;color:var(--muted);
+    font-size:12px;margin:2px 0;
+  }
+  .mp-divider::before, .mp-divider::after{
+    content:'';flex:1;height:1px;background:var(--line);
   }
   #mpMeetingNote, #mpPersistentNote{color:var(--gold);}
   .mp-new-round-btn{
@@ -245,6 +257,16 @@
     cursor:pointer;margin-left:0;margin-top:8px;
   }
   .mp-notify-btn.on{border-color:var(--pen);color:var(--pen);}
+
+  /* --- Telestrationsplayer-Modus (Ketten-Zeichnen/Raten) --- */
+  .chain-reveal-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0 14px;}
+  .chain-reveal-nav .restart-btn{margin-left:0;}
+  .chain-step{margin:0 0 16px;padding-top:14px;border-top:1px solid var(--line);}
+  .chain-step:first-child{border-top:none;padding-top:0;}
+  .chain-step-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .chain-guess-text{font-family:'Caveat',cursive;font-weight:700;font-size:24px;color:var(--pen);}
+  .stage.chain-mini{max-height:220px;}
+  #chainGuessInput{text-transform:none;letter-spacing:normal;font-size:14px;}
   .mp-player-list li .name-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
   .mp-player-list li .name-wrap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .team-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
@@ -385,6 +407,7 @@
     <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
     <button class="mode-box" id="splashMpBtn">Multiplayer</button>
     <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
+    <button class="mode-box" id="splashChainBtn">Telestrationsplayer</button>
   </div>
 </div>
 
@@ -392,13 +415,13 @@
 
   <h1 id="mainHeading">Kritzel-Karaoke<span class="mode-badge" id="modeBadge"></span></h1>
   <div class="sub">Errate den Song, bevor die Zeit um ist.</div>
+  <div class="sub">Im Querformat lässt sich am besten malen.</div>
 
   <div class="name-row">
     <input id="playerName" type="text" placeholder="Dein Spielername" maxlength="24">
     <button class="start-btn arrow-btn" id="startGameBtn">&#8594;</button>
     <button class="start-btn arrow-btn" id="mpModeBtn">&#8594;</button>
   </div>
-  <div class="sub">Im Querformat lässt sich am besten malen.</div>
 
   <div class="err-banner" id="errBanner"></div>
 
@@ -448,22 +471,21 @@
 
   <!-- ===== Multiplayer: Entry (create/join) ===== -->
   <div class="mp-wrap" id="mpEntry" style="display:none;">
-    <h2>Multiplayer</h2>
-    <div class="sub" style="font-size:0.75em;opacity:0.7;">Bis zu 8 Spieler gleichzeitig möglich</div>
     <div class="mp-actions">
-      <button class="mp-team-toggle" id="mpTeamToggleBtn">Teamplayer-Modus</button>
-      <button class="mp-team-toggle" id="mpPersistentToggleBtn">Dauerhafter Treffpunkt</button>
-      <div class="mp-schedule-row" id="mpScheduleRow">
-        <label class="sub" for="mpMeetingTime" style="margin:0;">Treffzeit heute (optional)</label>
-        <input type="time" id="mpMeetingTime">
+      <div class="mp-options-box">
+        <button class="mp-team-toggle" id="mpPersistentToggleBtn">Dauerhafter Treffpunkt</button>
+        <div class="mp-schedule-row" id="mpScheduleRow">
+          <label class="sub" for="mpMeetingTime" style="margin:0;">Termin (optional)</label>
+          <input type="datetime-local" id="mpMeetingTime">
+        </div>
       </div>
       <button class="start-btn" id="mpCreateBtn">Raum erstellen</button>
+      <div class="mp-divider">oder</div>
       <div class="mp-join-row">
         <input id="mpCodeInput" maxlength="5" placeholder="CODE">
         <button class="start-btn" id="mpJoinBtn">Beitreten</button>
       </div>
     </div>
-    <button class="restart-btn" id="mpBackBtn" style="margin-left:0;margin-top:16px;">Zurück</button>
   </div>
 
   <!-- ===== Multiplayer: Lobby ===== -->
@@ -489,6 +511,7 @@
     <p class="sub" id="mpSongPoolNote"></p>
 
     <p class="sub" id="mpTeamNote" style="display:none;">Jede:r wählt unten das eigene Team.</p>
+    <p class="sub" id="mpChainNote" style="display:none;">🔗 Telestrationsplayer: Jede:r zeichnet und rät reihum an mehreren Ketten gleichzeitig — am Ende werden alle Ketten aufgedeckt.</p>
 
     <ol class="mp-player-list" id="mpPlayerList"></ol>
     <button class="start-btn" id="mpStartBtn" style="display:none;">Spiel starten</button>
@@ -528,6 +551,29 @@
       <span class="verdict" id="mpVerdict"></span>
       <span id="mpResultText"></span>
     </div>
+
+    <!-- Telestrationsplayer: everyone works on a book at the same time (draw or
+         guess), no elimination/multiple-choice — see mpChainRoundWrap logic below. -->
+    <div id="mpChainRoundWrap" style="display:none;">
+      <p class="mp-song-banner" id="chainTaskBanner"></p>
+      <div id="chainDrawArea" style="display:none;">
+        <div class="stage" id="chainStage">
+          <canvas id="chainCanvas"></canvas>
+        </div>
+        <button class="restart-btn" id="chainClearBtn" style="width:auto;display:inline-block;margin:8px 0;padding:8px 14px;font-size:12.5px;">Löschen</button>
+        <button class="start-btn" id="chainSubmitDrawBtn">Fertig ✓</button>
+      </div>
+      <div id="chainGuessArea" style="display:none;">
+        <div class="stage" id="chainViewStage">
+          <canvas id="chainViewCanvas"></canvas>
+        </div>
+        <div class="mp-join-row">
+          <input id="chainGuessInput" placeholder="Was ist hier zu sehen?" maxlength="60">
+          <button class="start-btn" id="chainSubmitGuessBtn">Absenden</button>
+        </div>
+      </div>
+      <p class="sub" id="chainWaitNote" style="display:none;"></p>
+    </div>
   </div>
 
   <!-- ===== Multiplayer: Final ===== -->
@@ -538,6 +584,19 @@
     <button class="save-btn" id="mpSaveBtn">Im Multiplayer-Leaderboard speichern</button>
     <button class="mp-new-round-btn" id="mpNewRoundBtn" style="display:none;">🔁 Neue Runde in diesem Raum</button>
     <button class="restart-btn" id="mpLeaveBtn">Zurück zum Start</button>
+  </div>
+
+  <!-- ===== Telestrationsplayer: chain reveal ===== -->
+  <div class="mp-wrap final" id="mpChainReveal" style="display:none;">
+    <h2>Die Ketten! 🔗</h2>
+    <div class="chain-reveal-nav">
+      <button class="restart-btn" id="chainRevealPrevBtn" style="margin-left:0;margin-top:0;">◀</button>
+      <span class="sub" id="chainRevealCounter"></span>
+      <button class="restart-btn" id="chainRevealNextBtn" style="margin-top:0;">▶</button>
+    </div>
+    <div id="chainRevealBody"></div>
+    <button class="mp-new-round-btn" id="chainRevealNewRoundBtn" style="display:none;">🔁 Neue Runde in diesem Raum</button>
+    <button class="restart-btn" id="chainRevealDoneBtn">Zurück zum Start</button>
   </div>
 
 </div>
@@ -1135,6 +1194,7 @@ function setModeBadge(mode){
   if(mode === 'sp'){ badge.textContent = 'SP'; badge.style.display = 'inline-block'; }
   else if(mode === 'mp'){ badge.textContent = 'MP'; badge.style.display = 'inline-block'; }
   else if(mode === 'tp'){ badge.textContent = 'TP'; badge.style.display = 'inline-block'; }
+  else if(mode === 'chain'){ badge.textContent = 'CH'; badge.style.display = 'inline-block'; }
   else { badge.style.display = 'none'; }
 }
 let strokes = [];
@@ -4344,6 +4404,8 @@ const MP_GUESS_MS = 60000;  // Zeit zum Zeichnen/Raten (4 Segmente à 15s, je ei
 const MP_ELIM_SEGMENTS = 4; // Anzahl Distraktoren, die nacheinander wegfallen
 const MP_REVEAL_MS = 4000;  // Wie lange die Auflösung angezeigt wird
 const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const CHAIN_DRAW_MS = 45000;  // Zeit pro Zeichen-Runde im Telestrationsplayer-Modus
+const CHAIN_GUESS_MS = 30000; // Zeit pro Rate-Runde im Telestrationsplayer-Modus
 
 let mp = null;                 // { db, roomsCol, mpBoardRef, FieldValue }
 let myPlayerId = null;
@@ -4365,6 +4427,18 @@ let mpLocalLiveStroke = null;
 let mpLastStrokeWrite = 0;
 let mpCanvasDrawing = false;
 let mpCanvasStageRect = null;
+
+// ---- Telestrationsplayer (chain-mode) state ----
+let pendingChainMode = false;
+let chainLocalStrokes = [];
+let chainLiveStroke = null;
+let chainDrawing = false;
+let chainStageRect = null;
+let chainRenderedFor = null;
+let chainAdvanceInFlight = false;
+let booksUnsub = null;
+let chainRevealBooks = [];
+let chainRevealIdx = 0;
 
 function getOrCreatePlayerId(){
   try{
@@ -4402,7 +4476,6 @@ const mpRoomCodeEl = document.getElementById('mpRoomCode');
 const mpPlayerList = document.getElementById('mpPlayerList');
 const mpStartBtn = document.getElementById('mpStartBtn');
 const mpWaitNote = document.getElementById('mpWaitNote');
-const mpTeamToggleBtn = document.getElementById('mpTeamToggleBtn');
 const mpTeamNote = document.getElementById('mpTeamNote');
 const mpTeamScores = document.getElementById('mpTeamScores');
 const mpTeamResult = document.getElementById('mpTeamResult');
@@ -4428,6 +4501,24 @@ const mpFinalScores = document.getElementById('mpFinalScores');
 const mpSaveBtn = document.getElementById('mpSaveBtn');
 const mpBoardList = document.getElementById('mpBoardList');
 
+// ---- Telestrationsplayer (chain-mode) DOM refs ----
+const mpChainRoundWrap = document.getElementById('mpChainRoundWrap');
+const chainTaskBanner = document.getElementById('chainTaskBanner');
+const chainDrawArea = document.getElementById('chainDrawArea');
+const chainStage = document.getElementById('chainStage');
+const chainCanvas = document.getElementById('chainCanvas');
+const chainClearBtn = document.getElementById('chainClearBtn');
+const chainSubmitDrawBtn = document.getElementById('chainSubmitDrawBtn');
+const chainGuessArea = document.getElementById('chainGuessArea');
+const chainViewStage = document.getElementById('chainViewStage');
+const chainViewCanvas = document.getElementById('chainViewCanvas');
+const chainGuessInput = document.getElementById('chainGuessInput');
+const chainSubmitGuessBtn = document.getElementById('chainSubmitGuessBtn');
+const chainWaitNote = document.getElementById('chainWaitNote');
+const mpChainReveal = document.getElementById('mpChainReveal');
+const chainRevealBody = document.getElementById('chainRevealBody');
+const chainRevealCounter = document.getElementById('chainRevealCounter');
+
 // Multiplayer Top 10 vs. Teamplayer Top 10 are two separate leaderboards —
 // which one is shown always follows `currentMode` ('mp' vs 'tp').
 function updateMultiplayerBoardVisibility(){
@@ -4446,6 +4537,7 @@ function showMpScreen(name){
   mpLobby.style.display = name === 'lobby' ? 'block' : 'none';
   mpGameArea.style.display = name === 'game' ? 'flex' : 'none';
   mpFinal.style.display = name === 'final' ? 'block' : 'none';
+  mpChainReveal.style.display = name === 'chainreveal' ? 'block' : 'none';
 }
 
 function showStartScreen(){
@@ -4479,7 +4571,6 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   // on whether "Multiplayer" or "Teamplayer" was chosen on the splash screen.)
 });
 
-document.getElementById('mpBackBtn').addEventListener('click', showStartScreen);
 document.getElementById('mpLobbyLeaveBtn').addEventListener('click', () => { mpTeardown(); showStartScreen(); });
 const mpLeaveBtn = document.getElementById('mpLeaveBtn');
 mpLeaveBtn.addEventListener('click', () => { mpTeardown(); showStartScreen(); });
@@ -4496,21 +4587,20 @@ async function mpCreateRoom(){
     mp = await withTimeout(window.mpReady, 6000);
     const code = makeRoomCode();
     const roomRef = mp.roomsCol.doc(code);
-    // Treffzeit ist ein reiner "heute um HH:MM"-Zeitpunkt (kein Datumsfeld) —
-    // reicht für die typische "wir spielen heute Abend um 20 Uhr"-Verabredung.
+    // Termin ist ein echtes Datum+Uhrzeit-Feld (nicht mehr nur "heute um HH:MM"),
+    // damit sich auch Verabredungen für einen anderen Tag eintragen lassen.
     const meetingTimeInput = document.getElementById('mpMeetingTime').value;
     let meetingTime = null;
     if(meetingTimeInput){
-      const [hh, mm] = meetingTimeInput.split(':').map(Number);
-      const d = new Date();
-      d.setHours(hh, mm, 0, 0);
-      meetingTime = d.toISOString();
+      const d = new Date(meetingTimeInput);
+      if(!isNaN(d.getTime())) meetingTime = d.toISOString();
     }
     await roomRef.set({
       code, hostId: myPlayerId, status: 'lobby',
       createdAt: mp.FieldValue.serverTimestamp(),
       turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null,
-      teamMode: pendingTeamMode,
+      teamMode: pendingChainMode ? false : pendingTeamMode,
+      gameMode: pendingChainMode ? 'chain' : 'standard',
       persistent: pendingPersistent,
       meetingTime
     });
@@ -4661,7 +4751,10 @@ function enterRoom(code){
     renderMpPlayerList();
     if(mpRoomData){
       if(mpRoomData.status === 'lobby') onRoomUpdate();
-      else if(mpRoomData.status === 'finished') renderMpFinal();
+      else if(mpRoomData.status === 'finished'){
+        if(mpRoomData.gameMode === 'chain') renderMpChainReveal();
+        else renderMpFinal();
+      }
     }
   });
 }
@@ -4709,11 +4802,12 @@ function onRoomUpdate(){
   // badge (MP/TP) in sync with it. Matters most for a JOINING player, whose
   // local guess (from which splash button they used) may not match the
   // room they actually joined.
-  setModeBadge(mpRoomData.teamMode ? 'tp' : 'mp');
+  setModeBadge(mpRoomData.gameMode === 'chain' ? 'chain' : (mpRoomData.teamMode ? 'tp' : 'mp'));
   if(mpRoomData.status === 'lobby'){
     showMpScreen('lobby');
     const teamMode = !!mpRoomData.teamMode;
     mpTeamNote.style.display = teamMode ? 'block' : 'none';
+    document.getElementById('mpChainNote').style.display = mpRoomData.gameMode === 'chain' ? 'block' : 'none';
     renderMpPlayerList();
     const teamsReady = !teamMode || (mpPlayers.every(p => p.team) && mpTeamPlayerCount('A') >= 1 && mpTeamPlayerCount('B') >= 1);
     mpStartBtn.style.display = isHost ? 'block' : 'none';
@@ -4733,9 +4827,10 @@ function onRoomUpdate(){
     const meetingNoteEl = document.getElementById('mpMeetingNote');
     if(mpRoomData.meetingTime){
       const t = new Date(mpRoomData.meetingTime);
+      const dateStr = t.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
       const hh = String(t.getHours()).padStart(2,'0');
       const mm = String(t.getMinutes()).padStart(2,'0');
-      meetingNoteEl.textContent = `🕒 Geplante Treffzeit: ${hh}:${mm} Uhr`;
+      meetingNoteEl.textContent = `🕒 Termin: ${dateStr}, ${hh}:${mm} Uhr`;
       meetingNoteEl.style.display = 'block';
     } else {
       meetingNoteEl.style.display = 'none';
@@ -4745,32 +4840,31 @@ function onRoomUpdate(){
     return;
   }
   if(mpRoomData.status === 'finished'){
-    showMpScreen('final');
-    renderMpFinal();
+    if(mpRoomData.gameMode === 'chain'){
+      showMpScreen('chainreveal');
+      renderMpChainReveal();
+    } else {
+      showMpScreen('final');
+      renderMpFinal();
+    }
     return;
   }
   showMpScreen('game');
-  renderMpRound();
+  if(mpRoomData.gameMode === 'chain'){
+    renderMpChainRound();
+  } else {
+    renderMpRound();
+  }
 }
 
-// Teamplayer-Modus wird jetzt schon auf dem Multiplayer-Startbildschirm (vor
-// dem Erstellen des Raums) festgelegt, statt erst danach in der Lobby — hält
-// die Lobby aufgeräumt. `pendingTeamMode` ist der lokale An/Aus-Zustand des
-// Toggles, bevor überhaupt ein Raum existiert; er fließt beim Klick auf
-// "Raum erstellen" direkt in den neuen Raum ein (siehe mpCreateRoom).
+// Teamplayer-Modus wird ausschließlich über den eigenen "Teamplayer"-Button
+// auf dem Startbildschirm gewählt (kein zusätzlicher Toggle mehr auf dem
+// Multiplayer-Einstiegsbildschirm — der wäre neben dem eigenen Splash-Button
+// nur doppelt gemoppelt). `pendingTeamMode` ist der lokale An/Aus-Zustand,
+// den `goToMultiplayerEntry()` je nach gewähltem Splash-Button setzt; er
+// fließt beim Klick auf "Raum erstellen" direkt in den neuen Raum ein (siehe
+// mpCreateRoom).
 let pendingTeamMode = false;
-function renderTeamToggleBtn(){
-  mpTeamToggleBtn.classList.toggle('on', pendingTeamMode);
-  mpTeamToggleBtn.textContent = pendingTeamMode ? 'Teamplayer-Modus: An' : 'Teamplayer-Modus';
-}
-mpTeamToggleBtn.addEventListener('click', () => {
-  pendingTeamMode = !pendingTeamMode;
-  renderTeamToggleBtn();
-  // Keep the header badge (MP/TP) and which Top-10 board would show in sync
-  // with the toggle, even though the boards themselves are hidden while on
-  // this entry screen — matters once the user later leaves back to start.
-  setModeBadge(pendingTeamMode ? 'tp' : 'mp');
-});
 
 // "Dauerhafter Treffpunkt": Raum bekommt kein Ablaufdatum — bleibt nach einem
 // fertig gespielten Spiel offen, der Host kann eine "Neue Runde" im selben
@@ -4792,6 +4886,10 @@ const MP_TURNS_PER_PLAYER = 3;
 mpStartBtn.addEventListener('click', async () => {
   if(!isHost || mpPlayers.length < 2) return;
   mpStartBtn.disabled = true;
+  if(mpRoomData && mpRoomData.gameMode === 'chain'){
+    await mpStartChainGame();
+    return;
+  }
   const basePlayerIds = mpPlayers.map(p => p.id);
   let order = [];
   for(let lap = 0; lap < MP_TURNS_PER_PLAYER; lap++){
@@ -4802,6 +4900,43 @@ mpStartBtn.addEventListener('click', async () => {
   await mpStartRoundForDrawer(0, order);
   if(!mpRefereeIntervalId) mpRefereeIntervalId = setInterval(mpRefereeTick, 300);
 });
+
+// ---- Telestrationsplayer: game start ----
+// Jede:r Spieler:in startet eine eigene "Kette" (Buch) mit einem automatisch
+// zugewiesenen Songtitel. Über N Runden (N = Spieleranzahl) wandert jede
+// Kette reihum durch alle Spieler: Runde 0 = jede:r zeichnet den eigenen Song
+// (das eigene Buch), Runde 1 = jede:r rät, was im NÄCHSTEN Buch in der festen
+// Reihenfolge (chainOrder) gezeichnet wurde, usw. — Zeichnen/Raten wechseln
+// sich pro Runde global ab (gerade Runde = zeichnen, ungerade = raten).
+async function mpStartChainGame(){
+  const basePlayerIds = mpPlayers.map(p => p.id);
+  const order = shuffle(basePlayerIds);
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  const sourcePool = (mpRoomData.songPool && mpRoomData.songPool.length >= 5) ? mpRoomData.songPool : SONGS;
+  const idxPool = shuffle(sourcePool.map((_, i) => i));
+  try{
+    await Promise.all(order.map((pid, i) => {
+      const s = sourcePool[idxPool[i % idxPool.length]];
+      const player = mpPlayers.find(p => p.id === pid);
+      return roomRef.collection('books').doc(pid).set({
+        ownerId: pid,
+        ownerName: (player && player.name) || '?',
+        orderIdx: i,
+        steps: { '0': { type: 'song', title: s.title, artist: s.artist } }
+      });
+    }));
+    await roomRef.update({
+      status: 'playing',
+      chainOrder: order,
+      chainRound: { idx: 0, type: 'drawing', deadlineTs: Date.now() + CHAIN_DRAW_MS, submitted: {} }
+    });
+  }catch(e){
+    showMpError('Kette konnte nicht gestartet werden: ' + e.message);
+    mpStartBtn.disabled = false;
+    return;
+  }
+  if(!mpRefereeIntervalId) mpRefereeIntervalId = setInterval(mpRefereeTick, 300);
+}
 
 async function mpStartRoundForDrawer(idx, order){
   const roomRef = mp.roomsCol.doc(currentRoomCode);
@@ -4840,6 +4975,7 @@ function hideAllMpPhaseBlocks(){
   mpWaitChoose.style.display = 'none';
   mpThinkWrap.style.display = 'none';
   mpDrawWrap.style.display = 'none';
+  mpChainRoundWrap.style.display = 'none';
   mpResult.style.display = 'none';
   mpStage.classList.remove('mp-live');
   mpStage.classList.remove('mp-fullscreen-draw');
@@ -5033,7 +5169,9 @@ function showMpReveal(r){
 }
 
 function mpRefereeTick(){
-  if(!isHost || !mpRoomData || mpRoomData.status !== 'playing' || !mpRoomData.round) return;
+  if(!isHost || !mpRoomData || mpRoomData.status !== 'playing') return;
+  if(mpRoomData.gameMode === 'chain'){ mpChainRefereeTick(); return; }
+  if(!mpRoomData.round) return;
   const r = mpRoomData.round;
   const now = Date.now();
   if(r.phase === 'thinking' && r.thinkStartTs && (now - r.thinkStartTs) >= THINK_MS){
@@ -5043,6 +5181,52 @@ function mpRefereeTick(){
   } else if(r.phase === 'reveal' && r.revealStartTs && (now - r.revealStartTs) >= MP_REVEAL_MS){
     mpAdvanceRound();
   }
+}
+
+// Host-only: advances the Telestrationsplayer chain round once every player
+// has submitted their drawing/guess, or force-advances (filling a neutral
+// placeholder step for stragglers so no chain gets a gap) once the round's
+// time is up.
+async function mpChainRefereeTick(){
+  if(!mpRoomData.chainRound || chainAdvanceInFlight) return;
+  const cr = mpRoomData.chainRound;
+  const order = mpRoomData.chainOrder || [];
+  const n = order.length;
+  if(!n) return;
+  const submittedCount = Object.keys(cr.submitted || {}).length;
+  const timedOut = cr.deadlineTs && Date.now() >= cr.deadlineTs;
+  if(submittedCount < n && !timedOut) return;
+  chainAdvanceInFlight = true;
+  try{
+    const roomRef = mp.roomsCol.doc(currentRoomCode);
+    if(timedOut && submittedCount < n){
+      const stepIdx = cr.idx + 1;
+      const fills = [];
+      order.forEach((pid, myIdx) => {
+        if(cr.submitted && cr.submitted[pid]) return;
+        const bookId = order[(myIdx + cr.idx) % n];
+        const stepData = cr.type === 'drawing'
+          ? { type: 'drawing', strokes: [], byId: pid, byName: '(keine Antwort)' }
+          : { type: 'guess', text: '(keine Antwort)', byId: pid, byName: '(keine Antwort)' };
+        fills.push(roomRef.collection('books').doc(bookId).update({ ['steps.' + stepIdx]: stepData }));
+      });
+      await Promise.all(fills);
+    }
+    const nextIdx = cr.idx + 1;
+    if(nextIdx >= n){
+      await roomRef.update({ status: 'finished' });
+    } else {
+      await roomRef.update({
+        chainRound: {
+          idx: nextIdx,
+          type: nextIdx % 2 === 0 ? 'drawing' : 'guess',
+          deadlineTs: Date.now() + (nextIdx % 2 === 0 ? CHAIN_DRAW_MS : CHAIN_GUESS_MS),
+          submitted: {}
+        }
+      });
+    }
+  }catch(e){ /* room might be gone, or already advanced — retry next tick */ }
+  chainAdvanceInFlight = false;
 }
 
 async function mpBeginDrawingPhase(){
@@ -5207,6 +5391,274 @@ mpClearBtn.addEventListener('click', () => {
   }
 });
 
+/* =========================================================
+   TELESTRATIONSPLAYER — Ketten-Zeichnen/Raten (Rendering + Eingabe)
+   Anders als der Standard-Modus zeichnet hier NIEMAND live für andere
+   Zuschauer:innen mit — jede:r arbeitet privat am eigenen zugewiesenen Buch,
+   genau wie beim echten Kettenspiel ("Stille Post extrem"). Striche werden
+   deshalb erst beim Absenden ("Fertig") einmalig gespeichert, nicht laufend
+   gestreamt.
+   ========================================================= */
+
+// Statisches (nicht-live) Rendern von normalisierten Strichen auf eine
+// beliebige Canvas/Stage-Kombination — genutzt sowohl für die Rate-Ansicht
+// (die Zeichnung, die gerade erraten werden soll) als auch für die
+// Ketten-Auflösung am Ende.
+function renderStaticStrokes(canvasEl, stageEl, strokes){
+  const rect = stageEl.getBoundingClientRect();
+  canvasEl.width = rect.width * dpr;
+  canvasEl.height = rect.height * dpr;
+  const c = canvasEl.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, rect.width, rect.height);
+  c.lineWidth = 6; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = '#e6392b';
+  for(const s of (strokes || [])){
+    if(!s.points || s.points.length < 2) continue;
+    c.beginPath();
+    c.moveTo(s.points[0].x * rect.width, s.points[0].y * rect.height);
+    for(let i = 1; i < s.points.length; i++) c.lineTo(s.points[i].x * rect.width, s.points[i].y * rect.height);
+    c.stroke();
+  }
+}
+
+function drawChainCanvas(){
+  const rect = chainStage.getBoundingClientRect();
+  chainCanvas.width = rect.width * dpr;
+  chainCanvas.height = rect.height * dpr;
+  const c = chainCanvas.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, rect.width, rect.height);
+  c.lineWidth = 6; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = '#e6392b';
+  const all = chainLiveStroke ? [...chainLocalStrokes, chainLiveStroke] : chainLocalStrokes;
+  for(const s of all){
+    if(!s.points || s.points.length < 2) continue;
+    c.beginPath();
+    c.moveTo(s.points[0].x, s.points[0].y);
+    for(let i = 1; i < s.points.length; i++) c.lineTo(s.points[i].x, s.points[i].y);
+    c.stroke();
+  }
+}
+function chainPointFromEvent(e){
+  const rect = chainStage.getBoundingClientRect();
+  const t = (e.touches && e.touches[0]) || e;
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top, w: rect.width, h: rect.height };
+}
+function chainCanvasStart(e){
+  e.preventDefault();
+  chainDrawing = true;
+  const p = chainPointFromEvent(e);
+  chainStageRect = { w: p.w, h: p.h };
+  chainLiveStroke = { points: [{ x: p.x, y: p.y }] };
+}
+function chainCanvasMove(e){
+  if(!chainDrawing) return;
+  e.preventDefault();
+  const p = chainPointFromEvent(e);
+  chainLiveStroke.points.push({ x: p.x, y: p.y });
+  drawChainCanvas();
+}
+function chainCanvasEnd(){
+  if(!chainDrawing) return;
+  chainDrawing = false;
+  if(chainLiveStroke && chainLiveStroke.points.length > 1) chainLocalStrokes.push(chainLiveStroke);
+  chainLiveStroke = null;
+  drawChainCanvas();
+}
+chainCanvas.addEventListener('pointerdown', chainCanvasStart);
+chainCanvas.addEventListener('pointermove', chainCanvasMove);
+window.addEventListener('pointerup', chainCanvasEnd);
+chainCanvas.addEventListener('pointercancel', chainCanvasEnd);
+chainClearBtn.addEventListener('click', () => { chainLocalStrokes = []; chainLiveStroke = null; drawChainCanvas(); });
+
+// Welches Buch bearbeite ich (Spieler:in an Position `myIdx` in chainOrder)
+// in Runde `r`? Feste rotierende Zuordnung, jede:r kommt über N Runden genau
+// einmal an jedes Buch.
+function chainMyBookIdForRound(r){
+  const order = mpRoomData.chainOrder || [];
+  const n = order.length;
+  if(!n) return null;
+  const myIdx = order.indexOf(myPlayerId);
+  if(myIdx === -1) return null;
+  return order[(myIdx + r) % n];
+}
+
+function renderMpChainRound(){
+  mpThinkWrap.style.display = 'none';
+  mpDrawWrap.style.display = 'none';
+  mpResult.style.display = 'none';
+  mpWaitChoose.style.display = 'none';
+  mpChainRoundWrap.style.display = 'block';
+
+  const cr = mpRoomData.chainRound;
+  if(!cr) return;
+  const n = (mpRoomData.chainOrder || []).length;
+  mpRoundNum.textContent = cr.idx + 1;
+  mpRoundTotal.textContent = n;
+  mpDrawerLabel.textContent = cr.type === 'drawing' ? '✏️ Zeichnen' : '💬 Raten';
+
+  const iSubmitted = !!(cr.submitted && cr.submitted[myPlayerId]);
+  if(iSubmitted){
+    chainDrawArea.style.display = 'none';
+    chainGuessArea.style.display = 'none';
+    chainTaskBanner.style.display = 'none';
+    const doneCount = Object.keys(cr.submitted || {}).length;
+    chainWaitNote.style.display = 'block';
+    chainWaitNote.textContent = `Warte auf die anderen… (${doneCount}/${n} fertig)`;
+    return;
+  }
+  chainWaitNote.style.display = 'none';
+  chainTaskBanner.style.display = 'block';
+
+  const bookId = chainMyBookIdForRound(cr.idx);
+  if(!bookId) return;
+  const key = cr.idx + '_' + bookId;
+  if(chainRenderedFor === key) return; // schon für diese Runde/dieses Buch geladen — Refetch bei jedem Snapshot-Tick vermeiden
+  chainRenderedFor = key;
+
+  const stepIdx = cr.idx + 1;
+  mp.roomsCol.doc(currentRoomCode).collection('books').doc(bookId).get().then(snap => {
+    if(!snap.exists) return;
+    const book = snap.data();
+    const prev = book.steps[String(stepIdx - 1)];
+    if(!prev) return;
+    if(cr.type === 'drawing'){
+      const promptText = prev.type === 'song' ? `${prev.title} – ${prev.artist}` : prev.text;
+      chainTaskBanner.innerHTML = `Zeichne: <b>${promptText}</b>`;
+      chainDrawArea.style.display = 'block';
+      chainGuessArea.style.display = 'none';
+      chainLocalStrokes = [];
+      chainLiveStroke = null;
+      drawChainCanvas();
+    } else {
+      chainTaskBanner.textContent = 'Was ist hier zu sehen?';
+      chainGuessArea.style.display = 'block';
+      chainDrawArea.style.display = 'none';
+      chainGuessInput.value = '';
+      renderStaticStrokes(chainViewCanvas, chainViewStage, (prev && prev.strokes) || []);
+    }
+  }).catch(() => {});
+}
+
+async function chainSubmitDraw(){
+  if(!mp || !currentRoomCode || !mpRoomData || !mpRoomData.chainRound) return;
+  chainSubmitDrawBtn.disabled = true;
+  const cr = mpRoomData.chainRound;
+  const bookId = chainMyBookIdForRound(cr.idx);
+  const stepIdx = cr.idx + 1;
+  const domRect = chainStage.getBoundingClientRect();
+  const w = (chainStageRect && chainStageRect.w) || domRect.width;
+  const h = (chainStageRect && chainStageRect.h) || domRect.height;
+  const norm = chainLocalStrokes.map(s => ({ points: s.points.map(p => ({ x: p.x / w, y: p.y / h })) }));
+  try{
+    const roomRef = mp.roomsCol.doc(currentRoomCode);
+    await roomRef.collection('books').doc(bookId).update({
+      ['steps.' + stepIdx]: { type: 'drawing', strokes: norm, byId: myPlayerId, byName: myName }
+    });
+    await roomRef.update({ ['chainRound.submitted.' + myPlayerId]: true });
+  }catch(e){
+    showMpError('Konnte Zeichnung nicht senden: ' + e.message);
+  }
+  chainSubmitDrawBtn.disabled = false;
+}
+async function chainSubmitGuess(){
+  if(!mp || !currentRoomCode || !mpRoomData || !mpRoomData.chainRound) return;
+  const text = chainGuessInput.value.trim();
+  if(!text){ chainGuessInput.focus(); return; }
+  chainSubmitGuessBtn.disabled = true;
+  const cr = mpRoomData.chainRound;
+  const bookId = chainMyBookIdForRound(cr.idx);
+  const stepIdx = cr.idx + 1;
+  try{
+    const roomRef = mp.roomsCol.doc(currentRoomCode);
+    await roomRef.collection('books').doc(bookId).update({
+      ['steps.' + stepIdx]: { type: 'guess', text, byId: myPlayerId, byName: myName }
+    });
+    await roomRef.update({ ['chainRound.submitted.' + myPlayerId]: true });
+  }catch(e){
+    showMpError('Konnte Vermutung nicht senden: ' + e.message);
+  }
+  chainSubmitGuessBtn.disabled = false;
+}
+chainSubmitDrawBtn.addEventListener('click', chainSubmitDraw);
+chainSubmitGuessBtn.addEventListener('click', chainSubmitGuess);
+chainGuessInput.addEventListener('keydown', e => { if(e.key === 'Enter') chainSubmitGuess(); });
+
+// ---- Ketten-Auflösung (jede:r blättert lokal/unabhängig durch, kein
+// Host-gesteuertes Voranschreiten nötig — alle Bücher sind bereits fertig) ----
+function renderMpChainReveal(){
+  if(!booksUnsub && mp && currentRoomCode){
+    booksUnsub = mp.roomsCol.doc(currentRoomCode).collection('books').orderBy('orderIdx', 'asc').onSnapshot(qs => {
+      chainRevealBooks = qs.docs.map(d => d.data());
+      chainRevealIdx = Math.min(chainRevealIdx, Math.max(0, chainRevealBooks.length - 1));
+      renderChainRevealBody();
+    });
+  }
+  const newRoundBtn = document.getElementById('chainRevealNewRoundBtn');
+  newRoundBtn.style.display = (isHost && mpRoomData && mpRoomData.persistent) ? 'inline-block' : 'none';
+  newRoundBtn.disabled = false;
+  newRoundBtn.textContent = '🔁 Neue Runde in diesem Raum';
+}
+
+function renderChainRevealBody(){
+  if(!chainRevealBooks.length){
+    chainRevealBody.innerHTML = '<p class="sub">Lade Ketten…</p>';
+    chainRevealCounter.textContent = '';
+    return;
+  }
+  const book = chainRevealBooks[chainRevealIdx];
+  chainRevealCounter.textContent = `Kette ${chainRevealIdx + 1}/${chainRevealBooks.length} — gestartet von ${book.ownerName}`;
+  const stepKeys = Object.keys(book.steps || {}).map(Number).sort((a, b) => a - b);
+  let html = '';
+  for(const k of stepKeys){
+    const step = book.steps[String(k)];
+    if(!step) continue;
+    if(step.type === 'song'){
+      html += `<div class="chain-step"><div class="chain-step-label">🎵 Song</div><div class="chain-guess-text">${step.title} – ${step.artist}</div></div>`;
+    } else if(step.type === 'drawing'){
+      html += `<div class="chain-step"><div class="chain-step-label">✏️ ${step.byName} hat gezeichnet</div><div class="stage chain-mini"><canvas id="chainRevealCanvas_${k}"></canvas></div></div>`;
+    } else if(step.type === 'guess'){
+      html += `<div class="chain-step"><div class="chain-step-label">💬 ${step.byName} hat geraten</div><div class="chain-guess-text">${step.text}</div></div>`;
+    }
+  }
+  chainRevealBody.innerHTML = html;
+  for(const k of stepKeys){
+    const step = book.steps[String(k)];
+    if(!step || step.type !== 'drawing') continue;
+    const canvasEl = document.getElementById('chainRevealCanvas_' + k);
+    if(!canvasEl) continue;
+    renderStaticStrokes(canvasEl, canvasEl.parentElement, step.strokes || []);
+  }
+}
+
+document.getElementById('chainRevealPrevBtn').addEventListener('click', () => {
+  if(chainRevealIdx > 0){ chainRevealIdx--; renderChainRevealBody(); }
+});
+document.getElementById('chainRevealNextBtn').addEventListener('click', () => {
+  if(chainRevealIdx < chainRevealBooks.length - 1){ chainRevealIdx++; renderChainRevealBody(); }
+});
+document.getElementById('chainRevealDoneBtn').addEventListener('click', () => { mpTeardown(); showStartScreen(); });
+
+// Nur bei "Dauerhafter Treffpunkt"-Ketten-Räumen sichtbar: setzt den Raum
+// zurück in die Lobby (gleicher Code, gleiche Mitspieler:innen bleiben
+// drin). Die Bücher werden beim nächsten Rundenstart per .set() komplett
+// überschrieben, ein manuelles Löschen ist daher nicht nötig.
+document.getElementById('chainRevealNewRoundBtn').addEventListener('click', async () => {
+  if(!isHost || !currentRoomCode || !mp) return;
+  const btn = document.getElementById('chainRevealNewRoundBtn');
+  btn.disabled = true;
+  btn.textContent = 'Setze zurück…';
+  try{
+    const roomRef = mp.roomsCol.doc(currentRoomCode);
+    await roomRef.update({ status: 'lobby', chainOrder: [], chainRound: null });
+  }catch(e){
+    showMpError('Neue Runde konnte nicht gestartet werden: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '🔁 Neue Runde in diesem Raum';
+  }
+});
+
 // ---- Final screen ----
 function renderMpFinal(){
   const sorted = [...mpPlayers].sort((a, b) => (b.score||0) - (a.score||0));
@@ -5320,7 +5772,8 @@ loadTpBoard();
 function mpTeardown(){
   if(roomUnsub) roomUnsub();
   if(playersUnsub) playersUnsub();
-  roomUnsub = null; playersUnsub = null;
+  if(booksUnsub) booksUnsub();
+  roomUnsub = null; playersUnsub = null; booksUnsub = null;
   clearTimeout(mpThinkTimerId);
   clearInterval(mpThinkIntervalId);
   clearInterval(mpRefereeIntervalId);
@@ -5333,6 +5786,8 @@ function mpTeardown(){
   mpNotifyEnabled = false;
   mpLastPlayerCount = null;
   stopTitleFlash();
+  chainLocalStrokes = []; chainLiveStroke = null; chainRenderedFor = null;
+  chainAdvanceInFlight = false; chainRevealBooks = []; chainRevealIdx = 0;
 }
 
 /* =========================================================
@@ -5386,15 +5841,16 @@ function goToSingleplayerEntry(){
   updateContinueButtons();
   playerNameInput.focus();
 }
-function goToMultiplayerEntry(prefillCode, teamMode){
+function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   hideSplash(!!prefillCode);
-  // "Teamplayer" on the splash is a shortcut into the same multiplayer flow
-  // with the team-mode toggle pre-set to on (still changeable on the entry
-  // screen); plain "Multiplayer" and invite links default it to off. The
-  // header badge and which Top-10 board shows both follow this.
+  // "Teamplayer" and "Telestrationsplayer" on the splash are shortcuts into
+  // this same multiplayer entry flow with the corresponding mode pre-set;
+  // plain "Multiplayer" and invite links default both to off. There is no
+  // toggle for either on this screen (splash choice is the only entry
+  // point) — the header badge and which Top-10 board shows both follow this.
   pendingTeamMode = !!teamMode;
-  setModeBadge(pendingTeamMode ? 'tp' : 'mp');
-  renderTeamToggleBtn();
+  pendingChainMode = !!chainMode;
+  setModeBadge(pendingChainMode ? 'chain' : (pendingTeamMode ? 'tp' : 'mp'));
   pendingPersistent = false;
   renderPersistentToggleBtn();
   document.getElementById('mpMeetingTime').value = '';
@@ -5410,6 +5866,7 @@ function goToMultiplayerEntry(prefillCode, teamMode){
 document.getElementById('splashSoloBtn').addEventListener('click', () => goToSingleplayerEntry());
 document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
 document.getElementById('splashTeamBtn').addEventListener('click', () => goToMultiplayerEntry(null, true));
+document.getElementById('splashChainBtn').addEventListener('click', () => goToMultiplayerEntry(null, false, true));
 
 // ---- Clicking the heading resets everything and goes back to the splash screen ----
 function goToSplash(){
@@ -5425,6 +5882,7 @@ function goToSplash(){
   mpLobby.style.display = 'none';
   mpGameArea.style.display = 'none';
   mpFinal.style.display = 'none';
+  mpChainReveal.style.display = 'none';
   playerNameInput.disabled = false;
   playerNameInput.value = '';
   playerNameInput.style.borderColor = '';
