@@ -40,6 +40,15 @@
     color:var(--pen);
     margin:0 0 1px;
     line-height:0.95;
+    display:flex;align-items:baseline;gap:9px;
+    cursor:pointer;width:fit-content;
+  }
+  .mode-badge{
+    display:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:11px;font-weight:700;letter-spacing:0.5px;
+    color:var(--gold);border:1px solid var(--gold);
+    border-radius:5px;padding:2px 6px;
   }
   .sub{color:var(--muted);font-size:12.5px;margin-bottom:10px;}
 
@@ -60,22 +69,11 @@
     white-space:nowrap;
   }
   .start-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .start-btn.arrow-btn{
+    padding:8px 14px;font-size:19px;line-height:1;min-width:40px;
+    text-align:center;font-weight:700;
+  }
 
-  .fs-btn{
-    position:fixed;top:14px;right:14px;
-    width:38px;height:38px;border-radius:50%;
-    background:rgba(0,0,0,0.55);border:1px solid var(--line);
-    color:var(--ink);font-size:16px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    z-index:50;
-  }
-  .fs-btn:hover{border-color:var(--muted);}
-  .fs-note{
-    position:fixed;top:58px;right:14px;max-width:220px;
-    background:rgba(0,0,0,0.85);border:1px solid var(--line);
-    color:var(--muted);font-size:12px;padding:8px 10px;
-    border-radius:6px;z-index:50;display:none;text-align:right;
-  }
   .err-banner{
     position:fixed;left:12px;right:12px;bottom:12px;
     background:#3a0f0c;border:1px solid var(--pen);
@@ -259,15 +257,20 @@
   @keyframes splashCursorBlink{50%{opacity:0;}}
   .splash-karaoke{
     font-family:'Anton',sans-serif;font-weight:400;font-style:italic;
-    font-size:clamp(32px,9.5vw,60px);letter-spacing:3px;text-align:center;
+    font-size:clamp(34px,10vw,64px);letter-spacing:4px;text-align:center;
     text-transform:uppercase;
-    background:linear-gradient(180deg,#f7fafc 0%,#aeb9c4 22%,#6d7680 42%,#e8c877 58%,#9a6f2e 78%,#c9a24a 100%);
+    background:linear-gradient(180deg,
+      #ffffff 0%,#d9e0e6 10%,#aeb9c4 24%,#6d7680 40%,
+      #23262a 51%,#0c0d0e 54%,
+      #f2d98d 58%,#e8c877 66%,#9a6f2e 80%,#c9a24a 92%,#8a611f 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#aeb9c4;
-    -webkit-text-stroke:1px rgba(20,20,22,0.5);
+    -webkit-text-stroke:1.6px rgba(10,10,12,0.8);
     text-shadow:
-      0 1px 0 rgba(255,255,255,0.5),
-      0 -1px 1px rgba(0,0,0,0.6);
-    filter:drop-shadow(0 3px 2px rgba(0,0,0,0.75)) drop-shadow(0 0 10px rgba(230,57,43,0.15));
+      0 1px 0 rgba(255,255,255,0.65),
+      0 2px 0 rgba(255,255,255,0.2),
+      0 -2px 2px rgba(0,0,0,0.75),
+      0 5px 8px rgba(0,0,0,0.55);
+    filter:drop-shadow(0 4px 3px rgba(0,0,0,0.85)) drop-shadow(0 0 18px rgba(230,57,43,0.3)) drop-shadow(0 0 2px rgba(255,255,255,0.35));
     margin-top:-0.32em;
     opacity:0;transform:scale(0.92);
     transition:opacity .6s ease, transform .6s ease;
@@ -311,7 +314,7 @@
 
 <div class="wrap">
 
-  <h1>Kritzel-Karaoke</h1>
+  <h1 id="mainHeading">Kritzel-Karaoke<span class="mode-badge" id="modeBadge"></span></h1>
   <div class="sub">Errate den Song, bevor die Zeit um ist.</div>
 
   <div class="name-row">
@@ -320,8 +323,6 @@
     <button class="start-btn mp-btn" id="mpModeBtn">👥 Multiplayer</button>
   </div>
 
-  <button class="fs-btn" id="fsBtn" title="Vollbild">⛶</button>
-  <div class="fs-note" id="fsNote">Vollbild wird von diesem Browser/Fenster nicht unterstützt.</div>
   <div class="err-banner" id="errBanner"></div>
 
   <div class="game-area" id="gameArea" style="display:none;">
@@ -354,7 +355,7 @@
   </div>
 
   <div class="board">
-    <h2>Top 10</h2>
+    <h2>Singleplayer Top 10</h2>
     <ol id="boardList"></ol>
   </div>
 
@@ -598,6 +599,15 @@ let order = [];
 let roundIdx = 0;
 let score = 0;
 let rafId = null;
+let currentMode = null; // 'sp' | 'mp' | null — which mode was picked on the splash screen
+function setModeBadge(mode){
+  currentMode = mode;
+  const badge = document.getElementById('modeBadge');
+  if(!badge) return;
+  if(mode === 'sp'){ badge.textContent = 'SP'; badge.style.display = 'inline-block'; }
+  else if(mode === 'mp'){ badge.textContent = 'MP'; badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+}
 let strokes = [];
 let startTime = null;
 let locked = false;
@@ -1608,7 +1618,8 @@ startGameBtn.addEventListener('click', () => {
       playerNameInput.style.borderColor = 'var(--pen)';
       return;
     }
-    document.querySelector('.name-row').style.display = 'none';
+    playerNameInput.disabled = true;
+    startGameBtn.style.display = 'none';
     document.querySelector('.board').style.display = 'none';
     gameArea.style.display = 'flex';
     order = pickRoundOrder();
@@ -1621,52 +1632,34 @@ startGameBtn.addEventListener('click', () => {
   }
 });
 
+const mpModeBtn = document.getElementById('mpModeBtn');
+
+// Once a name is typed, the currently-visible mode button collapses from a
+// text label into a plain arrow — the mode itself was already picked on the
+// splash screen, so the label is redundant by this point.
+function updateContinueButtons(){
+  const has = playerNameInput.value.trim().length > 0;
+  if(startGameBtn.style.display !== 'none'){
+    startGameBtn.innerHTML = has ? '&#8594;' : "Los geht's";
+    startGameBtn.classList.toggle('arrow-btn', has);
+  }
+  if(mpModeBtn.style.display !== 'none'){
+    mpModeBtn.innerHTML = has ? '&#8594;' : '👥 Multiplayer';
+    mpModeBtn.classList.toggle('arrow-btn', has);
+  }
+}
+
 playerNameInput.addEventListener('input', () => {
   playerNameInput.style.borderColor = '';
+  updateContinueButtons();
 });
 playerNameInput.addEventListener('keydown', (e) => {
-  if(e.key === 'Enter') startGameBtn.click();
+  if(e.key !== 'Enter') return;
+  if(startGameBtn.style.display !== 'none') startGameBtn.click();
+  else if(mpModeBtn.style.display !== 'none') mpModeBtn.click();
 });
 
 loadBoard();
-
-const fsBtn = document.getElementById('fsBtn');
-const fsNote = document.getElementById('fsNote');
-let fsNoteTimer = null;
-
-function isFullscreen(){
-  return !!(document.fullscreenElement || document.webkitFullscreenElement);
-}
-
-function showFsNote(){
-  fsNote.style.display = 'block';
-  clearTimeout(fsNoteTimer);
-  fsNoteTimer = setTimeout(() => { fsNote.style.display = 'none'; }, 3200);
-}
-
-function updateFsBtn(){
-  fsBtn.textContent = isFullscreen() ? '✕' : '⛶';
-  fsBtn.title = isFullscreen() ? 'Vollbild verlassen' : 'Vollbild';
-}
-
-fsBtn.addEventListener('click', () => {
-  if(isFullscreen()){
-    const ex = document.exitFullscreen || document.webkitExitFullscreen;
-    if(ex) ex.call(document);
-    return;
-  }
-  const el = document.documentElement;
-  const req = el.requestFullscreen || el.webkitRequestFullscreen;
-  if(req){
-    const result = req.call(el);
-    if(result && result.catch) result.catch(() => showFsNote());
-  } else {
-    showFsNote();
-  }
-});
-
-document.addEventListener('fullscreenchange', updateFsBtn);
-document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
 /* =========================================================
    MULTIPLAYER — "Zeichner-Rate-Duell"
@@ -1771,8 +1764,12 @@ function showMpScreen(name){
 function showStartScreen(){
   showMpScreen(null);
   document.querySelector('.name-row').style.display = 'flex';
-  document.querySelector('.board').style.display = 'block';
+  document.querySelector('.board').style.display = currentMode === 'mp' ? 'none' : 'block';
   mpBoardWrap.style.display = 'block';
+  playerNameInput.disabled = false;
+  if(currentMode === 'sp'){ startGameBtn.style.display = ''; mpModeBtn.style.display = 'none'; }
+  else { mpModeBtn.style.display = ''; startGameBtn.style.display = 'none'; }
+  updateContinueButtons();
 }
 
 document.getElementById('mpModeBtn').addEventListener('click', () => {
@@ -1783,7 +1780,13 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
     return;
   }
   myName = name;
-  showMpScreen('entry');
+  // Stay on the same page: keep the header/name-row visible and just reveal
+  // the create/join fields below, instead of swapping to a separate screen.
+  playerNameInput.disabled = true;
+  mpModeBtn.style.display = 'none';
+  document.querySelector('.board').style.display = 'none';
+  mpBoardWrap.style.display = 'none';
+  mpEntry.style.display = 'block';
 });
 
 document.getElementById('mpBackBtn').addEventListener('click', showStartScreen);
@@ -2394,19 +2397,57 @@ runSplash();
 
 function goToSingleplayerEntry(){
   hideSplash();
+  setModeBadge('sp');
   document.getElementById('mpModeBtn').style.display = 'none';
   document.getElementById('startGameBtn').style.display = '';
+  document.querySelector('.board').style.display = 'block';
+  updateContinueButtons();
   playerNameInput.focus();
 }
 function goToMultiplayerEntry(prefillCode){
   hideSplash(!!prefillCode);
+  setModeBadge('mp');
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
+  document.querySelector('.board').style.display = 'none';
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
+  updateContinueButtons();
   playerNameInput.focus();
 }
 document.getElementById('splashSoloBtn').addEventListener('click', () => goToSingleplayerEntry());
 document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
+
+// ---- Clicking the heading resets everything and goes back to the splash screen ----
+function goToSplash(){
+  cancelAnimationFrame(rafId);
+  mpTeardown();
+  document.querySelector('.name-row').style.display = 'none';
+  gameArea.style.display = 'none';
+  finalEl.style.display = 'none';
+  document.querySelector('.board').style.display = 'none';
+  mpBoardWrap.style.display = 'none';
+  mpEntry.style.display = 'none';
+  mpLobby.style.display = 'none';
+  mpGameArea.style.display = 'none';
+  mpFinal.style.display = 'none';
+  playerNameInput.disabled = false;
+  playerNameInput.value = '';
+  playerNameInput.style.borderColor = '';
+  startGameBtn.style.display = '';
+  mpModeBtn.style.display = '';
+  updateContinueButtons();
+  setModeBadge(null);
+  const s = document.getElementById('splashScreen');
+  s.style.transition = 'none';
+  s.style.display = 'flex';
+  // splash's own DOM state (typed word, risen logo, mode buttons) is still
+  // intact from the first run — just fade it back in, no need to replay it.
+  requestAnimationFrame(() => {
+    s.style.transition = 'opacity .3s ease';
+    s.style.opacity = '1';
+  });
+}
+document.getElementById('mainHeading').addEventListener('click', goToSplash);
 
 /* =========================================================
    INVITE VIA SHARE SHEET
@@ -2578,7 +2619,9 @@ async function handleSpotifyRedirect(){
         const meSnap = await mp.roomsCol.doc(returnRoom).collection('players').doc(myPlayerId).get();
         if(meSnap.exists && meSnap.data().name) myName = meSnap.data().name;
         hideSplash(true);
+        setModeBadge('mp');
         document.getElementById('startGameBtn').style.display = 'none';
+        document.querySelector('.board').style.display = 'none';
         enterRoom(returnRoom);
         await showSpotifyPlaylistPicker(data.access_token);
       }
