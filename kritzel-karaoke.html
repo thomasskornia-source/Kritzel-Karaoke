@@ -393,8 +393,94 @@
     background:transparent;border:1px solid rgba(230,196,74,0.55);color:var(--ink);
     padding:14px;border-radius:8px;font-family:inherit;font-size:16px;font-weight:600;
     cursor:pointer;letter-spacing:0.5px;transition:border-color .15s, background .15s;
+    position:relative;overflow:hidden;
   }
   .mode-box:hover{border-color:#e6c44a;background:rgba(230,196,74,0.1);}
+
+  /* --- Little characters that walk into the SP/MP/TP mode buttons on the
+       splash screen. Each is a tiny CSS "peg doll" (head/body/2 arms/2 legs)
+       positioned at the very edge of its button so the label stays readable.
+       The walk-in (translateX) and the walk-cycle (bob + limb swing) are both
+       gated behind ".splash-modes.shown" so they start the instant the mode
+       buttons actually become visible, never before. Each skin (.mw-a..mw-g)
+       only varies color/head-shape/size/speed/stride via CSS custom
+       properties, so every character looks and moves a little differently
+       without needing sepate markup per character. */
+  .mode-walker{
+    position:absolute;bottom:5px;width:20px;height:26px;pointer-events:none;z-index:1;
+  }
+  .mode-walker.walk-in-left{ left:6px; transform:translateX(-64px); }
+  .mode-walker.walk-in-right{ right:6px; transform:translateX(64px) scaleX(-1); }
+  .splash-modes.shown .mode-walker.walk-in-left{
+    animation:walkerEnterLeft var(--wspeed,1.1s) ease-out both;
+  }
+  .splash-modes.shown .mode-walker.walk-in-right{
+    animation:walkerEnterRight var(--wspeed,1.1s) ease-out both;
+  }
+  @keyframes walkerEnterLeft{ from{transform:translateX(-64px);} to{transform:translateX(0);} }
+  @keyframes walkerEnterRight{ from{transform:translateX(64px) scaleX(-1);} to{transform:translateX(0) scaleX(-1);} }
+
+  .w-rig{ position:relative;width:100%;height:100%; }
+  .splash-modes.shown .mode-walker .w-rig{
+    animation:walkerBob calc(var(--wspeed,1.1s) / var(--wcycles,4)) ease-in-out var(--wcycles,4);
+  }
+  @keyframes walkerBob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-2px);} }
+
+  .w-head{
+    position:absolute;top:0;left:50%;width:9px;height:9px;margin-left:-4.5px;
+    background:var(--wc,#fff);border-radius:var(--wheadr,50%);
+  }
+  .w-body{
+    position:absolute;top:8px;left:50%;width:7px;height:9px;margin-left:-3.5px;
+    background:var(--wc,#fff);border-radius:3px;
+  }
+  .w-arm,.w-leg{
+    position:absolute;width:2.2px;height:8px;background:var(--wc,#fff);
+    border-radius:2px;transform-origin:top center;
+  }
+  .w-arm{ top:8px; }
+  .w-arm-l{ left:calc(50% - 5.5px); }
+  .w-arm-r{ left:calc(50% + 3.3px); }
+  .w-leg{ top:16px; }
+  .w-leg-l{ left:calc(50% - 2.6px); }
+  .w-leg-r{ left:calc(50% + 0.4px); }
+
+  .splash-modes.shown .mode-walker .w-arm-l{ animation:armSwingL calc(var(--wspeed,1.1s) / var(--wcycles,4)) ease-in-out var(--wcycles,4); }
+  .splash-modes.shown .mode-walker .w-arm-r{ animation:armSwingR calc(var(--wspeed,1.1s) / var(--wcycles,4)) ease-in-out var(--wcycles,4); }
+  .splash-modes.shown .mode-walker .w-leg-l{ animation:legSwingL calc(var(--wspeed,1.1s) / var(--wcycles,4)) ease-in-out var(--wcycles,4); }
+  .splash-modes.shown .mode-walker .w-leg-r{ animation:legSwingR calc(var(--wspeed,1.1s) / var(--wcycles,4)) ease-in-out var(--wcycles,4); }
+
+  @keyframes legSwingL{ 0%,100%{transform:rotate(var(--wamp,18deg));} 50%{transform:rotate(calc(var(--wamp,18deg) * -1));} }
+  @keyframes legSwingR{ 0%,100%{transform:rotate(calc(var(--wamp,18deg) * -1));} 50%{transform:rotate(var(--wamp,18deg));} }
+  @keyframes armSwingL{ 0%,100%{transform:rotate(calc(var(--wamp,18deg) * -1));} 50%{transform:rotate(var(--wamp,18deg));} }
+  @keyframes armSwingR{ 0%,100%{transform:rotate(var(--wamp,18deg));} 50%{transform:rotate(calc(var(--wamp,18deg) * -1));} }
+
+  /* Skins: SP gets one (walks in from the left); MP gets two (one from each
+     side); TP gets four (two blue from the left, two red from the right) —
+     per the user's request, matching Team Rot/Team Blau's own colors
+     (var(--team-a)/var(--team-b)) for the TP ones. */
+  .mw-a{ --wc:#3aa876; --wamp:16deg; --wspeed:1.0s; --wcycles:4; --wheadr:50%; }
+  .mw-a .w-rig{ transform:scale(0.95); }
+
+  .mw-b{ --wc:#c9a227; --wamp:22deg; --wspeed:1.25s; --wcycles:5; --wheadr:30%; }
+  .mw-b .w-rig{ transform:scale(1.05); }
+
+  .mw-c{ --wc:#8a5cf0; --wamp:12deg; --wspeed:0.9s; --wcycles:4; --wheadr:50%; }
+  .mw-c .w-rig{ transform:scale(0.9); }
+
+  .mw-d{ --wc:var(--team-b); --wamp:20deg; --wspeed:1.15s; --wcycles:4; --wheadr:50%; }
+  .mw-d .w-rig{ transform:scale(1); }
+
+  .mw-e{ --wc:#1f5fae; --wamp:14deg; --wspeed:1.3s; --wcycles:5; --wheadr:30%; }
+  .mw-e .w-rig{ transform:scale(0.88); }
+  .mw-e.walk-in-left{ left:26px; }
+
+  .mw-f{ --wc:var(--team-a); --wamp:18deg; --wspeed:1.05s; --wcycles:4; --wheadr:50%; }
+  .mw-f .w-rig{ transform:scale(1); }
+
+  .mw-g{ --wc:#ff6f61; --wamp:24deg; --wspeed:1.4s; --wcycles:5; --wheadr:30%; }
+  .mw-g .w-rig{ transform:scale(0.85); }
+  .mw-g.walk-in-right{ right:26px; }
 
   /* --- Spotify / invite --- */
   #mpSpotifyWrap{margin-top:14px;}
@@ -417,7 +503,12 @@
     <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
     <button class="mode-box" id="splashMpBtn">Multiplayer</button>
     <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
-    <button class="mode-box" id="splashChainBtn">Stille Post Modus</button>
+    <!-- Stille Post Modus: auf Wunsch des Nutzers vorübergehend vom Startbildschirm
+         ausgeblendet ("werde bei Zeiten drauf zurückkommen") — der Modus selbst
+         (gameMode:'chain', Runden-Logik, Reveal, etc.) bleibt vollständig erhalten,
+         nur der Einstieg über den Splash-Button ist deaktiviert. Ein Wort (dieses
+         style-Attribut entfernen) macht ihn wieder sichtbar. -->
+    <button class="mode-box" id="splashChainBtn" style="display:none;">Stille Post Modus</button>
   </div>
 </div>
 
@@ -5739,16 +5830,21 @@ async function mpAutoSaveScore(){
     if(!mine) throw new Error('Kein Punktestand gefunden.');
     const isTeamGame = !!(mpRoomData && mpRoomData.teamMode);
     const boardRef = isTeamGame ? mp.tpBoardRef : mp.mpBoardRef;
-    let list = [];
-    try{
-      const snap = await boardRef.get();
-      list = snap.exists ? (snap.data().entries || []) : [];
-    }catch(e){ list = []; }
-    list.push({ name: mine.name, score: mine.score || 0, ts: Date.now() });
-    list.sort((a, b) => b.score - a.score);
-    list = list.slice(0, 10);
-    await boardRef.set({ entries: list });
-    if(isTeamGame) renderTpBoard(list); else renderMpBoard(list);
+    // Every player's client auto-saves at (roughly) the same moment the final
+    // screen appears, so a plain get()-then-set() would lose entries when two
+    // saves overlap (last write wins). Using a transaction makes the
+    // read-modify-write atomic across simultaneous saves from all players.
+    let savedList = [];
+    await mp.db.runTransaction(async (tx) => {
+      const snap = await tx.get(boardRef);
+      let list = snap.exists ? (snap.data().entries || []) : [];
+      list = list.concat([{ name: mine.name, score: mine.score || 0, ts: Date.now() }]);
+      list.sort((a, b) => b.score - a.score);
+      list = list.slice(0, 10);
+      tx.set(boardRef, { entries: list });
+      savedList = list;
+    });
+    if(isTeamGame) renderTpBoard(savedList); else renderMpBoard(savedList);
     if(mpSaveStatus) mpSaveStatus.textContent = '✓ Im Leaderboard gespeichert';
   }catch(e){
     if(mpSaveStatus) mpSaveStatus.textContent = 'Punktestand konnte nicht gespeichert werden.';
@@ -5820,6 +5916,48 @@ function mpTeardown(){
    SPLASH / INTRO LOGO
    ========================================================= */
 const inviteRoomCode = (new URLSearchParams(location.search).get('room') || '').trim().toUpperCase();
+
+// Little characters that walk into the SP/MP/TP splash buttons once the mode
+// buttons appear (see ".mode-walker"/".splash-modes.shown" CSS). Built once
+// here rather than hand-written in the HTML, since it's the same tiny
+// head/body/arms/legs structure repeated with a different "skin" class per
+// character (color/head-shape/size/gait all come from CSS custom properties
+// on the skin class, see mw-a..mw-g in the stylesheet).
+function makeModeWalker(direction, skinClass){
+  const el = document.createElement('div');
+  el.className = 'mode-walker ' + (direction === 'left' ? 'walk-in-left' : 'walk-in-right') + ' ' + skinClass;
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML =
+    '<div class="w-rig">' +
+      '<div class="w-head"></div>' +
+      '<div class="w-body"></div>' +
+      '<div class="w-arm w-arm-l"></div>' +
+      '<div class="w-arm w-arm-r"></div>' +
+      '<div class="w-leg w-leg-l"></div>' +
+      '<div class="w-leg w-leg-r"></div>' +
+    '</div>';
+  return el;
+}
+function addModeWalkers(){
+  const soloBtn = document.getElementById('splashSoloBtn');
+  const mpBtn = document.getElementById('splashMpBtn');
+  const teamBtn = document.getElementById('splashTeamBtn');
+  // SP: one character walks in.
+  if(soloBtn) soloBtn.appendChild(makeModeWalker('left', 'mw-a'));
+  // MP: one from the left, one from the right.
+  if(mpBtn){
+    mpBtn.appendChild(makeModeWalker('left', 'mw-b'));
+    mpBtn.appendChild(makeModeWalker('right', 'mw-c'));
+  }
+  // TP: two blue from the left, two red from the right (Team Rot/Blau colors).
+  if(teamBtn){
+    teamBtn.appendChild(makeModeWalker('left', 'mw-d'));
+    teamBtn.appendChild(makeModeWalker('left', 'mw-e'));
+    teamBtn.appendChild(makeModeWalker('right', 'mw-f'));
+    teamBtn.appendChild(makeModeWalker('right', 'mw-g'));
+  }
+}
+addModeWalkers();
 
 function hideSplash(fast){
   const s = document.getElementById('splashScreen');
