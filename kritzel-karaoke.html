@@ -386,6 +386,7 @@
   <!-- ===== Multiplayer: Entry (create/join) ===== -->
   <div class="mp-wrap" id="mpEntry" style="display:none;">
     <h2>Multiplayer</h2>
+    <div class="sub" style="font-size:0.75em;opacity:0.7;">Bis zu 8 Spieler gleichzeitig möglich</div>
     <div class="mp-actions">
       <button class="start-btn" id="mpCreateBtn">Raum erstellen</button>
       <div class="mp-join-row">
@@ -399,7 +400,7 @@
   <!-- ===== Multiplayer: Lobby ===== -->
   <div class="mp-wrap" id="mpLobby" style="display:none;">
     <h2>Raum <span class="mp-room-code-badge" id="mpRoomCode"></span></h2>
-    <div class="sub">Teile den Code mit deinen Mitspieler:innen (bis zu 4 insgesamt).</div>
+    <div class="sub">Teile den Code mit deinen Mitspieler:innen (bis zu 8 insgesamt).</div>
     <button class="restart-btn" id="mpInviteBtn" style="margin-left:0;">📤 Einladen</button>
 
     <div id="mpSpotifyWrap" style="display:none;">
@@ -1684,7 +1685,7 @@ loadBoard();
 
 /* =========================================================
    MULTIPLAYER — "Zeichner-Rate-Duell"
-   Bis zu 4 Spieler pro Raum. Ein Spieler zeichnet live per
+   Bis zu 8 Spieler pro Raum. Ein Spieler zeichnet live per
    Freihand auf dem Canvas, die anderen raten den Songtitel.
    Sync läuft über Firestore (Raum-Dokument + players-Subcollection).
    ========================================================= */
