@@ -1765,7 +1765,7 @@ function showStartScreen(){
   showMpScreen(null);
   document.querySelector('.name-row').style.display = 'flex';
   document.querySelector('.board').style.display = currentMode === 'mp' ? 'none' : 'block';
-  mpBoardWrap.style.display = 'block';
+  mpBoardWrap.style.display = currentMode === 'sp' ? 'none' : 'block';
   playerNameInput.disabled = false;
   if(currentMode === 'sp'){ startGameBtn.style.display = ''; mpModeBtn.style.display = 'none'; }
   else { mpModeBtn.style.display = ''; startGameBtn.style.display = 'none'; }
@@ -2398,18 +2398,22 @@ runSplash();
 function goToSingleplayerEntry(){
   hideSplash();
   setModeBadge('sp');
+  document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('mpModeBtn').style.display = 'none';
   document.getElementById('startGameBtn').style.display = '';
   document.querySelector('.board').style.display = 'block';
+  mpBoardWrap.style.display = 'none';
   updateContinueButtons();
   playerNameInput.focus();
 }
 function goToMultiplayerEntry(prefillCode){
   hideSplash(!!prefillCode);
   setModeBadge('mp');
+  document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
   document.querySelector('.board').style.display = 'none';
+  mpBoardWrap.style.display = 'block';
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
   updateContinueButtons();
   playerNameInput.focus();
