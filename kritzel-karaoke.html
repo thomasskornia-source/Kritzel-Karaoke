@@ -224,6 +224,27 @@
     font-weight:600;cursor:pointer;
   }
   .mp-team-toggle.on{background:var(--pen);color:#0a0a0a;border-color:var(--pen);}
+  .mp-schedule-row{
+    display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;
+  }
+  .mp-schedule-row label{font-size:12px;}
+  .mp-schedule-row input[type="time"]{
+    background:transparent;border:1px solid var(--line);color:var(--ink);
+    padding:7px 10px;border-radius:6px;font-family:inherit;font-size:14px;
+    color-scheme:dark;
+  }
+  #mpMeetingNote, #mpPersistentNote{color:var(--gold);}
+  .mp-new-round-btn{
+    background:var(--pen);color:#0a0a0a;border:none;
+    padding:12px 22px;border-radius:8px;font-weight:600;
+    font-family:inherit;cursor:pointer;margin-top:6px;margin-right:8px;
+  }
+  .mp-notify-btn{
+    background:transparent;color:var(--ink);border:1px solid var(--line);
+    padding:9px 16px;border-radius:6px;font-family:inherit;font-size:13px;
+    cursor:pointer;margin-left:0;margin-top:8px;
+  }
+  .mp-notify-btn.on{border-color:var(--pen);color:var(--pen);}
   .mp-player-list li .name-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
   .mp-player-list li .name-wrap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .team-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
@@ -431,6 +452,11 @@
     <div class="sub" style="font-size:0.75em;opacity:0.7;">Bis zu 8 Spieler gleichzeitig möglich</div>
     <div class="mp-actions">
       <button class="mp-team-toggle" id="mpTeamToggleBtn">Teamplayer-Modus</button>
+      <button class="mp-team-toggle" id="mpPersistentToggleBtn">Dauerhafter Treffpunkt</button>
+      <div class="mp-schedule-row" id="mpScheduleRow">
+        <label class="sub" for="mpMeetingTime" style="margin:0;">Treffzeit heute (optional)</label>
+        <input type="time" id="mpMeetingTime">
+      </div>
       <button class="start-btn" id="mpCreateBtn">Raum erstellen</button>
       <div class="mp-join-row">
         <input id="mpCodeInput" maxlength="5" placeholder="CODE">
@@ -445,6 +471,11 @@
     <h2>Raum <span class="mp-room-code-badge" id="mpRoomCode"></span></h2>
     <div class="sub">Teile den Code mit deinen Mitspieler:innen (bis zu 8 insgesamt).</div>
     <button class="restart-btn" id="mpInviteBtn" style="margin-left:0;">📤 Einladen</button>
+    <p class="sub" id="mpMeetingNote" style="display:none;"></p>
+    <p class="sub" id="mpPersistentNote" style="display:none;">🔁 Dauerhafter Treffpunkt — bleibt nach dem Spiel offen.</p>
+    <br>
+    <button class="mp-notify-btn" id="mpNotifyBtn" style="display:none;">🔔 Bei neuem Spieler benachrichtigen</button>
+    <p class="sub" id="mpNotifyNote" style="display:none;font-size:11px;"></p>
 
     <!-- Spotify-Playlist-Anbindung: aktuell ausgeblendet, solange Spotify die
          Neuanlage von Dev-Apps pausiert hat und die Funktion nicht nutzbar ist.
@@ -505,6 +536,7 @@
     <p class="mp-team-result" id="mpTeamResult" style="display:none;"></p>
     <ol class="mp-player-list" id="mpFinalScores"></ol>
     <button class="save-btn" id="mpSaveBtn">Im Multiplayer-Leaderboard speichern</button>
+    <button class="mp-new-round-btn" id="mpNewRoundBtn" style="display:none;">🔁 Neue Runde in diesem Raum</button>
     <button class="restart-btn" id="mpLeaveBtn">Zurück zum Start</button>
   </div>
 
@@ -4464,11 +4496,23 @@ async function mpCreateRoom(){
     mp = await withTimeout(window.mpReady, 6000);
     const code = makeRoomCode();
     const roomRef = mp.roomsCol.doc(code);
+    // Treffzeit ist ein reiner "heute um HH:MM"-Zeitpunkt (kein Datumsfeld) —
+    // reicht für die typische "wir spielen heute Abend um 20 Uhr"-Verabredung.
+    const meetingTimeInput = document.getElementById('mpMeetingTime').value;
+    let meetingTime = null;
+    if(meetingTimeInput){
+      const [hh, mm] = meetingTimeInput.split(':').map(Number);
+      const d = new Date();
+      d.setHours(hh, mm, 0, 0);
+      meetingTime = d.toISOString();
+    }
     await roomRef.set({
       code, hostId: myPlayerId, status: 'lobby',
       createdAt: mp.FieldValue.serverTimestamp(),
       turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null,
-      teamMode: pendingTeamMode
+      teamMode: pendingTeamMode,
+      persistent: pendingPersistent,
+      meetingTime
     });
     await roomRef.collection('players').doc(myPlayerId).set({
       name: myName, score: 0, team: null, joinedAt: mp.FieldValue.serverTimestamp()
@@ -4503,8 +4547,98 @@ async function mpJoinRoom(){
   }
 }
 
+// ===== "Bei neuem Spieler benachrichtigen" (nur für den Host in der Lobby) =====
+// Wichtig: Auf dem iPhone gibt es KEINE echte Systembenachrichtigung für normale
+// Webseiten (Safari unterstützt die Notification API dort schlicht nicht, nur für
+// per "Zum Home-Bildschirm"-installierte Web-Apps mit vollem Push-Setup) — deshalb
+// hier bewusst ein Best-Effort-Signal, das funktioniert, solange diese Seite offen/
+// sichtbar ist: ein Ton (Web Audio, per Klick auf den Button "entsperrt" — danach
+// funktionieren spätere, durch Firestore ausgelöste Pings ohne erneute Geste, weil
+// es hier anders als bei den früheren Spotify-iFrame-Versuchen dieselbe Seite ist,
+// keine fremde Frame) + ein blinkender Tab-Titel. Auf Desktop/Android-Chrome kommt
+// zusätzlich eine echte OS-Notification dazu, wenn die Berechtigung erteilt wurde.
+let mpNotifyEnabled = false;
+let mpLastPlayerCount = null;
+let mpAudioCtx = null;
+let mpTitleFlashIntervalId = null;
+const mpOriginalTitle = document.title;
+
+function updateMpNotifyBtnVisibility(){
+  const btn = document.getElementById('mpNotifyBtn');
+  const note = document.getElementById('mpNotifyNote');
+  if(!btn) return;
+  btn.style.display = isHost ? 'inline-block' : 'none';
+  if(!isHost){ note.style.display = 'none'; return; }
+  btn.classList.toggle('on', mpNotifyEnabled);
+  btn.textContent = mpNotifyEnabled ? '🔔 Benachrichtigung aktiv' : '🔔 Bei neuem Spieler benachrichtigen';
+  note.style.display = 'block';
+  note.textContent = (typeof Notification === 'undefined')
+    ? 'Auf dem iPhone gibt es dafür leider keine Systembenachrichtigung (Safari unterstützt das für normale Webseiten nicht) — stattdessen Ton + blinkender Tab-Titel, solange diese Seite offen/sichtbar ist.'
+    : 'Funktioniert per Ton + blinkendem Titel, solange diese Seite offen ist — bei erteilter Berechtigung zusätzlich als echte Benachrichtigung. Nicht bei komplett geschlossenem Tab.';
+}
+
+function beep(){
+  try{
+    if(!mpAudioCtx) mpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(mpAudioCtx.state === 'suspended') mpAudioCtx.resume();
+    const ping = (freq, delay) => setTimeout(() => {
+      try{
+        const osc = mpAudioCtx.createOscillator();
+        const gain = mpAudioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, mpAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, mpAudioCtx.currentTime + 0.45);
+        osc.connect(gain).connect(mpAudioCtx.destination);
+        osc.start();
+        osc.stop(mpAudioCtx.currentTime + 0.45);
+      }catch(e){}
+    }, delay);
+    ping(880, 0);
+    ping(1160, 180);
+  }catch(e){ /* Web Audio nicht verfügbar — Sound ist nur ein Bonus */ }
+}
+
+function stopTitleFlash(){
+  if(mpTitleFlashIntervalId){ clearInterval(mpTitleFlashIntervalId); mpTitleFlashIntervalId = null; }
+  document.title = mpOriginalTitle;
+}
+function flashTitle(text, ms){
+  stopTitleFlash();
+  let on = false;
+  mpTitleFlashIntervalId = setInterval(() => {
+    document.title = on ? mpOriginalTitle : text;
+    on = !on;
+  }, 900);
+  setTimeout(stopTitleFlash, ms);
+}
+
+function notifyNewPlayer(player){
+  beep();
+  flashTitle('🔔 ' + (player.name || 'Spieler') + ' ist da!', 6000);
+  if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
+    try{ new Notification('Kritzel-Karaoke', { body: `${player.name || 'Ein Spieler'} ist dem Raum beigetreten!` }); }catch(e){}
+  }
+}
+
+document.getElementById('mpNotifyBtn').addEventListener('click', () => {
+  mpNotifyEnabled = !mpNotifyEnabled;
+  if(mpNotifyEnabled){
+    try{
+      if(!mpAudioCtx) mpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(mpAudioCtx.state === 'suspended') mpAudioCtx.resume();
+    }catch(e){}
+    if(typeof Notification !== 'undefined' && Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+  }
+  updateMpNotifyBtnVisibility();
+});
+
 function enterRoom(code){
   currentRoomCode = code;
+  mpLastPlayerCount = null;
+  mpNotifyEnabled = false;
   mpRoomCodeEl.textContent = code;
   showMpScreen('lobby');
   const roomRef = mp.roomsCol.doc(code);
@@ -4514,7 +4648,16 @@ function enterRoom(code){
     onRoomUpdate();
   }, err => showMpError('Verbindung verloren: ' + err.message));
   playersUnsub = roomRef.collection('players').orderBy('joinedAt', 'asc').onSnapshot(qs => {
-    mpPlayers = qs.docs.map(d => ({ id: d.id, ...d.data() }));
+    const newPlayers = qs.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Neuer Spieler seit dem letzten Snapshot? (Host + Benachrichtigung an + noch in der
+    // Lobby, nicht mittendrin im Spiel) — mpLastPlayerCount ist beim allerersten Snapshot
+    // noch null, das setzt nur die Basislinie statt fälschlich sofort zu pingen.
+    if(isHost && mpNotifyEnabled && mpRoomData && mpRoomData.status === 'lobby'
+       && mpLastPlayerCount !== null && newPlayers.length > mpLastPlayerCount){
+      notifyNewPlayer(newPlayers[newPlayers.length - 1]);
+    }
+    mpLastPlayerCount = newPlayers.length;
+    mpPlayers = newPlayers;
     renderMpPlayerList();
     if(mpRoomData){
       if(mpRoomData.status === 'lobby') onRoomUpdate();
@@ -4587,6 +4730,18 @@ function onRoomUpdate(){
     document.getElementById('mpSongPoolNote').textContent = mpRoomData.songPoolName
       ? `🎧 Playlist verbunden: "${mpRoomData.songPoolName}" (${(mpRoomData.songPool||[]).length} Songs)`
       : 'Es wird der eingebaute Songpool gespielt.';
+    const meetingNoteEl = document.getElementById('mpMeetingNote');
+    if(mpRoomData.meetingTime){
+      const t = new Date(mpRoomData.meetingTime);
+      const hh = String(t.getHours()).padStart(2,'0');
+      const mm = String(t.getMinutes()).padStart(2,'0');
+      meetingNoteEl.textContent = `🕒 Geplante Treffzeit: ${hh}:${mm} Uhr`;
+      meetingNoteEl.style.display = 'block';
+    } else {
+      meetingNoteEl.style.display = 'none';
+    }
+    document.getElementById('mpPersistentNote').style.display = mpRoomData.persistent ? 'block' : 'none';
+    updateMpNotifyBtnVisibility();
     return;
   }
   if(mpRoomData.status === 'finished'){
@@ -4615,6 +4770,20 @@ mpTeamToggleBtn.addEventListener('click', () => {
   // with the toggle, even though the boards themselves are hidden while on
   // this entry screen — matters once the user later leaves back to start.
   setModeBadge(pendingTeamMode ? 'tp' : 'mp');
+});
+
+// "Dauerhafter Treffpunkt": Raum bekommt kein Ablaufdatum — bleibt nach einem
+// fertig gespielten Spiel offen, der Host kann eine "Neue Runde" im selben
+// Raum starten statt dass er endgültig geschlossen wird (siehe mpNewRoundBtn).
+const mpPersistentToggleBtn = document.getElementById('mpPersistentToggleBtn');
+let pendingPersistent = false;
+function renderPersistentToggleBtn(){
+  mpPersistentToggleBtn.classList.toggle('on', pendingPersistent);
+  mpPersistentToggleBtn.textContent = pendingPersistent ? 'Dauerhafter Treffpunkt: An' : 'Dauerhafter Treffpunkt';
+}
+mpPersistentToggleBtn.addEventListener('click', () => {
+  pendingPersistent = !pendingPersistent;
+  renderPersistentToggleBtn();
 });
 
 // Jeder Spieler ist mindestens 3x dran (Zeichner) — der Umlauf durch alle
@@ -5052,7 +5221,35 @@ function renderMpFinal(){
   }
   mpSaveBtn.disabled = false;
   mpSaveBtn.textContent = 'Im Multiplayer-Leaderboard speichern';
+  const newRoundBtn = document.getElementById('mpNewRoundBtn');
+  newRoundBtn.style.display = (isHost && mpRoomData && mpRoomData.persistent) ? 'inline-block' : 'none';
+  newRoundBtn.disabled = false;
+  newRoundBtn.textContent = '🔁 Neue Runde in diesem Raum';
 }
+
+// Nur bei "Dauerhafter Treffpunkt"-Räumen sichtbar: setzt den Raum zurück in die
+// Lobby (gleicher Code, gleiche Mitspieler:innen bleiben drin), statt dass der
+// Raum nach dem Spiel endgültig geschlossen ist — für wiederkehrende Spielrunden
+// im selben Raum, ohne dass sich alle neu verbinden müssen.
+document.getElementById('mpNewRoundBtn').addEventListener('click', async () => {
+  if(!isHost || !currentRoomCode || !mp) return;
+  const btn = document.getElementById('mpNewRoundBtn');
+  btn.disabled = true;
+  btn.textContent = 'Setze zurück…';
+  try{
+    const roomRef = mp.roomsCol.doc(currentRoomCode);
+    await roomRef.update({
+      status: 'lobby', turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null
+    });
+    await Promise.all(mpPlayers.map(p =>
+      roomRef.collection('players').doc(p.id).update({ score: 0, team: null })
+    ));
+  }catch(e){
+    showMpError('Neue Runde konnte nicht gestartet werden: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '🔁 Neue Runde in diesem Raum';
+  }
+});
 
 // Multiplayer and Teamplayer each save to their own separate Top-10
 // leaderboard (mp.mpBoardRef / mp.tpBoardRef), chosen by whether the room
@@ -5133,6 +5330,9 @@ function mpTeardown(){
   mpProgressLoopKey = null; mpOptionsRenderedFor = null; mpNowDrawingShownFor = null;
   mpLocalStrokes = []; mpLocalLiveStroke = null;
   document.getElementById('mpCodeInput').value = '';
+  mpNotifyEnabled = false;
+  mpLastPlayerCount = null;
+  stopTitleFlash();
 }
 
 /* =========================================================
@@ -5195,6 +5395,9 @@ function goToMultiplayerEntry(prefillCode, teamMode){
   pendingTeamMode = !!teamMode;
   setModeBadge(pendingTeamMode ? 'tp' : 'mp');
   renderTeamToggleBtn();
+  pendingPersistent = false;
+  renderPersistentToggleBtn();
+  document.getElementById('mpMeetingTime').value = '';
   document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
