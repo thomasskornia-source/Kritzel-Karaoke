@@ -225,6 +225,25 @@
   .stage.mp-live{animation:mpBlinkBorder 1s ease-in-out infinite;}
   #mpClearBtn{width:auto;display:inline-block;margin:8px 0;padding:8px 14px;font-size:12.5px;}
 
+  /* Prominent, persistent "this is your song" banner for the drawer */
+  .mp-song-banner{
+    text-align:center;font-size:15px;color:var(--ink);
+    background:rgba(230,57,43,0.12);border:1px solid var(--pen-dim);
+    border-radius:10px;padding:12px 14px;margin:0 0 10px;line-height:1.4;
+  }
+  .mp-song-banner b{color:var(--pen);font-size:19px;}
+
+  /* Big transient "Jetzt zeichnest Du!" flash when the drawing phase begins */
+  .mp-now-drawing{
+    position:absolute;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(5,5,5,0.82);color:#fff;text-align:center;padding:16px;
+    font-family:'Caveat',cursive;font-weight:700;
+    font-size:clamp(28px,8vw,44px);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
+  }
+  .mp-now-drawing.shown{opacity:1;}
+
   /* Zeichner im Querformat: Bühne füllt den ganzen Bildschirm */
   .stage.mp-fullscreen-draw{
     position:fixed;inset:0;z-index:80;
@@ -413,8 +432,10 @@
     </div>
 
     <div id="mpDrawWrap" style="display:none;">
+      <p class="mp-song-banner" id="mpDrawingSongNote" style="display:none;"></p>
       <div class="stage" id="mpStage">
         <canvas id="mpCanvas"></canvas>
+        <div class="mp-now-drawing" id="mpNowDrawingOverlay">Jetzt zeichnest Du!</div>
       </div>
       <div class="progress"><i id="mpProgressBar"></i></div>
       <button class="restart-btn" id="mpClearBtn" style="display:none;">Löschen</button>
@@ -1737,6 +1758,8 @@ const mpThinkWrap = document.getElementById('mpThinkWrap');
 const mpThinkNum = document.getElementById('mpThinkNum');
 const mpThinkNote = document.getElementById('mpThinkNote');
 const mpDrawWrap = document.getElementById('mpDrawWrap');
+const mpDrawingSongNote = document.getElementById('mpDrawingSongNote');
+const mpNowDrawingOverlay = document.getElementById('mpNowDrawingOverlay');
 const mpStage = document.getElementById('mpStage');
 const mpCanvas = document.getElementById('mpCanvas');
 const mpProgressBar = document.getElementById('mpProgressBar');
@@ -1947,6 +1970,8 @@ function hideAllMpPhaseBlocks(){
   mpStage.classList.remove('mp-live');
   mpStage.classList.remove('mp-fullscreen-draw');
   document.body.classList.remove('mp-fullscreen-active');
+  mpDrawingSongNote.style.display = 'none';
+  mpNowDrawingOverlay.classList.remove('shown');
 }
 
 function renderMpRound(){
@@ -1969,8 +1994,10 @@ function renderMpRound(){
     mpThinkWrap.style.display = 'block';
     if(iAmDrawer){
       const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
-      mpThinkNote.innerHTML = `Dein Song: <b>${song.title||''}</b> von ${song.artist||''} — merk dir, wie du das zeichnest!`;
+      mpThinkNote.classList.add('mp-song-banner');
+      mpThinkNote.innerHTML = `Dein Song:<br><b>${song.title||''}</b><br>von ${song.artist||''}`;
     } else {
+      mpThinkNote.classList.remove('mp-song-banner');
       mpThinkNote.textContent = 'Der Zeichner denkt nach…';
     }
     runMpThinkCountdown(r.thinkStartTs);
@@ -1979,6 +2006,9 @@ function renderMpRound(){
     mpStage.classList.add('mp-live');
     mpClearBtn.style.display = iAmDrawer ? 'inline-block' : 'none';
     if(iAmDrawer){
+      const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
+      mpDrawingSongNote.style.display = 'block';
+      mpDrawingSongNote.innerHTML = `Du zeichnest:<br><b>${song.title||''}</b><br>von ${song.artist||''}`;
       drawLocalCanvas();
     } else {
       renderMpGuessOptions(r);
@@ -1986,9 +2016,18 @@ function renderMpRound(){
     }
     ensureMpProgressLoop(r, mpRoomData.currentRoundIdx);
     updateMpDrawLayout();
+    maybeShowNowDrawingOverlay(iAmDrawer, mpRoomData.currentRoundIdx);
   } else if(r.phase === 'reveal'){
     showMpReveal(r);
   }
+}
+
+let mpNowDrawingShownFor = null;
+function maybeShowNowDrawingOverlay(iAmDrawer, roundKey){
+  if(!iAmDrawer || mpNowDrawingShownFor === roundKey) return;
+  mpNowDrawingShownFor = roundKey;
+  requestAnimationFrame(() => mpNowDrawingOverlay.classList.add('shown'));
+  setTimeout(() => { mpNowDrawingOverlay.classList.remove('shown'); }, 1300);
 }
 
 function runMpThinkCountdown(thinkStartTs){
@@ -2350,7 +2389,7 @@ function mpTeardown(){
   cancelAnimationFrame(mpDrawRafId);
   mpRefereeIntervalId = null;
   currentRoomCode = null; isHost = false; mpRoomData = null; mpPlayers = [];
-  mpProgressLoopKey = null; mpOptionsRenderedFor = null;
+  mpProgressLoopKey = null; mpOptionsRenderedFor = null; mpNowDrawingShownFor = null;
   mpLocalStrokes = []; mpLocalLiveStroke = null;
   document.getElementById('mpCodeInput').value = '';
 }
