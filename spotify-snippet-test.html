@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Spotify Snippet Test</title>
+<title>Spotify Snippet Test 2</title>
 <style>
   :root{
     --bg:#161616; --ink:#f2efe9; --dim:#9a948a; --good:#5fae82; --bad:#d16a5e; --accent:#e8b84b;
@@ -17,6 +17,7 @@
     -webkit-text-size-adjust:100%;
   }
   h1{font-size:1.2rem; margin:0 0 4px;}
+  h3{font-size:1rem; margin:0 0 4px;}
   p.sub{color:var(--dim); font-size:.85rem; margin:0 0 20px; line-height:1.4;}
   .card{
     background:var(--card); border:1px solid var(--line); border-radius:12px;
@@ -30,180 +31,203 @@
   }
   .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   button{
-    appearance:none; border:none; border-radius:8px; padding:10px 16px;
-    background:var(--accent); color:#161616; font-weight:600; font-size:.9rem;
+    appearance:none; border:none; border-radius:8px; padding:12px 18px;
+    background:var(--accent); color:#161616; font-weight:600; font-size:.95rem;
     cursor:pointer;
   }
   button.secondary{background:#333; color:var(--ink);}
+  button:disabled{opacity:.4;}
   button:active{transform:scale(0.98);}
-  #embed-wrap{margin-top:4px; border-radius:12px; overflow:hidden;}
-  #status{
+  .bigbtn{width:100%; padding:16px; font-size:1.05rem;}
+  #embed-wrap1{margin-top:4px; border-radius:12px; overflow:hidden;}
+  .hidden-embed{position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none;}
+  .status{
     font-size:.95rem; font-weight:600; padding:10px 12px; border-radius:8px;
     background:#111; border:1px solid var(--line); margin-bottom:10px;
   }
-  #status.ok{border-color:var(--good); color:var(--good);}
-  #status.warn{border-color:var(--accent); color:var(--accent);}
-  #status.bad{border-color:var(--bad); color:var(--bad);}
-  #log{
-    font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.75rem;
+  .status.ok{border-color:var(--good); color:var(--good);}
+  .status.warn{border-color:var(--accent); color:var(--accent);}
+  .status.bad{border-color:var(--bad); color:var(--bad);}
+  .log{
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.72rem;
     background:#0d0d0d; border:1px solid var(--line); border-radius:8px;
-    padding:10px; height:220px; overflow-y:auto; white-space:pre-wrap; line-height:1.5;
+    padding:10px; height:160px; overflow-y:auto; white-space:pre-wrap; line-height:1.5;
     color:#a9d6b8;
   }
   .log-line-err{color:var(--bad);}
   .log-line-warn{color:var(--accent);}
-  .checklist{font-size:.85rem; line-height:1.6; color:var(--dim);}
-  .checklist b{color:var(--ink);}
+  .note{font-size:.8rem; color:var(--dim); line-height:1.4; margin:8px 0 0;}
 </style>
 </head>
 <body>
 
-  <h1>🎧 Spotify-Snippet Test</h1>
+  <h1>🎧 Spotify-Snippet Test 2</h1>
   <p class="sub">
-    Isolierter Test für den geplanten "Höre &amp; Rate"-Modus. Testet: (1) Tippen auf den echten
-    Spotify-Play-Button im eingebetteten Player, (2) automatisches Pausieren per Skript nach X Sekunden,
-    (3) Ladezeit. Bitte auf dem iPhone in Safari testen.
+    Experiment 1 hat gezeigt: Snippet spielt ab und stoppt zuverlässig automatisch. Problem: Der Spotify-Player
+    zeigt Songtitel und Interpret als Text an — das würde die Antwort direkt verraten. Dieser Test prüft, ob
+    Play auch über einen <b>eigenen, unsichtbaren Button</b> ohne den Spotify-Player-Text startet.
   </p>
 
   <div class="card">
-    <h2>Einstellungen</h2>
+    <h2>Gemeinsame Einstellung</h2>
     <div class="row">
       <label for="secs">Snippet-Länge (Sekunden):
-        <input type="number" id="secs" value="3" min="1" max="30">
+        <input type="number" id="secs" value="6" min="1" max="30">
       </label>
-      <button id="reloadBtn" class="secondary">Player neu laden</button>
     </div>
   </div>
 
   <div class="card">
-    <h2>Status</h2>
-    <div id="status">Player wird geladen…</div>
-    <div id="embed-wrap">
-      <div id="embed-iframe"></div>
-    </div>
+    <h3>Experiment 1 — Referenz (wie gehabt)</h3>
+    <p class="note">Sichtbarer Spotify-Player, echter Tipp auf dessen Play-Button. Zeigt Titel/Interpret sichtbar an.</p>
+    <div class="status" id="status1">Player wird geladen…</div>
+    <div id="embed-wrap1"><div id="embed-iframe1"></div></div>
+    <div class="log" id="log1"></div>
   </div>
 
   <div class="card">
-    <h2>Log</h2>
-    <div id="log"></div>
+    <h3>Experiment 2 — Eigener Button, Player versteckt</h3>
+    <p class="note">
+      Kein sichtbarer Spotify-Player, kein Titel/Interpret zu sehen. Tippe stattdessen auf den Button unten —
+      der ruft programmgesteuert <code>play()</code> auf dem versteckten Player auf.
+    </p>
+    <div class="status" id="status2">Player wird geladen…</div>
+    <div id="embed-wrap2" class="hidden-embed"><div id="embed-iframe2"></div></div>
+    <button id="playBtn2" class="bigbtn" disabled>▶️ Snippet abspielen</button>
+    <div class="log" id="log2" style="margin-top:10px;"></div>
   </div>
 
   <div class="card">
     <h2>Was du bitte prüfst</h2>
-    <div class="checklist">
-      <b>1.</b> Tippe auf den Play-Button im Player oben.<br>
-      <b>2.</b> Startet die Musik sofort beim Tippen? (kein zweites Tippen nötig)<br>
-      <b>3.</b> Stoppt die Musik von selbst nach der eingestellten Sekundenzahl?<br>
-      <b>4.</b> Wie lange hat der Player zum Laden gebraucht, bevor der Play-Button sichtbar war?<br>
-      <b>5.</b> Schick mir kurz Rückmeldung zu 1-4 (Screenshot vom Log unten hilft auch).
+    <div class="note" style="font-size:.85rem;">
+      <b>Exp. 1:</b> Play-Button antippen → startet Musik sofort? Stoppt nach X Sekunden?<br><br>
+      <b>Exp. 2 (das Wichtige):</b> Auf "Snippet abspielen" tippen → startet dabei wirklich Musik, obwohl
+      kein Spotify-Player sichtbar ist? Oder passiert nichts (weil iOS das nicht als "echten" Tipp akzeptiert)?
+      Stoppt es nach X Sekunden von selbst?
     </div>
   </div>
 
 <script>
-  const TRACK_ID = '7wCmS9TTVUcIhRalDYFgPy'; // Pixies – Where Is My Mind?
-  const logEl = document.getElementById('log');
-  const statusEl = document.getElementById('status');
   const secsInput = document.getElementById('secs');
-  const reloadBtn = document.getElementById('reloadBtn');
 
-  const t0 = performance.now();
-  function log(msg, cls){
-    const line = document.createElement('div');
-    if(cls) line.className = 'log-line-' + cls;
-    const t = ((performance.now() - t0)/1000).toFixed(2);
-    line.textContent = `[+${t}s] ${msg}`;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-  function setStatus(msg, cls){
-    statusEl.textContent = msg;
-    statusEl.className = cls || '';
-  }
-
-  let controller = null;
-  let pauseTimer = null;
-  let hasStartedOnce = false;
-
-  function clearPauseTimer(){
-    if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer = null; }
-  }
-
-  function initPlayer(){
-    log('Fordere IFrame API an…');
-    setStatus('Player wird geladen…');
-    const element = document.getElementById('embed-iframe');
-    element.innerHTML = '';
-    const options = {
-      uri: 'spotify:track:' + TRACK_ID,
-      width: '100%',
-      height: '152'
+  function makeLogger(logId, t0){
+    const logEl = document.getElementById(logId);
+    return function(msg, cls){
+      const line = document.createElement('div');
+      if(cls) line.className = 'log-line-' + cls;
+      const t = ((performance.now() - t0)/1000).toFixed(2);
+      line.textContent = `[+${t}s] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
     };
-    const callback = (EmbedController) => {
-      controller = EmbedController;
-      log('Controller erstellt (createController-Callback).');
+  }
 
+  function setStatus(elId, msg, cls){
+    const el = document.getElementById(elId);
+    el.textContent = msg;
+    el.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  // ---------- Experiment 1: visible widget, real Spotify play button ----------
+  const t0a = performance.now();
+  const log1 = makeLogger('log1', t0a);
+  let exp1Started = false, exp1Timer = null;
+
+  function initExp1(){
+    log1('Fordere IFrame API an…');
+    const element = document.getElementById('embed-iframe1');
+    const options = { uri: 'spotify:track:7wCmS9TTVUcIhRalDYFgPy', width: '100%', height: '152' };
+    window.SpotifyIframeApi.createController(element, options, (EmbedController) => {
+      log1('Controller erstellt.');
       EmbedController.addListener('ready', () => {
-        log('Event: ready — Player ist einsatzbereit.', 'ok');
-        setStatus('Bereit. Tippe auf Play im Player oben.', 'ok');
+        log1('ready — Player einsatzbereit.', 'ok');
+        setStatus('status1', 'Bereit. Tippe auf Play im Player.', 'ok');
       });
-
-      EmbedController.addListener('playback_started', (e) => {
-        log('Event: playback_started ' + JSON.stringify(e && e.data || {}));
-      });
-
+      EmbedController.addListener('playback_started', () => log1('playback_started'));
       EmbedController.addListener('playback_update', (e) => {
         const d = e && e.data || {};
-        if(d.isPaused === false && !hasStartedOnce){
-          hasStartedOnce = true;
-          const secs = parseFloat(secsInput.value) || 3;
-          log(`Wiedergabe erkannt (isPaused=false) → starte ${secs}s Timer für automatisches Pause().`, 'ok');
-          setStatus(`Läuft… Auto-Pause in ${secs}s`, 'warn');
-          clearPauseTimer();
-          pauseTimer = setTimeout(() => {
-            log('Timer abgelaufen → rufe controller.pause() auf.');
-            try{
-              EmbedController.pause();
-              log('pause() aufgerufen, keine JS-Exception.', 'ok');
-            }catch(err){
-              log('pause() warf einen Fehler: ' + err, 'err');
-            }
+        if(d.isPaused === false && !exp1Started){
+          exp1Started = true;
+          const secs = parseFloat(secsInput.value) || 6;
+          log1(`Wiedergabe erkannt → Timer ${secs}s.`, 'ok');
+          setStatus('status1', `Läuft… Auto-Pause in ${secs}s`, 'warn');
+          clearTimeout(exp1Timer);
+          exp1Timer = setTimeout(() => {
+            EmbedController.pause();
+            log1('pause() aufgerufen.');
           }, secs * 1000);
         }
-        if(d.isPaused === true && hasStartedOnce){
-          log('Event: playback_update isPaused=true (Musik ist pausiert/gestoppt).', 'ok');
-          setStatus('Pausiert. Zum erneuten Testen "Player neu laden" tippen.', 'ok');
-          hasStartedOnce = false;
-          clearPauseTimer();
+        if(d.isPaused === true && exp1Started){
+          log1('Pausiert.', 'ok');
+          setStatus('status1', 'Pausiert.', 'ok');
+          exp1Started = false;
+          clearTimeout(exp1Timer);
         }
       });
-    };
-
-    try{
-      window.SpotifyIframeApi.createController(element, options, callback);
-    }catch(err){
-      log('Fehler beim Erstellen des Controllers: ' + err, 'err');
-      setStatus('Fehler beim Laden des Players.', 'bad');
-    }
+    });
   }
 
-  window.onSpotifyIframeApiReady = (IFrameAPI) => {
-    log('Event: onSpotifyIframeApiReady ausgelöst.', 'ok');
-    window.SpotifyIframeApi = IFrameAPI;
-    initPlayer();
-  };
+  // ---------- Experiment 2: hidden widget, custom button triggers play() ----------
+  const t0b = performance.now();
+  const log2 = makeLogger('log2', t0b);
+  let exp2Controller = null, exp2Started = false, exp2Timer = null;
+  const playBtn2 = document.getElementById('playBtn2');
 
-  reloadBtn.addEventListener('click', () => {
-    hasStartedOnce = false;
-    clearPauseTimer();
-    log('--- Player wird neu geladen ---');
-    if(window.SpotifyIframeApi){
-      initPlayer();
-    } else {
-      setStatus('IFrame API noch nicht bereit…', 'warn');
+  function initExp2(){
+    log2('Fordere IFrame API an…');
+    const element = document.getElementById('embed-iframe2');
+    const options = { uri: 'spotify:track:1L94M3KIu7QluZe63g64rv', width: '1', height: '1' }; // Pearl Jam - Alive
+    window.SpotifyIframeApi.createController(element, options, (EmbedController) => {
+      exp2Controller = EmbedController;
+      log2('Controller erstellt (versteckter Player).');
+      EmbedController.addListener('ready', () => {
+        log2('ready — versteckter Player einsatzbereit.', 'ok');
+        setStatus('status2', 'Bereit. Tippe auf "Snippet abspielen".', 'ok');
+        playBtn2.disabled = false;
+      });
+      EmbedController.addListener('playback_started', () => log2('playback_started'));
+      EmbedController.addListener('playback_update', (e) => {
+        const d = e && e.data || {};
+        if(d.isPaused === false && !exp2Started){
+          exp2Started = true;
+          const secs = parseFloat(secsInput.value) || 6;
+          log2(`Wiedergabe erkannt → Timer ${secs}s.`, 'ok');
+          setStatus('status2', `Läuft (unsichtbar)… Auto-Pause in ${secs}s`, 'warn');
+          clearTimeout(exp2Timer);
+          exp2Timer = setTimeout(() => {
+            EmbedController.pause();
+            log2('pause() aufgerufen.');
+          }, secs * 1000);
+        }
+        if(d.isPaused === true && exp2Started){
+          log2('Pausiert.', 'ok');
+          setStatus('status2', 'Pausiert. Nochmal tippen zum Wiederholen.', 'ok');
+          exp2Started = false;
+          clearTimeout(exp2Timer);
+        }
+      });
+    });
+  }
+
+  playBtn2.addEventListener('click', () => {
+    log2('Button getippt (echte Nutzer-Geste) → rufe controller.play() auf.');
+    if(!exp2Controller){
+      log2('Controller noch nicht bereit.', 'err');
+      return;
+    }
+    try{
+      exp2Controller.play();
+      log2('play() aufgerufen, keine JS-Exception.');
+    }catch(err){
+      log2('Fehler bei play(): ' + err, 'err');
     }
   });
 
-  log('Lade Spotify IFrame API Script…');
+  window.onSpotifyIframeApiReady = (IFrameAPI) => {
+    window.SpotifyIframeApi = IFrameAPI;
+    initExp1();
+    initExp2();
+  };
 </script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 
