@@ -1572,6 +1572,7 @@ let listenPlaying = false;
 let listenRoundTimerStarted = false;
 let listenAutoplayWatchdog = null;
 let fadeInterval = null;
+let pauseRetryTimers = [null, null, null]; // staggered retry pause() calls, see stopListenSnippet()
 
 // Shorter snippet = less information = harder to recognize = worth more;
 // longer snippet = easier = worth less. Anchored at the original 8s default
@@ -4912,7 +4913,18 @@ function stopListenSnippet(){
   clearInterval(fadeInterval);
   fadeInterval = null;
   if(spotifyController){
-    try{ spotifyController.pause(); }catch(e){}
+    // A single pause() call can silently not land on Spotify's hidden iFrame
+    // embed (same category of undocumented-postMessage unreliability as
+    // setVolume(), which turned out to be a real no-op on real iOS). Firing
+    // it several times over the next second costs nothing if the first one
+    // worked, and meaningfully raises the odds of actually stopping playback
+    // if it didn't.
+    const firePause = () => { if(spotifyController){ try{ spotifyController.pause(); }catch(e){} } };
+    clearTimeout(pauseRetryTimers[0]); clearTimeout(pauseRetryTimers[1]); clearTimeout(pauseRetryTimers[2]);
+    firePause();
+    pauseRetryTimers[0] = setTimeout(firePause, 150);
+    pauseRetryTimers[1] = setTimeout(firePause, 400);
+    pauseRetryTimers[2] = setTimeout(firePause, 900);
   }
   listenPlaying = false;
 }
