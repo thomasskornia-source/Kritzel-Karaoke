@@ -143,6 +143,16 @@
   .result a{color:var(--pen);text-decoration:none;border-bottom:1px solid var(--pen-dim);}
   .result .verdict{font-family:'Caveat',cursive;font-size:26px;margin-bottom:4px;display:block;}
 
+  .correct-thumb{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:min(20vw,80px);opacity:0;pointer-events:none;
+    transform:scale(0.5);
+    transition:opacity .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+    filter:drop-shadow(0 0 14px rgba(95,174,130,0.65));
+    z-index:5;
+  }
+  .correct-thumb.shown{opacity:1;transform:scale(1);}
+
   .next-btn{
     margin-top:14px;width:100%;
     background:var(--pen);color:#0a0a0a;border:none;
@@ -547,6 +557,7 @@
 
   <div class="stage" id="stage">
     <canvas id="canvas"></canvas>
+    <div class="correct-thumb" id="correctThumb">👍</div>
   </div>
 
   <div class="progress"><i id="progressBar"></i></div>
@@ -1286,6 +1297,7 @@ const stage = document.getElementById('stage');
 const progressBar = document.getElementById('progressBar');
 const optionsEl = document.getElementById('options');
 const resultEl = document.getElementById('result');
+const correctThumbEl = document.getElementById('correctThumb');
 const verdictEl = document.getElementById('verdict');
 const resultTextEl = document.getElementById('resultText');
 const nextBtn = document.getElementById('nextBtn');
@@ -1353,7 +1365,13 @@ function densify(verts, res){
 function circleVerts(cx,cy,r,n){
   const out = [];
   for(let i=0;i<=n;i++){
-    const t = (i/n)*Math.PI*2;
+    // The last point must close the loop back onto the first one EXACTLY,
+    // so force it to reuse t=0 instead of recomputing (n/n)*2π — floating
+    // point rounding means Math.cos(2*Math.PI) isn't bit-identical to
+    // Math.cos(0), which silently broke buildIcon()'s "===" closed-shape
+    // check (see caller) and left every circular icon segment rendering as
+    // a bare outline instead of a filled shape.
+    const t = (i===n ? 0 : i/n) * Math.PI*2;
     out.push([cx+r*Math.cos(t), cy+r*Math.sin(t)]);
   }
   return out;
@@ -1372,7 +1390,9 @@ function cloudVerts(cx,cy,r,n){
   n = n || 16;
   const out = [];
   for(let i=0;i<=n;i++){
-    const t = (i/n)*Math.PI*2;
+    // Same closing-vertex fix as circleVerts() above: force the last point
+    // to reuse t=0 exactly rather than a floating-point-rounded 2π.
+    const t = (i===n ? 0 : i/n) * Math.PI*2;
     const bump = 1 + 0.25*Math.sin(t*3);
     out.push([cx+r*bump*Math.cos(t), cy+r*0.6*bump*Math.sin(t)]);
   }
@@ -1457,10 +1477,12 @@ const ICON_VERTS = {
     { v:[[0.5,0.58],[0.42,0.75]], c:'#2b3a4a' },
     { v:[[0.5,0.58],[0.58,0.75]], c:'#2b3a4a' }
   ],
-  "Psycho Killer": [ // a knife
+  "Psycho Killer": [ // a gleaming knife on a cutting board
+    { v:[[0.20,0.68],[0.20,0.78],[0.80,0.78],[0.80,0.68],[0.20,0.68]], c:'#8a5a2b' },
     { v:[[0.30,0.30],[0.65,0.45],[0.30,0.50],[0.30,0.30]], c:'#b8bcc2' },
     { v:[[0.65,0.45],[0.80,0.55]], c:'#5a3a26' },
-    { v:[[0.62,0.40],[0.68,0.50]], c:'#8a8a8a' }
+    { v:[[0.62,0.40],[0.68,0.50]], c:'#8a8a8a' },
+    { v:[[0.34,0.34],[0.38,0.38]], c:'#e8e4d8' }
   ],
   "Are You Gonna Go My Way": [ // a fork in the road
     { v:[[0.5,0.80],[0.5,0.55]], c:'#7a5a3a' },
@@ -1476,10 +1498,12 @@ const ICON_VERTS = {
     { v:[[0.30,0.28],[0.35,0.30]], c:'#e8d840' },
     { v:[[0.68,0.32],[0.72,0.34]], c:'#e8d840' }
   ],
-  "Billie Jean": [ // the sequined glove
+  "Billie Jean": [ // the sequined glove with a cuff, sparkling
     { v:[[0.40,0.30],[0.38,0.45],[0.40,0.60],[0.60,0.60],[0.62,0.45],[0.60,0.30],[0.56,0.24],[0.52,0.30],[0.50,0.20],[0.46,0.30],[0.44,0.24],[0.40,0.30]], c:'#e8e4d8' },
     { v:[[0.68,0.26],[0.73,0.22]], c:'#e8d840' },
-    { v:[[0.72,0.32],[0.77,0.30]], c:'#e8d840' }
+    { v:[[0.72,0.32],[0.77,0.30]], c:'#e8d840' },
+    { v:[[0.40,0.60],[0.60,0.60],[0.60,0.68],[0.40,0.68],[0.40,0.60]], c:'#2b2320' },
+    { v:[[0.30,0.36],[0.34,0.32]], c:'#e8d840' }
   ],
   "Under the Bridge": [ // a bridge over water
     { v:arcVerts(0.5,0.62,0.28,Math.PI,Math.PI*2,14), c:'#8a6a4a' },
@@ -1507,8 +1531,12 @@ const ICON_VERTS = {
     { v:[[0.30,0.22],[0.70,0.22]], c:'#5a4530' },
     { v:[[0.30,0.78],[0.70,0.78]], c:'#5a4530' }
   ],
-  "Don't Stop Me Now": [ // a lightning bolt
-    { v:[[0.56,0.18],[0.36,0.52],[0.48,0.52],[0.40,0.82],[0.66,0.44],[0.50,0.44],[0.56,0.18]], c:'#e8b83f' }
+  "Don't Stop Me Now": [ // a bolt of lightning streaking across, motion lines trailing
+    { v:[[0.56,0.18],[0.36,0.52],[0.48,0.52],[0.40,0.82],[0.66,0.44],[0.50,0.44],[0.56,0.18]], c:'#e8b83f' },
+    { v:[[0.20,0.30],[0.30,0.34]], c:'#8a8a92' },
+    { v:[[0.18,0.50],[0.28,0.50]], c:'#8a8a92' },
+    { v:[[0.70,0.60],[0.80,0.64]], c:'#8a8a92' },
+    { v:circleVerts(0.56,0.18,0.02,8), c:'#e8d840' }
   ],
   "Cannonball": [ // a cannon firing
     { v:[[0.24,0.66],[0.55,0.50]], c:'#5a4530' },
@@ -1544,10 +1572,12 @@ const ICON_VERTS = {
     { v:arcVerts(0.75,0.28,0.10,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
     { v:[[0.15,0.75],[0.85,0.75]], c:'#3a3a40' }
   ],
-  "Where Is My Mind?": [ // a spiral inside a head
+  "Where Is My Mind?": [ // a spiral inside a head, adrift in a fog of confusion
     { v:circleVerts(0.5,0.45,0.22,16), c:'#c9903f' },
     { v:[[0.5,0.30],[0.62,0.35],[0.60,0.48],[0.46,0.50],[0.44,0.40],[0.52,0.36],[0.56,0.42],[0.50,0.45]], c:'#3a6a8a' },
-    { v:[[0.42,0.64],[0.58,0.64]], c:'#c9903f' }
+    { v:[[0.42,0.64],[0.58,0.64]], c:'#c9903f' },
+    { v:arcVerts(0.22,0.30,0.05,0,4.2,8), c:'#7fb3d9' },
+    { v:arcVerts(0.80,0.55,0.04,0,4.2,8), c:'#7fb3d9' }
   ],
   "Sultans Of Swing": [ // an electric guitar
     { v:circleVerts(0.42,0.62,0.16,14), c:'#a5603a' },
@@ -1555,13 +1585,18 @@ const ICON_VERTS = {
     { v:[[0.70,0.22],[0.76,0.18]], c:'#3a3a40' },
     { v:[[0.44,0.50],[0.44,0.76]], c:'#e8e4d8' }
   ],
-  "Mr. Jones": [ // a crow
+  "Mr. Jones": [ // a crow perched on a branch, watching with a bright eye
     { v:[[0.35,0.55],[0.5,0.40],[0.68,0.50],[0.60,0.60],[0.5,0.58],[0.42,0.65],[0.35,0.55]], c:'#2b2320' },
     { v:[[0.45,0.50],[0.55,0.35]], c:'#3a3a40' },
-    { v:[[0.66,0.48],[0.75,0.45]], c:'#e8b83f' }
+    { v:[[0.66,0.48],[0.75,0.45]], c:'#e8b83f' },
+    { v:circleVerts(0.55,0.50,0.015,8), c:'#e8b83f' },
+    { v:[[0.20,0.68],[0.80,0.68]], c:'#8a5a2b' }
   ],
-  "Alive": [ // a heartbeat line
-    { v:[[0.15,0.55],[0.30,0.55],[0.36,0.30],[0.42,0.75],[0.48,0.55],[0.85,0.55]], c:'#c9403a' }
+  "Alive": [ // a heartbeat pulse crossing a beating heart, radiating with life
+    { v:circleVerts(0.5,0.42,0.32,20), c:'#f5e6b8' },
+    { v:[[0.5, 0.70], [0.30, 0.50], [0.20, 0.34], [0.28, 0.20], [0.40, 0.22], [0.5, 0.34], [0.6, 0.22], [0.72, 0.20], [0.80, 0.34], [0.70, 0.50], [0.5, 0.70]], c:'#c9403a' },
+    { v:[[0.15,0.42],[0.30,0.42],[0.36,0.22],[0.42,0.58],[0.48,0.42],[0.85,0.42]], c:'#e8e4d8' },
+    { v:circleVerts(0.42,0.58,0.02,8), c:'#e8b83f' }
   ],
   "Little Black Submarines": [ // a submarine
     { v:[[0.20,0.55],[0.30,0.45],[0.65,0.45],[0.75,0.55],[0.65,0.62],[0.30,0.62],[0.20,0.55]], c:'#2b2320' },
@@ -1583,10 +1618,12 @@ const ICON_VERTS = {
     { v:[[0.68,0.30],[0.76,0.24]], c:'#e8b83f' },
     { v:[[0.32,0.30],[0.24,0.24]], c:'#e8b83f' }
   ],
-  "God Is a DJ": [ // a turntable
+  "God Is a DJ": [ // a spinning vinyl record with a tonearm and a floating music note
     { v:circleVerts(0.5,0.5,0.22,16), c:'#2b2320' },
+    { v:circleVerts(0.5,0.5,0.14,16), c:'#1a1614' },
     { v:circleVerts(0.5,0.5,0.06,10), c:'#c9403a' },
-    { v:[[0.72,0.30],[0.60,0.42]], c:'#8a8a92' }
+    { v:[[0.72,0.30],[0.60,0.42]], c:'#8a8a92' },
+    { v:[[0.78,0.68],[0.78,0.56],[0.84,0.56]], c:'#e8b83f' }
   ],
   "I Bet You Look Good On The Dancefloor": [ // a disco ball
     { v:circleVerts(0.5,0.45,0.16,16), c:'#bcd4e8' },
@@ -1602,14 +1639,19 @@ const ICON_VERTS = {
     { v:[[0.48,0.32],[0.44,0.40]], c:'#2b2320' },
     { v:[[0.52,0.32],[0.56,0.40]], c:'#2b2320' }
   ],
-  "Black Dog": [ // a dog
+  "Black Dog": [ // a dog silhouette, tail up, standing on the ground
     { v:[[0.25,0.60],[0.30,0.45],[0.45,0.40],[0.55,0.42],[0.65,0.38],[0.72,0.45],[0.68,0.55],[0.72,0.62],[0.60,0.62],[0.58,0.55],[0.40,0.55],[0.38,0.62],[0.28,0.62],[0.25,0.60]], c:'#2b2320' },
     { v:[[0.62,0.38],[0.66,0.30]], c:'#2b2320' },
-    { v:[[0.25,0.55],[0.16,0.48]], c:'#2b2320' }
+    { v:[[0.25,0.55],[0.16,0.48]], c:'#2b2320' },
+    { v:[[0.18,0.68],[0.82,0.68]], c:'#4a4a52' },
+    { v:circleVerts(0.68,0.44,0.012,8), c:'#e8b83f' }
   ],
-  "Even Flow": [ // flowing water waves
+  "Even Flow": [ // a stream flowing over stones, under a droplet
     { v:[[0.15,0.45],[0.25,0.32],[0.35,0.45],[0.45,0.32],[0.55,0.45],[0.65,0.32],[0.75,0.45],[0.85,0.32]], c:'#3a6a8a' },
-    { v:[[0.15,0.60],[0.25,0.50],[0.35,0.60],[0.45,0.50],[0.55,0.60],[0.65,0.50],[0.75,0.60],[0.85,0.50]], c:'#7fb3d9' }
+    { v:[[0.15,0.60],[0.25,0.50],[0.35,0.60],[0.45,0.50],[0.55,0.60],[0.65,0.50],[0.75,0.60],[0.85,0.50]], c:'#7fb3d9' },
+    { v:[[0.5,0.16],[0.44,0.24],[0.5,0.32],[0.56,0.24],[0.5,0.16]], c:'#7fb3d9' },
+    { v:circleVerts(0.30,0.72,0.035,10), c:'#8a8a92' },
+    { v:circleVerts(0.62,0.75,0.045,10), c:'#5a5a62' }
   ],
   "Kelly Watch the Stars": [ // a telescope pointed at stars
     { v:[[0.30,0.72],[0.60,0.40]], c:'#5a5a62' },
@@ -1620,13 +1662,18 @@ const ICON_VERTS = {
     { v:[[0.80,0.44],[0.80,0.50]], c:'#e8d840' },
     { v:[[0.77,0.47],[0.83,0.47]], c:'#e8d840' }
   ],
-  "Helden": [ // a hero's star
-    { v:[[0.5,0.20],[0.58,0.40],[0.78,0.40],[0.62,0.53],[0.68,0.74],[0.5,0.62],[0.32,0.74],[0.38,0.53],[0.22,0.40],[0.42,0.40],[0.5,0.20]], c:'#e8b83f' }
+  "Helden": [ // a hero's star, with a glowing halo and a flowing cape
+    { v:circleVerts(0.5,0.48,0.32,20), c:'#f5e6b8' },
+    { v:[[0.5,0.20],[0.58,0.40],[0.78,0.40],[0.62,0.53],[0.68,0.74],[0.5,0.62],[0.32,0.74],[0.38,0.53],[0.22,0.40],[0.42,0.40],[0.5,0.20]], c:'#e8b83f' },
+    { v:[[0.38,0.70],[0.30,0.86],[0.44,0.80]], c:'#c9403a' },
+    { v:[[0.62,0.70],[0.70,0.86],[0.56,0.80]], c:'#c9403a' }
   ],
-  "Mrs. Robinson": [ // a martini glass
+  "Mrs. Robinson": [ // a martini glass with an olive, stirred by a swizzle stick
     { v:[[0.28,0.30],[0.72,0.30],[0.5,0.55],[0.5,0.75]], c:'#bcd4e8' },
     { v:[[0.36,0.75],[0.64,0.75]], c:'#bcd4e8' },
-    { v:circleVerts(0.58,0.35,0.035,8), c:'#3d7a4a' }
+    { v:circleVerts(0.58,0.35,0.035,8), c:'#3d7a4a' },
+    { v:[[0.60,0.35],[0.68,0.30]], c:'#3d7a4a' },
+    { v:[[0.40,0.24],[0.44,0.42]], c:'#e8e4d8' }
   ],
   "Touch Me I'm Sick": [ // a thermometer
     { v:[[0.5,0.24],[0.5,0.64]], c:'#c9403a' },
@@ -1635,9 +1682,12 @@ const ICON_VERTS = {
     { v:[[0.44,0.42],[0.5,0.42]], c:'#5a5a62' },
     { v:[[0.44,0.52],[0.5,0.52]], c:'#5a5a62' }
   ],
-  "Blitzkrieg Bop": [ // a combat boot
+  "Blitzkrieg Bop": [ // a laced-up combat boot, stomping with motion lines
     { v:[[0.30,0.35],[0.30,0.60],[0.25,0.65],[0.25,0.75],[0.65,0.75],[0.65,0.65],[0.45,0.65],[0.45,0.35],[0.30,0.35]], c:'#2b2320' },
-    { v:[[0.25,0.78],[0.65,0.78]], c:'#5a5a62' }
+    { v:[[0.25,0.78],[0.65,0.78]], c:'#5a5a62' },
+    { v:[[0.31,0.42],[0.40,0.38],[0.31,0.50],[0.40,0.46],[0.31,0.58]], c:'#8a8a92' },
+    { v:[[0.72,0.55],[0.84,0.55]], c:'#c9403a' },
+    { v:[[0.72,0.65],[0.86,0.65]], c:'#c9403a' }
   ],
   "Hate To Say I Told You So": [ // a pointing finger
     { v:[[0.28,0.72],[0.52,0.56]], c:'#d9b48a' },
@@ -1680,20 +1730,26 @@ const ICON_VERTS = {
     { v:[[0.5,0.38],[0.5,0.28]], c:'#c9903f' },
     { v:arcVerts(0.74,0.24,0.06,Math.PI*0.9,Math.PI*2.1,10), c:'#e8d840' }
   ],
-  "Cello (feat. Clueso)": [ // a cello
+  "Cello (feat. Clueso)": [ // a cello with strings, f-holes, and a bow resting beside it
     { v:[[0.42,0.30],[0.36,0.45],[0.38,0.60],[0.34,0.75],[0.66,0.75],[0.62,0.60],[0.64,0.45],[0.58,0.30],[0.42,0.30]], c:'#8a5a2b' },
     { v:[[0.5,0.30],[0.5,0.15]], c:'#5a3a1e' },
-    { v:[[0.46,0.32],[0.46,0.70]], c:'#e8e4d8' }
+    { v:[[0.46,0.32],[0.46,0.70]], c:'#e8e4d8' },
+    { v:[[0.54,0.32],[0.54,0.70]], c:'#e8e4d8' },
+    { v:[[0.72,0.28],[0.86,0.78]], c:'#5a3a1e' }
   ],
-  "Just Another Victim": [ // a boxing glove
+  "Just Another Victim": [ // a boxing glove thrown with force, motion lines trailing behind
     { v:[[0.35,0.45],[0.32,0.60],[0.38,0.72],[0.55,0.75],[0.65,0.68],[0.68,0.55],[0.62,0.42],[0.50,0.38],[0.35,0.45]], c:'#c9403a' },
     { v:[[0.35,0.45],[0.26,0.42]], c:'#c9403a' },
-    { v:[[0.42,0.72],[0.60,0.72]], c:'#7a1f18' }
+    { v:[[0.42,0.72],[0.60,0.72]], c:'#7a1f18' },
+    { v:[[0.76,0.40],[0.86,0.36]], c:'#8a8a92' },
+    { v:[[0.76,0.54],[0.88,0.54]], c:'#8a8a92' }
   ],
-  "Midlife Crisis": [ // a sports car
+  "Midlife Crisis": [ // a red sports car with a windshield, speeding off in a cloud of exhaust
     { v:[[0.20,0.60],[0.28,0.50],[0.45,0.46],[0.55,0.46],[0.72,0.50],[0.80,0.60],[0.20,0.60]], c:'#c9403a' },
     { v:circleVerts(0.32,0.62,0.06,10), c:'#2b2320' },
-    { v:circleVerts(0.68,0.62,0.06,10), c:'#2b2320' }
+    { v:circleVerts(0.68,0.62,0.06,10), c:'#2b2320' },
+    { v:[[0.40,0.48],[0.44,0.40],[0.56,0.40],[0.58,0.48]], c:'#bcd4e8' },
+    { v:cloudVerts(0.14,0.60,0.06,10), c:'#8a8a92' }
   ],
   "Killing Me Softly With His Song": [ // a guitar and a musical note
     { v:circleVerts(0.40,0.60,0.14,12), c:'#a5603a' },
@@ -1707,9 +1763,12 @@ const ICON_VERTS = {
     { v:[[0.20,0.45],[0.20,0.68],[0.28,0.68],[0.28,0.45],[0.20,0.45]], c:'#8a5a2b' },
     { v:[[0.72,0.45],[0.72,0.68],[0.80,0.68],[0.80,0.45],[0.72,0.45]], c:'#8a5a2b' }
   ],
-  "One Way": [ // an arrow sign
+  "One Way": [ // a one-way street sign on a post, over the road
     { v:[[0.25,0.45],[0.65,0.45],[0.75,0.55],[0.65,0.65],[0.25,0.65],[0.25,0.45]], c:'#3d7a4a' },
-    { v:[[0.45,0.65],[0.45,0.85]], c:'#5a5a62' }
+    { v:[[0.45,0.65],[0.45,0.88]], c:'#5a5a62' },
+    { v:[[0.35,0.88],[0.55,0.88]], c:'#4a4a52' },
+    { v:cloudVerts(0.72,0.24,0.08,12), c:'#e8e4d8' },
+    { v:[[0.10,0.88],[0.30,0.88]], c:'#8a8a92' }
   ],
   "Sunday Bloody Sunday": [ // a calendar with a dove
     { v:[[0.30,0.30],[0.70,0.30],[0.70,0.72],[0.30,0.72],[0.30,0.30]], c:'#e8e4d8' },
@@ -1717,9 +1776,12 @@ const ICON_VERTS = {
     { v:[[0.42,0.56],[0.55,0.51],[0.62,0.56],[0.55,0.59],[0.42,0.56]], c:'#7fb3d9' },
     { v:[[0.48,0.53],[0.55,0.46]], c:'#7fb3d9' }
   ],
-  "Try (Just a Little Bit Harder)": [ // a clenched fist
+  "Try (Just a Little Bit Harder)": [ // a straining, clenched fist with effort lines and a bead of sweat
     { v:[[0.35,0.55],[0.33,0.42],[0.40,0.35],[0.50,0.35],[0.55,0.30],[0.62,0.32],[0.65,0.40],[0.62,0.55],[0.55,0.62],[0.40,0.62],[0.35,0.55]], c:'#d9b48a' },
-    { v:[[0.45,0.62],[0.45,0.80]], c:'#c9903f' }
+    { v:[[0.45,0.62],[0.45,0.80]], c:'#c9903f' },
+    { v:[[0.22,0.40],[0.28,0.44]], c:'#5a5a62' },
+    { v:[[0.22,0.54],[0.29,0.54]], c:'#5a5a62' },
+    { v:circleVerts(0.68,0.24,0.025,8), c:'#7fb3d9' }
   ],
   "Temple of Love": [ // temple columns
     { v:[[0.25,0.35],[0.5,0.20],[0.75,0.35]], c:'#8a8a92' },
@@ -1730,17 +1792,25 @@ const ICON_VERTS = {
     { v:[[0.68,0.35],[0.68,0.70]], c:'#a5a5ac' },
     { v:[[0.25,0.72],[0.75,0.72]], c:'#5a5a62' }
   ],
-  "I Love You Mary Jane": [ // a heart with a leaf
-    { v:[[0.5,0.68],[0.36,0.54],[0.30,0.42],[0.35,0.32],[0.45,0.35],[0.5,0.42],[0.55,0.35],[0.65,0.32],[0.70,0.42],[0.64,0.54],[0.5,0.68]], c:'#c9403a' },
-    { v:[[0.5,0.68],[0.5,0.80],[0.58,0.75]], c:'#3d7a4a' }
+  "I Love You Mary Jane": [ // a heart growing from a leafy stem, with a second small leaf
+    { v:[[0.5,0.58],[0.36,0.44],[0.30,0.32],[0.35,0.22],[0.45,0.25],[0.5,0.32],[0.55,0.25],[0.65,0.22],[0.70,0.32],[0.64,0.44],[0.5,0.58]], c:'#c9403a' },
+    { v:[[0.5,0.58],[0.5,0.82]], c:'#3d7a4a' },
+    { v:[[0.5,0.66],[0.62,0.60],[0.58,0.72],[0.5,0.66]], c:'#3d7a4a' },
+    { v:[[0.5,0.76],[0.40,0.70],[0.44,0.82],[0.5,0.76]], c:'#5a9a5a' }
   ],
-  "The Outdoor Type": [ // a mountain and a tent
+  "The Outdoor Type": [ // a mountain, a tent, a pine tree and the sun over a trail
+    { v:circleVerts(0.80,0.20,0.08,14), c:'#e8b83f' },
     { v:[[0.20,0.65],[0.38,0.35],[0.50,0.55],[0.60,0.40],[0.75,0.65],[0.20,0.65]], c:'#7a9a7a' },
-    { v:[[0.42,0.65],[0.50,0.50],[0.58,0.65],[0.42,0.65]], c:'#e8843f' }
+    { v:[[0.42,0.65],[0.50,0.50],[0.58,0.65],[0.42,0.65]], c:'#e8843f' },
+    { v:[[0.18,0.60],[0.26,0.42],[0.34,0.60],[0.18,0.60]], c:'#3d7a4a' },
+    { v:[[0.65,0.78],[0.80,0.70],[0.90,0.80]], c:'#c9903f' }
   ],
-  "Our Darkness": [ // a crescent moon with clouds
+  "Our Darkness": [ // a crescent moon over a sleeping hill, in a night sky
     { v:arcVerts(0.5,0.35,0.14,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
-    { v:cloudVerts(0.5,0.62,0.14,14), c:'#7a7a82' }
+    { v:cloudVerts(0.5,0.62,0.14,14), c:'#7a7a82' },
+    { v:circleVerts(0.24,0.24,0.014,8), c:'#e8e4d8' },
+    { v:circleVerts(0.76,0.30,0.018,8), c:'#e8e4d8' },
+    { v:[[0.1,0.82],[0.3,0.68],[0.5,0.80],[0.7,0.66],[0.9,0.82]], c:'#2b2320' }
   ],
   "Ich geh weg": [ // an open door with a walking arrow
     { v:[[0.35,0.25],[0.35,0.75],[0.60,0.75],[0.60,0.25],[0.35,0.25]], c:'#8a5a2b' },
@@ -1756,9 +1826,12 @@ const ICON_VERTS = {
     { v:circleVerts(0.5,0.45,0.05,10), c:'#e8b83f' },
     { v:[[0.5,0.52],[0.5,0.80]], c:'#3d7a4a' }
   ],
-  "The Worker": [ // a wrench
+  "The Worker": [ // a wrench, a hard hat, and a bolt
     { v:[[0.30,0.70],[0.55,0.45]], c:'#5a5a62' },
-    { v:[[0.55,0.45],[0.60,0.35],[0.70,0.35],[0.72,0.42],[0.65,0.50],[0.55,0.45]], c:'#8a8a92' }
+    { v:[[0.55,0.45],[0.60,0.35],[0.70,0.35],[0.72,0.42],[0.65,0.50],[0.55,0.45]], c:'#8a8a92' },
+    { v:arcVerts(0.32,0.28,0.12,Math.PI,Math.PI*2,14), c:'#e8b83f' },
+    { v:[[0.20,0.28],[0.44,0.28]], c:'#c9903f' },
+    { v:circleVerts(0.72,0.66,0.05,10), c:'#4a4a52' }
   ],
   "So Long": [ // a suitcase and a waving hand
     { v:[[0.30,0.55],[0.30,0.72],[0.62,0.72],[0.62,0.55],[0.30,0.55]], c:'#8a5a2b' },
@@ -1766,24 +1839,33 @@ const ICON_VERTS = {
     { v:[[0.68,0.35],[0.75,0.30]], c:'#c9903f' },
     { v:[[0.68,0.42],[0.78,0.40]], c:'#c9903f' }
   ],
-  "Never in My Wildest Dreams": [ // a cloud with zzz
+  "Never in My Wildest Dreams": [ // a sleepy dream cloud with drifting sparkles
     { v:cloudVerts(0.45,0.45,0.14,14), c:'#7fb3d9' },
-    { v:[[0.66,0.30],[0.74,0.30],[0.66,0.38],[0.74,0.38]], c:'#3a3a40' }
+    { v:[[0.66,0.30],[0.74,0.30],[0.66,0.38],[0.74,0.38]], c:'#3a3a40' },
+    { v:circleVerts(0.30,0.28,0.015,8), c:'#e8d840' },
+    { v:circleVerts(0.62,0.62,0.02,8), c:'#e8d840' },
+    { v:circleVerts(0.40,0.62,0.012,8), c:'#e8d840' }
   ],
-  "Say It Ain't So": [ // a speech bubble
+  "Say It Ain't So": [ // a speech bubble with an exclamation, and a smaller reply bubble
     { v:[[0.28,0.30],[0.72,0.30],[0.72,0.58],[0.45,0.58],[0.38,0.68],[0.38,0.58],[0.28,0.58],[0.28,0.30]], c:'#e8e4d8' },
     { v:[[0.5,0.38],[0.5,0.48]], c:'#c9403a' },
-    { v:[[0.5,0.52],[0.5,0.53]], c:'#c9403a' }
+    { v:[[0.5,0.52],[0.5,0.53]], c:'#c9403a' },
+    { v:circleVerts(0.78,0.24,0.06,12), c:'#8a8a92' },
+    { v:circleVerts(0.78,0.24,0.012,8), c:'#4a4a52' }
   ],
-  "Insomnia": [ // a moon and a sleepless eye
+  "Insomnia": [ // a moon over a sleepless eye, tired shadows underneath
     { v:arcVerts(0.5,0.38,0.14,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
     { v:[[0.35,0.62],[0.5,0.55],[0.65,0.62],[0.5,0.69],[0.35,0.62]], c:'#3a6a8a' },
-    { v:circleVerts(0.5,0.62,0.025,8), c:'#2b2320' }
+    { v:circleVerts(0.5,0.62,0.025,8), c:'#2b2320' },
+    { v:[[0.35,0.66],[0.65,0.66]], c:'#3a6a8a' },
+    { v:[[0.38,0.70],[0.62,0.70]], c:'#3a6a8a' }
   ],
-  "Nowhere Girl": [ // a girl and a question map pin
+  "Nowhere Girl": [ // a girl beside a map pin with a question mark
     { v:circleVerts(0.42,0.35,0.08,12), c:'#d9b48a' },
     { v:[[0.42,0.43],[0.32,0.68],[0.52,0.68],[0.42,0.43]], c:'#c9403a' },
-    { v:[[0.68,0.35],[0.68,0.50],[0.62,0.58],[0.68,0.66],[0.74,0.58],[0.68,0.50]], c:'#3a6a8a' }
+    { v:[[0.68,0.35],[0.68,0.50],[0.62,0.58],[0.68,0.66],[0.74,0.58],[0.68,0.50]], c:'#3a6a8a' },
+    { v:circleVerts(0.68,0.28,0.012,8), c:'#e8e4d8' },
+    { v:[[0.65,0.20],[0.68,0.16],[0.71,0.20]], c:'#e8e4d8' }
   ],
   "Ich verabscheue Euch": [ // a thumbs down
     { v:[[0.42,0.35],[0.42,0.55],[0.35,0.55],[0.32,0.62],[0.38,0.70],[0.55,0.70],[0.60,0.60],[0.58,0.45],[0.58,0.35],[0.42,0.35]], c:'#d9b48a' },
@@ -1827,10 +1909,12 @@ const ICON_VERTS = {
     { v:[[0.5,0.42],[0.5,0.78]], c:'#e8b83f' },
     { v:[[0.42,0.36],[0.5,0.42],[0.58,0.36]], c:'#e8b83f' }
   ],
-  "Creep": [ // a wilting flower
+  "Creep": [ // a wilting potted flower, a petal dropping away
     { v:[[0.5,0.85],[0.5,0.55],[0.62,0.45]], c:'#3d7a4a' },
     { v:circleVerts(0.65,0.40,0.10,12), c:'#7a5a8a' },
-    { v:[[0.5,0.70],[0.40,0.65],[0.5,0.68]], c:'#3d7a4a' }
+    { v:[[0.5,0.70],[0.40,0.65],[0.5,0.68]], c:'#3d7a4a' },
+    { v:[[0.40,0.85],[0.40,0.90],[0.60,0.90],[0.60,0.85],[0.40,0.85]], c:'#8a5a2b' },
+    { v:circleVerts(0.55,0.32,0.015,8), c:'#2b2320' }
   ],
   "This Charming Man": [ // a top hat and cane
     { v:[[0.30,0.42],[0.70,0.42]], c:'#2b2320' },
@@ -1898,10 +1982,12 @@ const ICON_VERTS = {
     { v:circleVerts(0.40,0.52,0.02,8), c:'#e8b83f' },
     { v:circleVerts(0.60,0.52,0.02,8), c:'#e8b83f' }
   ],
-  "Come As You Are": [ // ripples on water
+  "Come As You Are": [ // a pebble dropped into water, sending ripples outward
+    { v:circleVerts(0.5,0.5,0.03,10), c:'#2b2320' },
     { v:circleVerts(0.5,0.5,0.08,16), c:'#3a6a8a' },
     { v:circleVerts(0.5,0.5,0.16,16), c:'#7fb3d9' },
-    { v:circleVerts(0.5,0.5,0.24,16), c:'#bcd4e8' }
+    { v:circleVerts(0.5,0.5,0.24,16), c:'#bcd4e8' },
+    { v:[[0.5,0.16],[0.46,0.24],[0.5,0.30],[0.54,0.24],[0.5,0.16]], c:'#7fb3d9' }
   ],
   "Smells Like Teen Spirit": [ // a spray can
     { v:[[0.40,0.35],[0.40,0.75],[0.60,0.75],[0.60,0.35],[0.40,0.35]], c:'#5a5a62' },
@@ -1909,11 +1995,15 @@ const ICON_VERTS = {
     { v:[[0.62,0.42],[0.70,0.38]], c:'#7fb3d9' },
     { v:[[0.62,0.50],[0.72,0.50]], c:'#7fb3d9' }
   ],
-  "Loser": [ // an "L" hand sign
-    { v:[[0.36,0.24],[0.36,0.62],[0.58,0.62]], c:'#d9b48a' },
-    { v:[[0.36,0.24],[0.30,0.30]], c:'#d9b48a' }
+  "Loser": [ // an "L" for loser, held up to a downcast face
+    { v:circleVerts(0.62,0.40,0.16,16), c:'#d9b48a' },
+    { v:[[0.66,0.42],[0.58,0.42]], c:'#4a4a52' },
+    { v:[[0.28,0.30],[0.28,0.62],[0.44,0.62]], c:'#e8e4d8' },
+    { v:[[0.55,0.50],[0.68,0.52]], c:'#4a4a52' }
   ],
-  "One": [ // the numeral 1
+  "One": [ // a single numeral 1, alone in a spotlight
+    { v:circleVerts(0.5,0.46,0.34,20), c:'#4a4a52' },
+    { v:circleVerts(0.5,0.46,0.30,20), c:'#3a3a40' },
     { v:[[0.40,0.32],[0.5,0.24],[0.5,0.72]], c:'#e8e4d8' },
     { v:[[0.38,0.72],[0.62,0.72]], c:'#e8e4d8' }
   ],
@@ -1941,18 +2031,25 @@ const ICON_VERTS = {
     { v:circleVerts(0.5,0.34,0.05,10), c:'#d9b48a' },
     { v:[[0.5,0.39],[0.5,0.52]], c:'#3a5a7a' }
   ],
-  "Männer": [ // a necktie
-    { v:[[0.44,0.24],[0.56,0.24],[0.52,0.36],[0.60,0.50],[0.5,0.78],[0.40,0.50],[0.48,0.36],[0.44,0.24]], c:'#3a5a7a' }
+  "Männer": [ // a shirt collar and necktie
+    { v:[[0.30,0.24],[0.44,0.24],[0.5,0.34],[0.56,0.24],[0.70,0.24],[0.62,0.40],[0.38,0.40],[0.30,0.24]], c:'#e8e4d8' },
+    { v:[[0.44,0.24],[0.56,0.24],[0.52,0.36],[0.60,0.50],[0.5,0.78],[0.40,0.50],[0.48,0.36],[0.44,0.24]], c:'#3a5a7a' },
+    { v:circleVerts(0.5,0.50,0.015,8), c:'#2b2320' },
+    { v:circleVerts(0.5,0.62,0.015,8), c:'#2b2320' }
   ],
-  "Shout": [ // a megaphone
+  "Shout": [ // a megaphone blasting out sound waves
     { v:[[0.26,0.48],[0.26,0.60],[0.55,0.68],[0.55,0.40],[0.26,0.48]], c:'#c9403a' },
     { v:[[0.55,0.36],[0.74,0.28],[0.74,0.80],[0.55,0.72]], c:'#c9403a' },
-    { v:[[0.32,0.60],[0.34,0.70],[0.40,0.68],[0.38,0.59]], c:'#8a8a92' }
+    { v:[[0.32,0.60],[0.34,0.70],[0.40,0.68],[0.38,0.59]], c:'#8a8a92' },
+    { v:arcVerts(0.80,0.54,0.08,4.5,1.8,10), c:'#e8b83f' },
+    { v:arcVerts(0.86,0.54,0.13,4.5,1.8,10), c:'#e8b83f' }
   ],
-  "What's My Age Again?": [ // a birthday candle
+  "What's My Age Again?": [ // a lit birthday candle on top of a cake
     { v:[[0.44,0.38],[0.44,0.75],[0.56,0.75],[0.56,0.38],[0.44,0.38]], c:'#7fb3d9' },
     { v:[[0.5,0.38],[0.5,0.26]], c:'#e8b83f' },
-    { v:[[0.5,0.26],[0.46,0.18],[0.5,0.14],[0.54,0.18],[0.5,0.26]], c:'#e8843f' }
+    { v:[[0.5,0.26],[0.46,0.18],[0.5,0.14],[0.54,0.18],[0.5,0.26]], c:'#e8843f' },
+    { v:[[0.20,0.75],[0.80,0.75],[0.80,0.85],[0.20,0.85],[0.20,0.75]], c:'#8a5a2b' },
+    { v:circleVerts(0.28,0.68,0.02,8), c:'#c9403a' }
   ],
   "Black Hole Sun": [ // an eclipsed sun
     { v:circleVerts(0.5,0.45,0.16,16), c:'#e8b83f' },
@@ -1960,10 +2057,12 @@ const ICON_VERTS = {
     { v:[[0.5,0.24],[0.5,0.17]], c:'#e8843f' },
     { v:[[0.68,0.32],[0.74,0.27]], c:'#e8843f' }
   ],
-  "Sabotage": [ // a wrench and gear
+  "Sabotage": [ // a wrench turning a bolt, sparking as it works
     { v:circleVerts(0.60,0.35,0.10,12), c:'#8a8a92' },
     { v:[[0.53,0.42],[0.30,0.65]], c:'#5a5a62' },
-    { v:[[0.28,0.63],[0.32,0.67],[0.34,0.71]], c:'#5a5a62' }
+    { v:[[0.28,0.63],[0.32,0.67],[0.34,0.71]], c:'#5a5a62' },
+    { v:circleVerts(0.60,0.35,0.04,10), c:'#2b2320' },
+    { v:[[0.24,0.74],[0.30,0.68],[0.36,0.74]], c:'#4a4a52' }
   ],
   "Hey Boy Hey Girl": [ // combined gender symbols
     { v:circleVerts(0.38,0.42,0.11,14), c:'#7fb3d9' },
@@ -1974,9 +2073,12 @@ const ICON_VERTS = {
     { v:[[0.58,0.73],[0.58,0.85]], c:'#d98aa8' },
     { v:[[0.51,0.79],[0.65,0.79]], c:'#d98aa8' }
   ],
-  "Fire Water Burn": [ // flame and a drop
-    { v:[[0.38,0.30],[0.34,0.42],[0.38,0.52],[0.44,0.44],[0.46,0.60],[0.56,0.48],[0.50,0.42],[0.58,0.30],[0.46,0.36],[0.38,0.30]], c:'#e8843f' },
-    { v:circleVerts(0.68,0.65,0.09,12), c:'#3a6a8a' }
+  "Fire Water Burn": [ // a big flame and a small one, doused by water drops
+    { v:[[0.32,0.34],[0.28,0.46],[0.32,0.56],[0.38,0.48],[0.40,0.64],[0.50,0.52],[0.44,0.46],[0.52,0.34],[0.40,0.40],[0.32,0.34]], c:'#e8843f' },
+    { v:[[0.56,0.50],[0.53,0.58],[0.58,0.66],[0.64,0.58],[0.56,0.50]], c:'#e8b83f' },
+    { v:circleVerts(0.30,0.78,0.05,10), c:'#3a6a8a' },
+    { v:circleVerts(0.68,0.80,0.04,10), c:'#7fb3d9' },
+    { v:[[0.82,0.30],[0.78,0.40],[0.82,0.48]], c:'#7fb3d9' }
   ],
   "Foxtrot Uniform Charlie Kilo": [ // signal flags
     { v:[[0.30,0.20],[0.30,0.80]], c:'#5a5a62' },
@@ -2010,9 +2112,12 @@ const ICON_VERTS = {
     { v:[[0.40,0.74],[0.60,0.74]], c:'#5a5a62' },
     { v:circleVerts(0.35,0.30,0.02,8), c:'#3d7a4a' }
   ],
-  "Maybe": [ // a question mark
+  "Maybe": [ // a question mark, flanked by drifting thought-bubbles
     { v:[[0.38,0.30],[0.40,0.20],[0.55,0.18],[0.64,0.28],[0.60,0.40],[0.50,0.46],[0.50,0.56]], c:'#e8b83f' },
-    { v:circleVerts(0.5,0.68,0.025,8), c:'#e8b83f' }
+    { v:circleVerts(0.5,0.68,0.025,8), c:'#e8b83f' },
+    { v:circleVerts(0.20,0.62,0.025,8), c:'#7fb3d9' },
+    { v:circleVerts(0.15,0.48,0.04,10), c:'#7fb3d9' },
+    { v:circleVerts(0.80,0.70,0.035,10), c:'#7fb3d9' }
   ],
   "Sure Shot": [ // a target with an arrow
     { v:circleVerts(0.5,0.5,0.20,16), c:'#c9403a' },
@@ -2035,14 +2140,19 @@ const ICON_VERTS = {
   "Everybody Hurts": [ // a teardrop
     { v:[[0.5,0.22],[0.36,0.50],[0.36,0.64],[0.44,0.74],[0.56,0.74],[0.64,0.64],[0.64,0.50],[0.5,0.22]], c:'#7fb3d9' }
   ],
-  "Jeremy": [ // a memorial candle
+  "Jeremy": [ // a memorial candle burning steady on its base
     { v:[[0.44,0.40],[0.44,0.78],[0.56,0.78],[0.56,0.40],[0.44,0.40]], c:'#e8e4d8' },
     { v:[[0.5,0.40],[0.5,0.28]], c:'#e8b83f' },
-    { v:[[0.5,0.28],[0.46,0.20],[0.5,0.15],[0.54,0.20],[0.5,0.28]], c:'#e8843f' }
+    { v:[[0.5,0.28],[0.46,0.20],[0.5,0.15],[0.54,0.20],[0.5,0.28]], c:'#e8843f' },
+    { v:[[0.38,0.78],[0.62,0.78],[0.62,0.84],[0.38,0.84],[0.38,0.78]], c:'#8a5a2b' },
+    { v:circleVerts(0.5,0.24,0.012,8), c:'#e8d840' }
   ],
-  "Bullet In The Head": [ // a raised protest fist
+  "Bullet In The Head": [ // a raised protest fist beside a crosshair target
     { v:[[0.38,0.50],[0.36,0.38],[0.42,0.32],[0.50,0.32],[0.54,0.28],[0.60,0.30],[0.62,0.36],[0.60,0.50],[0.54,0.58],[0.42,0.58],[0.38,0.50]], c:'#d9b48a' },
-    { v:[[0.48,0.58],[0.48,0.78]], c:'#c9903f' }
+    { v:[[0.48,0.58],[0.48,0.78]], c:'#c9903f' },
+    { v:circleVerts(0.72,0.30,0.10,14), c:'#c9403a' },
+    { v:[[0.72,0.20],[0.72,0.40]], c:'#2b2320' },
+    { v:[[0.62,0.30],[0.82,0.30]], c:'#2b2320' }
   ],
   "Another Body Murdered": [ // a siren light
     { v:circleVerts(0.5,0.44,0.14,14), c:'#c9403a' },
@@ -2057,10 +2167,12 @@ const ICON_VERTS = {
     { v:[[0.66,0.48],[0.74,0.56]], c:'#8a8a92' },
     { v:[[0.78,0.60],[0.86,0.68]], c:'#8a8a92' }
   ],
-  "Enter Sandman": [
-    { v:circleVerts(0.5,0.3,0.09,14), c:'#e8e4d8' },
+  "Enter Sandman": [ // a moonlit sand dune, stars glinting above the drifting grains
+    { v:circleVerts(0.5,0.26,0.09,14), c:'#e8e4d8' },
     { v:[[0.3, 0.55], [0.7, 0.55], [0.5, 0.3], [0.3, 0.55]], c:'#c9903f' },
     { v:[[0.3, 0.55], [0.7, 0.55], [0.5, 0.8], [0.3, 0.55]], c:'#8a5a2b' },
+    { v:circleVerts(0.30,0.40,0.012,8), c:'#7fb3d9' },
+    { v:circleVerts(0.70,0.36,0.012,8), c:'#7fb3d9' }
   ],
   "Master Of Puppets": [
     { v:[[0.3, 0.2], [0.7, 0.2]], c:'#8a8a92' },
@@ -2069,12 +2181,11 @@ const ICON_VERTS = {
     { v:[[0.5, 0.2], [0.5, 0.66]], c:'#8a8a92' },
     { v:[[0.36, 0.66], [0.5, 0.78], [0.64, 0.66]], c:'#c9a06a' },
   ],
-  "Nothing Else Matters": [
+  "Nothing Else Matters": [ // a single heart, glowing, everything else faded out
+    { v:circleVerts(0.5,0.48,0.30,20), c:'#3a3a40' },
     { v:[[0.5, 0.72], [0.32, 0.54], [0.24, 0.4], [0.3, 0.28], [0.4, 0.28], [0.5, 0.38], [0.6, 0.28], [0.7, 0.28], [0.76, 0.4], [0.68, 0.54], [0.5, 0.72]], c:'#c9403a' },
-  ],
-  "Where Is My Mind?": [
-    { v:[[0.5, 0.2], [0.36, 0.26], [0.28, 0.4], [0.3, 0.56], [0.4, 0.68], [0.5, 0.72], [0.6, 0.68], [0.7, 0.56], [0.72, 0.4], [0.64, 0.26], [0.5, 0.2]], c:'#d9c9a8' },
-    { v:circleVerts(0.5,0.46,0.14,16), c:'#7fb3d9' },
+    { v:[[0.18,0.30],[0.24,0.36]], c:'#e8b83f' },
+    { v:[[0.82,0.30],[0.76,0.36]], c:'#e8b83f' }
   ],
   "Riders on the Storm": [
     { v:cloudVerts(0.5,0.28,0.16,16), c:'#8a8a92' },
@@ -2083,10 +2194,12 @@ const ICON_VERTS = {
     { v:[[0.7, 0.42], [0.66, 0.56]], c:'#7fb3d9' },
     { v:[[0.3, 0.78], [0.7, 0.78]], c:'#2b2320' },
   ],
-  "Black Magic Woman": [
+  "Black Magic Woman": [ // a witch's hat and wand, sparking with purple magic
     { v:[[0.5, 0.2], [0.3, 0.56], [0.7, 0.56], [0.5, 0.2]], c:'#2b2320' },
     { v:circleVerts(0.5,0.60,0.14,14), c:'#4a4a52' },
     { v:[[0.66, 0.32], [0.78, 0.24]], c:'#e8b83f' },
+    { v:circleVerts(0.80,0.22,0.02,8), c:'#e8b83f' },
+    { v:circleVerts(0.30,0.66,0.015,8), c:'#8a4aa8' }
   ],
   "Paint It Black": [
     { v:[[0.36, 0.34], [0.64, 0.34], [0.6, 0.7], [0.4, 0.7], [0.36, 0.34]], c:'#4a4a52' },
@@ -2106,10 +2219,12 @@ const ICON_VERTS = {
     { v:circleVerts(0.5,0.34,0.05,10), c:'#e8b83f' },
     { v:[[0.28, 0.78], [0.72, 0.78]], c:'#8a5a2b' },
   ],
-  "Killing In The Name": [
+  "Killing In The Name": [ // a raised fist breaking free of a shattered chain
     { v:[[0.38, 0.5], [0.36, 0.38], [0.42, 0.32], [0.5, 0.32], [0.54, 0.28], [0.6, 0.3], [0.62, 0.36], [0.6, 0.5], [0.54, 0.58], [0.42, 0.58], [0.38, 0.5]], c:'#d9b48a' },
     { v:[[0.48, 0.58], [0.48, 0.78]], c:'#c9903f' },
     { v:circleVerts(0.36,0.34,0.05,10), c:'#8a8a92' },
+    { v:circleVerts(0.48,0.80,0.04,10), c:'#8a8a92' },
+    { v:[[0.44,0.84],[0.40,0.90]], c:'#8a8a92' }
   ],
   "Free Bird": [
     { v:[[0.3, 0.34], [0.2, 0.48], [0.3, 0.44], [0.5, 0.36], [0.7, 0.44], [0.8, 0.48], [0.7, 0.34], [0.5, 0.24], [0.3, 0.34]], c:'#8a8a92' },
@@ -2244,10 +2359,12 @@ const ICON_VERTS = {
     { v:[[0.62, 0.44], [0.56, 0.5]], c:'#2b2320' },
     { v:[[0.4, 0.66], [0.5, 0.58], [0.6, 0.66]], c:'#2b2320' },
   ],
-  "Break on Through (To the Other Side)": [
+  "Break on Through (To the Other Side)": [ // a door swinging open onto blazing light, a figure stepping through
     { v:[[0.34, 0.24], [0.66, 0.24], [0.66, 0.8], [0.34, 0.8], [0.34, 0.24]], c:'#6b4226' },
     { v:[[0.66, 0.36], [0.86, 0.3]], c:'#e8b83f' },
     { v:[[0.66, 0.52], [0.9, 0.52]], c:'#e8b83f' },
+    { v:circleVerts(0.60,0.52,0.02,8), c:'#c9a06a' },
+    { v:[[0.5,0.6],[0.5,0.72],[0.44,0.8]], c:'#2b2320' }
   ],
   "Stray Cat Strut": [
     { v:[[0.3, 0.6], [0.34, 0.44], [0.44, 0.36], [0.56, 0.36], [0.6, 0.46], [0.7, 0.42]], c:'#2b2320' },
@@ -2590,9 +2707,12 @@ const ICON_VERTS = {
     { v:[[0.5, 0.24], [0.72, 0.3]], c:'#e8b83f' },
     { v:arcVerts(0.5,0.5,0.34,4.0,5.5,10), c:'#8a8a92' },
   ],
-  "Once": [
-    { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
-    { v:arcVerts(0.5,0.5,0.20,0.5,5.8,16), c:'#8a8a92' },
+  "Once": [ // a single candle
+    { v:[[0.44,0.55],[0.44,0.78],[0.56,0.78],[0.56,0.55],[0.44,0.55]], c:'#d9b48a' },
+    { v:[[0.38,0.78],[0.62,0.78]], c:'#8a5a2b' },
+    { v:[[0.5,0.55],[0.5,0.46]], c:'#4a4a52' },
+    { v:[[0.5,0.46],[0.46,0.38],[0.5,0.28],[0.54,0.38],[0.5,0.46]], c:'#e8843f' },
+    { v:[[0.56,0.60],[0.60,0.68]], c:'#c9903f' }
   ],
   "(I Can't Get No) Satisfaction": [
     { v:circleVerts(0.5,0.42,0.20,20), c:'#c9a06a' },
@@ -2622,10 +2742,12 @@ const ICON_VERTS = {
     { v:[[0.36, 0.6], [0.2, 0.5]], c:'#4a4a52' },
     { v:[[0.6, 0.3], [0.44, 0.3], [0.44, 0.44], [0.6, 0.44]], c:'#c9403a' },
   ],
-  "Bullet With Butterfly Wings": [
+  "Bullet With Butterfly Wings": [ // a bullet growing butterfly wings mid-flight, leaving a trail
     { v:[[0.4, 0.3], [0.4, 0.7]], c:'#4a4a52' },
     { v:[[0.4, 0.36], [0.24, 0.24], [0.2, 0.4], [0.4, 0.44]], c:'#7fb3d9' },
     { v:[[0.4, 0.36], [0.56, 0.24], [0.6, 0.4], [0.4, 0.44]], c:'#7fb3d9' },
+    { v:[[0.4,0.30],[0.36,0.22],[0.44,0.22],[0.4,0.30]], c:'#c9403a' },
+    { v:[[0.4,0.70],[0.4,0.80]], c:'#4a4a52' }
   ],
   "Basket Case": [
     { v:circleVerts(0.5,0.36,0.14,16), c:'#c9a06a' },
@@ -2633,46 +2755,66 @@ const ICON_VERTS = {
     { v:[[0.58, 0.32], [0.54, 0.36]], c:'#2b2320' },
     { v:[[0.42, 0.44], [0.58, 0.4]], c:'#2b2320' },
   ],
-  "Where The Streets Have No Name": [
+  "Where The Streets Have No Name": [ // a blank street sign on an empty road, stretching toward the sunrise
     { v:[[0.2, 0.7], [0.8, 0.7]], c:'#4a4a52' },
     { v:[[0.3, 0.7], [0.3, 0.3]], c:'#4a4a52' },
     { v:[[0.2, 0.3], [0.4, 0.3]], c:'#c9403a' },
+    { v:circleVerts(0.68,0.36,0.10,14), c:'#e8b83f' },
+    { v:[[0.55,0.7],[0.85,0.7]], c:'#8a5a2b' }
   ],
-  "I Still Haven't Found What I'm Looking For": [
+  "I Still Haven't Found What I'm Looking For": [ // a magnifying glass held out, searching an empty horizon
+    { v:circleVerts(0.40,0.42,0.14,16), c:'#7fb3d9' },
     { v:[[0.4, 0.6], [0.3, 0.44], [0.34, 0.28], [0.5, 0.24]], c:'#4a4a52' },
     { v:circleVerts(0.5,0.24,0.03,8), c:'#c9403a' },
     { v:[[0.28, 0.6], [0.44, 0.6]], c:'#8a8a92' },
+    { v:[[0.62,0.68],[0.68,0.74]], c:'#8a8a92' }
   ],
-  "With Or Without You": [
+  "With Or Without You": [ // a heart, held together by a chain link either way
     { v:[[0.5, 0.68], [0.32, 0.5], [0.24, 0.36], [0.3, 0.24], [0.4, 0.24], [0.5, 0.34], [0.6, 0.24], [0.7, 0.24], [0.76, 0.36], [0.68, 0.5], [0.5, 0.68]], c:'#c9403a' },
-    { v:[[0.24, 0.7], [0.76, 0.7]], c:'#8a8a92' },
+    { v:[[0.24, 0.78], [0.76, 0.78]], c:'#8a8a92' },
+    { v:circleVerts(0.34,0.78,0.06,12), c:'#5a5a62' },
+    { v:circleVerts(0.46,0.78,0.06,12), c:'#5a5a62' }
   ],
-  "Buddy Holly": [
+  "Buddy Holly": [ // classic black-rimmed glasses, bridge and temple arms included
     { v:circleVerts(0.5,0.42,0.15,16), c:'#c9a06a' },
     { v:[[0.36, 0.36], [0.44, 0.36], [0.44, 0.44], [0.36, 0.44], [0.36, 0.36]], c:'#2b2320' },
     { v:[[0.56, 0.36], [0.64, 0.36], [0.64, 0.44], [0.56, 0.44], [0.56, 0.36]], c:'#2b2320' },
+    { v:[[0.44,0.40],[0.56,0.40]], c:'#2b2320' },
+    { v:[[0.36,0.40],[0.26,0.36]], c:'#2b2320' }
   ],
-  "Come Out and Play": [
-    { v:circleVerts(0.36,0.5,0.06,10), c:'#e8b83f' },
-    { v:circleVerts(0.64,0.5,0.06,10), c:'#e8b83f' },
-    { v:[[0.3, 0.5], [0.7, 0.5]], c:'#8a8a92' },
+  "Come Out and Play": [ // a skateboard deck with striped grip tape, ready to roll
+    { v:circleVerts(0.36,0.6,0.06,10), c:'#4a4a52' },
+    { v:circleVerts(0.64,0.6,0.06,10), c:'#4a4a52' },
+    { v:[[0.22,0.48],[0.78,0.48],[0.76,0.54],[0.24,0.54],[0.22,0.48]], c:'#8a5a2b' },
+    { v:[[0.30,0.50],[0.70,0.50]], c:'#c9403a' },
+    { v:circleVerts(0.36,0.6,0.02,8), c:'#8a8a92' },
+    { v:circleVerts(0.64,0.6,0.02,8), c:'#8a8a92' }
   ],
-  "Song 2": [
-    { v:circleVerts(0.36,0.5,0.09,12), c:'#c9403a' },
-    { v:circleVerts(0.64,0.5,0.09,12), c:'#e8b83f' },
+  "Song 2": [ // a numeral 2, right beside a musical note
+    { v:[[0.20,0.32],[0.26,0.24],[0.36,0.24],[0.40,0.32],[0.36,0.42],[0.20,0.58],[0.42,0.58]], c:'#e8e4d8' },
+    { v:circleVerts(0.64,0.62,0.08,12), c:'#c9403a' },
+    { v:[[0.72,0.62],[0.72,0.24]], c:'#c9403a' },
+    { v:[[0.72,0.24],[0.84,0.30],[0.80,0.40]], c:'#c9403a' }
   ],
-  "Hunger Strike": [
+  "Hunger Strike": [ // prison bars over an empty plate and fork, refusing the meal
     { v:[[0.34, 0.7], [0.34, 0.34], [0.66, 0.34], [0.66, 0.7]], c:'#8a8a92' },
     { v:[[0.42, 0.7], [0.42, 0.5]], c:'#4a4a52' },
     { v:[[0.58, 0.7], [0.58, 0.5]], c:'#4a4a52' },
+    { v:circleVerts(0.5,0.80,0.10,14), c:'#e8e4d8' },
+    { v:[[0.36,0.80],[0.36,0.88]], c:'#8a8a92' },
   ],
-  "No Rain": [
+  "No Rain": [ // a rain cloud banned, with the sun breaking through behind it
     { v:cloudVerts(0.5,0.30,0.16,16), c:'#8a8a92' },
     { v:[[0.3, 0.5], [0.7, 0.5]], c:'#c9403a' },
+    { v:[[0.38,0.58],[0.34,0.66]], c:'#7fb3d9' },
+    { v:[[0.5,0.58],[0.46,0.66]], c:'#7fb3d9' },
+    { v:circleVerts(0.72,0.24,0.06,12), c:'#e8b83f' }
   ],
-  "Rape Me": [
+  "Rape Me": [ // a ban circle with a shattering crack
     { v:circleVerts(0.5,0.5,0.24,20), c:'#c9403a' },
     { v:[[0.34, 0.66], [0.66, 0.34]], c:'#2b2320' },
+    { v:[[0.5,0.30],[0.44,0.44]], c:'#2b2320' },
+    { v:[[0.60,0.50],[0.70,0.56]], c:'#2b2320' }
   ],
   "All The Small Things": [
     { v:circleVerts(0.30,0.5,0.05,8), c:'#e8b83f' },
@@ -2680,40 +2822,61 @@ const ICON_VERTS = {
     { v:circleVerts(0.58,0.5,0.05,8), c:'#e8b83f' },
     { v:circleVerts(0.72,0.5,0.05,8), c:'#e8b83f' },
   ],
-  "Bulls On Parade": [
+  "Bulls On Parade": [ // a bull's horns and head, kicking up dust as it marches
     { v:[[0.34, 0.3], [0.28, 0.44], [0.34, 0.6]], c:'#8a8a92' },
     { v:[[0.66, 0.3], [0.72, 0.44], [0.66, 0.6]], c:'#8a8a92' },
     { v:[[0.34, 0.6], [0.66, 0.6], [0.6, 0.78], [0.4, 0.78], [0.34, 0.6]], c:'#4a4a52' },
+    { v:[[0.20,0.82],[0.80,0.82]], c:'#2b2320' },
+    { v:[[0.30,0.70],[0.18,0.66]], c:'#4a4a52' }
   ],
-  "Bleed It Out": [
+  "Bleed It Out": [ // a cracked head with blood running down both sides
     { v:circleVerts(0.5,0.36,0.10,14), c:'#c9a06a' },
     { v:[[0.44, 0.46], [0.4, 0.7]], c:'#c9403a' },
     { v:[[0.56, 0.46], [0.6, 0.7]], c:'#c9403a' },
+    { v:[[0.5, 0.46], [0.5, 0.62]], c:'#c9403a' },
+    { v:[[0.42,0.34],[0.48,0.30],[0.54,0.34]], c:'#2b2320' }
   ],
-  "Reptilia": [
+  "Reptilia": [ // a slithering reptile with a forked tongue and scaled bumps
     { v:[[0.24, 0.56], [0.36, 0.4], [0.5, 0.56], [0.64, 0.4], [0.76, 0.56]], c:'#3d7a4a' },
     { v:circleVerts(0.36,0.38,0.02,8), c:'#2b2320' },
+    { v:[[0.24,0.58],[0.20,0.62],[0.16,0.58]], c:'#c9403a' },
+    { v:circleVerts(0.5,0.54,0.015,8), c:'#e8b83f' },
+    { v:circleVerts(0.64,0.38,0.02,8), c:'#2b2320' }
   ],
-  "Would?": [
+  "Would?": [ // a grave marker cross standing over quiet ground
     { v:[[0.5, 0.24], [0.5, 0.7]], c:'#8a8a92' },
     { v:circleVerts(0.5,0.78,0.06,10), c:'#8a8a92' },
+    { v:[[0.38,0.36],[0.62,0.36]], c:'#8a8a92' },
+    { v:[[0.20,0.78],[0.80,0.78]], c:'#2b2320' },
+    { v:circleVerts(0.5,0.78,0.03,8), c:'#4a4a52' }
   ],
-  "Come On!": [
+  "Come On!": [ // a double arrow pushing forward with a spark of energy
     { v:[[0.3, 0.44], [0.7, 0.44]], c:'#e8b83f' },
     { v:[[0.6, 0.34], [0.7, 0.44], [0.6, 0.54]], c:'#e8b83f' },
+    { v:[[0.3, 0.56], [0.55, 0.56]], c:'#c9903f' },
+    { v:[[0.48, 0.50], [0.55, 0.56], [0.48, 0.62]], c:'#c9903f' },
+    { v:circleVerts(0.22,0.44,0.02,8), c:'#e8b83f' }
   ],
-  "Last Nite": [
-    { v:cloudVerts(0.5,0.30,0.10,14), c:'#e8e4d8' },
-    { v:[[0.5, 0.4], [0.5, 0.7]], c:'#4a4a52' },
+  "Last Nite": [ // a moonlit city skyline under a starry night
+    { v:circleVerts(0.62,0.26,0.10,14), c:'#e8e4d8' },
+    { v:[[0.20,0.72],[0.20,0.50],[0.32,0.50],[0.32,0.60],[0.44,0.60],[0.44,0.40],[0.56,0.40],[0.56,0.55],[0.68,0.55],[0.68,0.72],[0.20,0.72]], c:'#2b2320' },
+    { v:circleVerts(0.22,0.20,0.012,8), c:'#7fb3d9' },
+    { v:circleVerts(0.78,0.22,0.015,8), c:'#7fb3d9' },
+    { v:circleVerts(0.36,0.54,0.01,8), c:'#e8b83f' }
   ],
-  "Apple Blossom": [
+  "Apple Blossom": [ // a pink blossom with a golden center on a leafy stem
     { v:circleVerts(0.5,0.42,0.14,16), c:'#e8657a' },
     { v:[[0.5, 0.56], [0.5, 0.78]], c:'#3d7a4a' },
     { v:[[0.5, 0.66], [0.38, 0.6]], c:'#3d7a4a' },
+    { v:circleVerts(0.5,0.42,0.05,10), c:'#e8b83f' },
+    { v:[[0.5,0.66],[0.62,0.72]], c:'#3d7a4a' }
   ],
-  "Hash Pipe": [
+  "Hash Pipe": [ // a smoking pipe with curling wisps rising off the bowl
     { v:[[0.34, 0.56], [0.34, 0.44], [0.66, 0.44], [0.66, 0.56], [0.34, 0.56]], c:'#8a5a2b' },
     { v:[[0.66, 0.5], [0.78, 0.5]], c:'#8a8a92' },
+    { v:arcVerts(0.80,0.42,0.05,1.0,5.5,10), c:'#8a8a92' },
+    { v:arcVerts(0.84,0.30,0.06,1.0,5.5,10), c:'#8a8a92' },
+    { v:[[0.40,0.50],[0.60,0.50]], c:'#5a3a1e' }
   ],
   "Hey Ya!": [
     { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
@@ -3752,31 +3915,45 @@ const ICON_VERTS = {
     { v:circleVerts(0.5,0.5,0.14,16), c:'#e8843f' },
     { v:circleVerts(0.5,0.5,0.24,20), c:'#c9403a' },
   ],
-  "That's How Strong My Love Is": [
+  "That's How Strong My Love Is": [ // a strong, beating heart
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
+    { v:[[0.32,0.42],[0.42,0.42],[0.46,0.32],[0.52,0.50],[0.58,0.42],[0.68,0.42]], c:'#e8e4d8' },
+    { v:[[0.18,0.40],[0.24,0.36]], c:'#e8b83f' },
+    { v:[[0.82,0.40],[0.76,0.36]], c:'#e8b83f' }
   ],
-  "Alkohol": [
-    { v:[[0.36, 0.3], [0.36, 0.62], [0.64, 0.62], [0.64, 0.3]], c:'#e8e4d8' },
-    { v:[[0.3, 0.3], [0.7, 0.3], [0.5, 0.14], [0.3, 0.3]], c:'#c9903f' },
+  "Alkohol": [ // a foaming beer stein
+    { v:[[0.32,0.36],[0.32,0.74],[0.60,0.74],[0.60,0.36],[0.32,0.36]], c:'#e8b83f' },
+    { v:arcVerts(0.68,0.50,0.10,4.9,1.4,12), c:'#c9903f' },
+    { v:cloudVerts(0.46,0.30,0.10,14), c:'#e8e4d8' },
+    { v:circleVerts(0.40,0.50,0.02,8), c:'#e8e4d8' },
+    { v:circleVerts(0.50,0.60,0.02,8), c:'#e8e4d8' }
   ],
-  "Risin' High": [
+  "Risin' High": [ // smoke rising and spiraling upward from a flame, up past the clouds
+    { v:[[0.42,0.85],[0.44,0.78],[0.5,0.72],[0.56,0.78],[0.58,0.85],[0.42,0.85]], c:'#e8843f' },
     { v:arcVerts(0.5,0.70,0.06,0,6.2,10), c:'#e8843f' },
     { v:arcVerts(0.5,0.55,0.16,0.6,6.2,12), c:'#e8b83f' },
     { v:arcVerts(0.5,0.36,0.24,1.2,6.5,14), c:'#7fb3d9' },
+    { v:cloudVerts(0.5,0.18,0.09,12), c:'#e8e4d8' }
   ],
-  "Alice": [
-    { v:circleVerts(0.5,0.40,0.14,16), c:'#c9a06a' },
-    { v:[[0.5, 0.54], [0.5, 0.3]], c:'#7fb3d9' },
+  "Alice": [ // a curious rabbit with long ears
+    { v:circleVerts(0.5,0.55,0.16,16), c:'#e8e4d8' },
+    { v:[[0.40,0.44],[0.36,0.16],[0.44,0.20],[0.44,0.46]], c:'#e8e4d8' },
+    { v:[[0.60,0.44],[0.64,0.16],[0.56,0.20],[0.56,0.46]], c:'#e8e4d8' },
+    { v:circleVerts(0.44,0.52,0.02,8), c:'#2b2320' },
+    { v:circleVerts(0.56,0.52,0.02,8), c:'#2b2320' }
   ],
-  "Momma's Gotta Die Tonight": [
-    { v:circleVerts(0.42,0.42,0.09,12), c:'#c9a06a' },
-    { v:[[0.42, 0.51], [0.42, 0.7]], c:'#4a4a52' },
-    { v:[[0.3, 0.24], [0.42, 0.24]], c:'#2b2320' },
+  "Momma's Gotta Die Tonight": [ // a full moon over a dark tombstone, at the stroke of midnight
+    { v:circleVerts(0.62,0.24,0.12,16), c:'#c9903f' },
+    { v:[[0.32,0.70],[0.32,0.48],[0.5,0.34],[0.68,0.48],[0.68,0.70],[0.32,0.70]], c:'#4a4a52' },
+    { v:[[0.44,0.58],[0.56,0.58]], c:'#2b2320' },
+    { v:[[0.18,0.70],[0.82,0.70]], c:'#2b2320' }
   ],
-  "Body Count": [
-    { v:circleVerts(0.30,0.40,0.06,10), c:'#c9a06a' },
-    { v:circleVerts(0.5,0.40,0.06,10), c:'#c9a06a' },
-    { v:circleVerts(0.70,0.40,0.06,10), c:'#c9a06a' },
+  "Body Count": [ // a row of tombstones standing over a dark burial ground
+    { v:[[0.20,0.72],[0.20,0.52],[0.30,0.40],[0.40,0.52],[0.40,0.72],[0.20,0.72]], c:'#4a4a52' },
+    { v:[[0.42,0.72],[0.42,0.48],[0.5,0.34],[0.58,0.48],[0.58,0.72],[0.42,0.72]], c:'#5a5a62' },
+    { v:[[0.60,0.72],[0.60,0.52],[0.70,0.40],[0.80,0.52],[0.80,0.72],[0.60,0.72]], c:'#4a4a52' },
+    { v:[[0.15,0.78],[0.85,0.78]], c:'#2b2320' },
+    { v:[[0.44,0.56],[0.44,0.62]], c:'#2b2320' }
   ],
   "Body Count Anthem": [
     { v:circleVerts(0.30,0.40,0.06,10), c:'#c9403a' },
@@ -3784,36 +3961,53 @@ const ICON_VERTS = {
     { v:circleVerts(0.70,0.40,0.06,10), c:'#c9403a' },
     { v:[[0.5, 0.3], [0.5, 0.2]], c:'#e8b83f' },
   ],
-  "Don't Fade Away": [
-    { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
-    { v:arcVerts(0.5,0.5,0.20,0.5,5.8,16), c:'#8a8a92' },
+  "Don't Fade Away": [ // a sun sinking behind the horizon, fading rays
+    { v:arcVerts(0.5,0.62,0.20,Math.PI,Math.PI*2,16), c:'#e8843f' },
+    { v:[[0.15,0.62],[0.85,0.62]], c:'#4a4a52' },
+    { v:[[0.30,0.40],[0.24,0.32]], c:'#e8b83f' },
+    { v:[[0.5,0.34],[0.5,0.24]], c:'#e8b83f' },
+    { v:[[0.70,0.40],[0.76,0.32]], c:'#e8b83f' }
   ],
-  "We Only Come Out At Night": [
-    { v:circleVerts(0.60,0.32,0.14,16), c:'#e8e4d8' },
+  "We Only Come Out At Night": [ // a crescent moon over a starlit sky, a bat crossing it
+    { v:arcVerts(0.5,0.32,0.16,Math.PI*0.9,Math.PI*2.1,14), c:'#e8e4d8' },
     { v:circleVerts(0.30,0.34,0.02,8), c:'#e8b83f' },
     { v:circleVerts(0.66,0.60,0.02,8), c:'#e8b83f' },
+    { v:circleVerts(0.20,0.60,0.015,8), c:'#e8b83f' },
+    { v:[[0.35,0.55],[0.42,0.50],[0.48,0.55],[0.52,0.50],[0.58,0.55],[0.65,0.50]], c:'#2b2320' }
   ],
-  "No Pussy Blues": [
-    { v:circleVerts(0.42,0.42,0.09,12), c:'#c9a06a' },
-    { v:[[0.42, 0.51], [0.42, 0.7]], c:'#4a4a52' },
+  "No Pussy Blues": [ // a blue, teary eighth-note
+    { v:circleVerts(0.42,0.66,0.09,12), c:'#3a6a8a' },
+    { v:[[0.51,0.66],[0.51,0.22]], c:'#3a6a8a' },
+    { v:[[0.51,0.22],[0.66,0.30],[0.62,0.40],[0.51,0.36]], c:'#3a6a8a' },
+    { v:[[0.30,0.54],[0.26,0.62],[0.30,0.68],[0.34,0.62],[0.30,0.54]], c:'#7fb3d9' }
   ],
-  "When I Come Around": [
-    { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
-    { v:arcVerts(0.5,0.5,0.20,0.5,5.8,16), c:'#8a8a92' },
+  "When I Come Around": [ // a boomerang, thrown out and circling back with a trailing motion arc
+    { v:[[0.30,0.65],[0.36,0.42],[0.55,0.32],[0.44,0.48],[0.30,0.65]], c:'#8a5a2b' },
+    { v:arcVerts(0.5,0.5,0.28,4.0,8.4,16), c:'#c9903f' },
+    { v:[[0.72,0.30],[0.78,0.24],[0.80,0.32]], c:'#c9903f' },
+    { v:[[0.18,0.70],[0.28,0.66]], c:'#8a8a92' },
+    { v:[[0.16,0.78],[0.26,0.76]], c:'#8a8a92' }
   ],
-  "1979": [
-    { v:[[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7], [0.3, 0.3]], c:'#e8e4d8' },
-    { v:[[0.38, 0.42], [0.62, 0.42]], c:'#2b2320' },
-    { v:[[0.38, 0.52], [0.56, 0.52]], c:'#2b2320' },
+  "1979": [ // an old polaroid photo of a summer sunset over a hill
+    { v:[[0.26,0.24],[0.74,0.24],[0.74,0.68],[0.26,0.68],[0.26,0.24]], c:'#e8e4d8' },
+    { v:[[0.32,0.30],[0.68,0.30],[0.68,0.56],[0.32,0.56],[0.32,0.30]], c:'#7fb3d9' },
+    { v:circleVerts(0.60,0.36,0.05,10), c:'#e8b83f' },
+    { v:[[0.32,0.56],[0.40,0.44],[0.48,0.56]], c:'#3d7a4a' },
+    { v:[[0.30,0.62],[0.70,0.62]], c:'#2b2320' }
   ],
-  "Tonight, Tonight": [
-    { v:circleVerts(0.5,0.34,0.10,14), c:'#e8b83f' },
-    { v:[[0.3, 0.7], [0.7, 0.7]], c:'#4a4a52' },
+  "Tonight, Tonight": [ // a crescent moon over the skyline, under scattered stars
+    { v:arcVerts(0.5,0.32,0.13,Math.PI*0.9,Math.PI*2.1,12), c:'#e8d840' },
+    { v:[[0.15,0.72],[0.15,0.58],[0.30,0.58],[0.30,0.66],[0.42,0.66],[0.42,0.50],[0.55,0.50],[0.55,0.62],[0.70,0.62],[0.70,0.72],[0.15,0.72]], c:'#4a4a52' },
+    { v:circleVerts(0.22,0.20,0.014,8), c:'#e8e4d8' },
+    { v:circleVerts(0.78,0.24,0.018,8), c:'#e8e4d8' },
+    { v:circleVerts(0.65,0.16,0.012,8), c:'#e8e4d8' }
   ],
-  "Mellon Collie And The Infinite Sadness": [
+  "Mellon Collie And The Infinite Sadness": [ // a melancholy face with a single falling tear
     { v:circleVerts(0.5,0.42,0.14,16), c:'#c9a06a' },
     { v:[[0.42, 0.42], [0.44, 0.46]], c:'#2b2320' },
     { v:[[0.58, 0.42], [0.56, 0.46]], c:'#2b2320' },
+    { v:[[0.42,0.52],[0.58,0.48]], c:'#2b2320' },
+    { v:circleVerts(0.42,0.52,0.015,8), c:'#7fb3d9' }
   ],
   "Better Man": [
     { v:circleVerts(0.5,0.30,0.08,12), c:'#c9a06a' },
@@ -3821,13 +4015,19 @@ const ICON_VERTS = {
     { v:[[0.5, 0.42], [0.3, 0.36]], c:'#4a4a52' },
     { v:[[0.5, 0.5], [0.72, 0.42]], c:'#4a4a52' },
   ],
-  "Today": [
-    { v:circleVerts(0.5,0.34,0.10,14), c:'#e8b83f' },
-    { v:arcVerts(0.5,0.60,0.16,3.4,6.03,14), c:'#3d7a4a' },
+  "Today": [ // the sun over a full rainbow and a cloud
+    { v:circleVerts(0.5,0.28,0.10,14), c:'#e8b83f' },
+    { v:arcVerts(0.5,0.62,0.24,3.4,6.03,16), c:'#c9403a' },
+    { v:arcVerts(0.5,0.62,0.18,3.4,6.03,16), c:'#e8b83f' },
+    { v:arcVerts(0.5,0.62,0.12,3.4,6.03,16), c:'#3d7a4a' },
+    { v:cloudVerts(0.78,0.30,0.09,12), c:'#e8e4d8' }
   ],
-  "Oye Como Va": [
-    { v:circleVerts(0.5,0.5,0.22,18), c:'#8a5a2b' },
-    { v:circleVerts(0.5,0.5,0.09,12), c:'#4a4a52' },
+  "Oye Como Va": [ // a conga drum on legs, struck with rhythm waves
+    { v:circleVerts(0.5,0.34,0.20,18), c:'#8a5a2b' },
+    { v:circleVerts(0.5,0.34,0.09,12), c:'#4a4a52' },
+    { v:[[0.32,0.44],[0.32,0.72],[0.68,0.72],[0.68,0.44]], c:'#c9903f' },
+    { v:[[0.38,0.72],[0.32,0.86]], c:'#5a5a62' },
+    { v:[[0.62,0.72],[0.68,0.86]], c:'#5a5a62' }
   ],
   "Jump Around": [
     { v:circleVerts(0.5,0.30,0.08,12), c:'#c9a06a' },
@@ -3835,54 +4035,81 @@ const ICON_VERTS = {
     { v:[[0.5, 0.54], [0.38, 0.7]], c:'#4a4a52' },
     { v:[[0.5, 0.54], [0.62, 0.7]], c:'#4a4a52' },
   ],
-  "A Drug Against War": [
-    { v:[[0.36, 0.3], [0.36, 0.7]], c:'#4a4a52' },
-    { v:[[0.64, 0.3], [0.64, 0.7]], c:'#4a4a52' },
-    { v:[[0.36, 0.5], [0.64, 0.5]], c:'#c9403a' },
+  "A Drug Against War": [ // a capsule shield struck through with a ban slash
+    { v:[[0.30,0.60],[0.30,0.40],[0.5,0.30],[0.70,0.40],[0.70,0.60],[0.5,0.70],[0.30,0.60]], c:'#e8e4d8' },
+    { v:[[0.30,0.60],[0.30,0.40],[0.5,0.30],[0.5,0.70],[0.30,0.60]], c:'#c9403a' },
+    { v:[[0.30,0.40],[0.36,0.30],[0.5,0.30]], c:'#8a8a92' },
+    { v:[[0.36,0.30],[0.64,0.70]], c:'#2b2320' },
+    { v:circleVerts(0.5,0.5,0.03,8), c:'#8a8a92' }
   ],
-  "Psalm 69": [
-    { v:[[0.5, 0.24], [0.5, 0.7]], c:'#4a4a52' },
-    { v:[[0.34, 0.36], [0.66, 0.36]], c:'#4a4a52' },
+  "Psalm 69": [ // a cross glowing with rays of light
+    { v:circleVerts(0.5,0.42,0.24,18), c:'#f5e6b8' },
+    { v:[[0.5, 0.20], [0.5, 0.74]], c:'#4a4a52' },
+    { v:[[0.32, 0.34], [0.68, 0.34]], c:'#4a4a52' },
+    { v:[[0.22,0.58],[0.14,0.66]], c:'#e8d840' },
+    { v:[[0.78,0.58],[0.86,0.66]], c:'#e8d840' }
   ],
-  "Blue Monday '88": [
+  "Blue Monday '88": [ // a blue clock face, hands stuck at the start of the week
     { v:circleVerts(0.5,0.5,0.24,20), c:'#7fb3d9' },
-    { v:[[0.5, 0.3], [0.5, 0.7]], c:'#2b2320' },
+    { v:[[0.5,0.5],[0.5,0.30]], c:'#2b2320' },
+    { v:[[0.5,0.5],[0.64,0.54]], c:'#2b2320' },
+    { v:[[0.5,0.28],[0.5,0.24]], c:'#2b2320' },
+    { v:[[0.28,0.5],[0.24,0.5]], c:'#2b2320' }
   ],
-  "The Beautiful People": [
+  "The Beautiful People": [ // a shadowed face crowned with spikes, sneering
     { v:circleVerts(0.5,0.5,0.24,20), c:'#2b2320' },
     { v:[[0.36, 0.42], [0.42, 0.48]], c:'#c9403a' },
     { v:[[0.64, 0.42], [0.58, 0.48]], c:'#c9403a' },
+    { v:[[0.32,0.28],[0.38,0.20],[0.44,0.28],[0.50,0.18],[0.56,0.28],[0.62,0.20],[0.68,0.28]], c:'#8a8a92' },
+    { v:[[0.40,0.62],[0.5,0.58],[0.60,0.62]], c:'#c9403a' }
   ],
-  "Island In The Sun": [
+  "Island In The Sun": [ // a sunny island with a palm tree swaying over calm water
     { v:circleVerts(0.5,0.30,0.10,14), c:'#e8b83f' },
     { v:[[0.3, 0.68], [0.7, 0.68]], c:'#7fb3d9' },
     { v:[[0.36, 0.68], [0.5, 0.5], [0.64, 0.68]], c:'#c9903f' },
+    { v:[[0.5,0.5],[0.38,0.42],[0.5,0.46],[0.5,0.5]], c:'#3d7a4a' },
+    { v:[[0.5,0.5],[0.62,0.42],[0.5,0.46],[0.5,0.5]], c:'#3d7a4a' }
   ],
-  "The Fight Song": [
+  "The Fight Song": [ // a fighter throwing a fist, connecting with impact lines
     { v:circleVerts(0.42,0.42,0.09,12), c:'#c9a06a' },
     { v:[[0.42, 0.51], [0.42, 0.7]], c:'#4a4a52' },
     { v:[[0.42, 0.58], [0.58, 0.44]], c:'#4a4a52' },
+    { v:circleVerts(0.60,0.42,0.03,8), c:'#c9403a' },
+    { v:[[0.66,0.36],[0.74,0.32]], c:'#8a8a92' }
   ],
-  "I Don't Like The Drugs (But The Drugs Like Me)": [
+  "I Don't Like The Drugs (But The Drugs Like Me)": [ // a labeled pill bottle with two capsules and a cap
     { v:[[0.36, 0.36], [0.64, 0.36], [0.64, 0.56], [0.36, 0.56], [0.36, 0.36]], c:'#e8e4d8' },
     { v:circleVerts(0.44,0.46,0.03,8), c:'#c9403a' },
     { v:circleVerts(0.56,0.46,0.03,8), c:'#e8b83f' },
+    { v:[[0.40,0.30],[0.60,0.30],[0.60,0.36],[0.40,0.36],[0.40,0.30]], c:'#4a4a52' },
+    { v:[[0.36,0.60],[0.64,0.60]], c:'#8a5a2b' }
   ],
-  "Dead Souls": [
-    { v:circleVerts(0.5,0.36,0.10,14), c:'#8a8a92' },
-    { v:[[0.3, 0.68], [0.7, 0.68]], c:'#2b2320' },
+  "Dead Souls": [ // a ghostly soul drifting over a tombstone
+    { v:[[0.36,0.62],[0.36,0.42],[0.5,0.30],[0.64,0.42],[0.64,0.62],[0.36,0.62]], c:'#5a5a62' },
+    { v:[[0.44,0.50],[0.56,0.50]], c:'#2b2320' },
+    { v:[[0.28, 0.62], [0.72, 0.62]], c:'#2b2320' },
+    { v:circleVerts(0.5,0.20,0.08,14), c:'#e8e4d8' }
   ],
-  "Mother": [
+  "Mother": [ // a mother heart holding a small child heart inside, beside a flower
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
-    { v:circleVerts(0.5,0.5,0.05,10), c:'#2b2320' },
+    { v:[[0.5, 0.54], [0.42, 0.46], [0.38, 0.38], [0.42, 0.32], [0.5, 0.38], [0.58, 0.32], [0.62, 0.38], [0.58, 0.46], [0.5, 0.54]], c:'#e8b83f' },
+    { v:circleVerts(0.80,0.62,0.06,12), c:'#d9b48a' },
+    { v:[[0.80,0.68],[0.80,0.82]], c:'#3d7a4a' }
   ],
-  "Naive": [
-    { v:circleVerts(0.5,0.5,0.24,20), c:'#c9a06a' },
-    { v:circleVerts(0.5,0.44,0.02,8), c:'#2b2320' },
+  "Naive": [ // a wide-eyed, naively surprised face
+    { v:circleVerts(0.5,0.46,0.24,20), c:'#e8c9a0' },
+    { v:circleVerts(0.40,0.40,0.05,10), c:'#e8e4d8' },
+    { v:circleVerts(0.60,0.40,0.05,10), c:'#e8e4d8' },
+    { v:circleVerts(0.40,0.40,0.02,8), c:'#2b2320' },
+    { v:circleVerts(0.60,0.40,0.02,8), c:'#2b2320' },
+    { v:circleVerts(0.5,0.60,0.03,10), c:'#2b2320' }
   ],
-  "TV II": [
+  "TV II": [ // an old television with static lines, propped on a stand
     { v:[[0.24, 0.32], [0.76, 0.32], [0.76, 0.62], [0.24, 0.62], [0.24, 0.32]], c:'#4a4a52' },
     { v:[[0.5, 0.32], [0.58, 0.14]], c:'#8a8a92' },
+    { v:[[0.30,0.40],[0.70,0.40]], c:'#7fb3d9' },
+    { v:[[0.30,0.50],[0.70,0.50]], c:'#7fb3d9' },
+    { v:[[0.42,0.62],[0.42,0.70],[0.58,0.70],[0.58,0.62]], c:'#2b2320' }
   ],
   "All My Friends Are Dead": [
     { v:circleVerts(0.34,0.34,0.06,10), c:'#e8e4d8' },
@@ -3890,40 +4117,62 @@ const ICON_VERTS = {
     { v:circleVerts(0.66,0.34,0.06,10), c:'#e8e4d8' },
     { v:[[0.24, 0.6], [0.76, 0.6]], c:'#2b2320' },
   ],
-  "Prince Of The Rodeo": [
+  "Prince Of The Rodeo": [ // a cowboy hat with a star badge on the brim
     { v:[[0.3, 0.6], [0.7, 0.6]], c:'#8a5a2b' },
     { v:arcVerts(0.5,0.44,0.20,3.4,6.03,14), c:'#c9903f' },
+    { v:[[0.30,0.60],[0.20,0.56]], c:'#8a5a2b' },
+    { v:[[0.70,0.60],[0.80,0.56]], c:'#8a5a2b' },
+    { v:circleVerts(0.5,0.72,0.10,12), c:'#c9403a' }
   ],
-  "21st Century": [
+  "21st Century": [ // a crossed-out globe, digital tick marks at top and bottom
     { v:circleVerts(0.5,0.5,0.24,20), c:'#8a8a92' },
     { v:[[0.42, 0.42], [0.58, 0.58]], c:'#2b2320' },
     { v:[[0.58, 0.42], [0.42, 0.58]], c:'#2b2320' },
+    { v:[[0.5,0.24],[0.5,0.30]], c:'#7fb3d9' },
+    { v:[[0.5,0.70],[0.5,0.76]], c:'#7fb3d9' }
   ],
-  "She Moves In Her Own Way": [
+  "She Moves In Her Own Way": [ // a dancing figure with a flowing skirt hem
     { v:circleVerts(0.5,0.34,0.09,12), c:'#c9a06a' },
     { v:[[0.5, 0.44], [0.5, 0.68]], c:'#e8657a' },
     { v:[[0.5, 0.52], [0.36, 0.62]], c:'#e8657a' },
+    { v:[[0.5,0.52],[0.64,0.60]], c:'#e8657a' },
+    { v:[[0.40,0.68],[0.5,0.60],[0.60,0.68]], c:'#e8657a' }
   ],
-  "The Age Of Pamparius": [
+  "The Age Of Pamparius": [ // a spoked sun wheel, rays reaching out in all directions
     { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
     { v:arcVerts(0.5,0.5,0.20,0.5,5.8,16), c:'#8a8a92' },
+    { v:[[0.5,0.30],[0.5,0.20]], c:'#8a8a92' },
+    { v:[[0.5,0.70],[0.5,0.80]], c:'#8a8a92' },
+    { v:[[0.30,0.5],[0.20,0.5]], c:'#8a8a92' },
+    { v:[[0.70,0.5],[0.80,0.5]], c:'#8a8a92' }
   ],
-  "Punk Rock Song": [
+  "Punk Rock Song": [ // a spiked fist with a safety pin and jagged mohawk spikes
     { v:[[0.42, 0.55], [0.3, 0.6], [0.26, 0.72], [0.34, 0.82], [0.5, 0.8], [0.58, 0.86], [0.7, 0.8], [0.74, 0.68], [0.68, 0.58], [0.56, 0.56], [0.5, 0.46], [0.42, 0.55]], c:'#c9403a' },
+    { v:[[0.30,0.30],[0.35,0.22],[0.40,0.30]], c:'#8a8a92' },
+    { v:[[0.44,0.24],[0.48,0.14],[0.52,0.24]], c:'#8a8a92' },
+    { v:[[0.56,0.28],[0.62,0.18],[0.66,0.28]], c:'#8a8a92' },
+    { v:circleVerts(0.72,0.40,0.02,8), c:'#e8b83f' }
   ],
-  "Infected": [
+  "Infected": [ // a spiked virus cell with dark red pustules
     { v:circleVerts(0.5,0.5,0.22,18), c:'#3d7a4a' },
     { v:circleVerts(0.42,0.46,0.03,8), c:'#c9403a' },
     { v:circleVerts(0.58,0.42,0.04,8), c:'#c9403a' },
+    { v:[[0.5,0.28],[0.5,0.18]], c:'#3d7a4a' },
+    { v:[[0.72,0.5],[0.82,0.5]], c:'#3d7a4a' },
+    { v:[[0.5,0.72],[0.5,0.82]], c:'#3d7a4a' }
   ],
-  "Call Me A Dog": [
-    { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
-    { v:[[0.5, 0.5], [0.5, 0.5]], c:'#2b2320' },
-    { v:arcVerts(0.5,0.5,0.20,0.5,5.8,16), c:'#8a5a2b' },
+  "Call Me A Dog": [ // a dog howling at the moon
+    { v:[[0.30,0.70],[0.32,0.55],[0.40,0.45],[0.36,0.35],[0.44,0.38],[0.50,0.30],[0.56,0.40],[0.64,0.45],[0.70,0.55],[0.70,0.70],[0.30,0.70]], c:'#2b2320' },
+    { v:circleVerts(0.72,0.22,0.09,14), c:'#e8e4d8' },
+    { v:[[0.20,0.70],[0.80,0.70]], c:'#4a4a52' },
+    { v:circleVerts(0.44,0.42,0.012,8), c:'#c9403a' }
   ],
-  "Why Don't You Get A Job": [
+  "Why Don't You Get A Job": [ // a classified-ads newspaper with a circled listing
     { v:[[0.24, 0.3], [0.76, 0.3], [0.76, 0.6], [0.24, 0.6], [0.24, 0.3]], c:'#e8e4d8' },
     { v:[[0.24, 0.42], [0.76, 0.42]], c:'#2b2320' },
+    { v:[[0.30,0.50],[0.60,0.50]], c:'#8a8a92' },
+    { v:[[0.30,0.55],[0.50,0.55]], c:'#8a8a92' },
+    { v:circleVerts(0.68,0.53,0.03,10), c:'#c9403a' }
   ],
   "The Kids Aren't Alright": [
     { v:circleVerts(0.36,0.42,0.09,12), c:'#c9a06a' },
@@ -3931,25 +4180,41 @@ const ICON_VERTS = {
     { v:circleVerts(0.64,0.42,0.09,12), c:'#c9a06a' },
     { v:[[0.64, 0.51], [0.64, 0.72]], c:'#4a4a52' },
   ],
-  "Self Esteem": [
-    { v:circleVerts(0.5,0.4,0.16,16), c:'#c9a06a' },
-    { v:[[0.5, 0.4], [0.5, 0.24]], c:'#e8b83f' },
+  "Self Esteem": [ // a hand mirror reflecting a face back
+    { v:circleVerts(0.5,0.36,0.18,18), c:'#8a8a92' },
+    { v:circleVerts(0.5,0.36,0.14,16), c:'#7fb3d9' },
+    { v:[[0.5,0.52],[0.5,0.68]], c:'#8a8a92' },
+    { v:[[0.40,0.74],[0.60,0.74]], c:'#8a8a92' },
+    { v:circleVerts(0.5,0.36,0.05,10), c:'#c9a06a' }
   ],
-  "Ain't No Rest For The Wicked": [
+  "Ain't No Rest For The Wicked": [ // a devilish shield with horns and glowing eyes
     { v:[[0.5, 0.24], [0.34, 0.5], [0.4, 0.76], [0.6, 0.76], [0.66, 0.5], [0.5, 0.24]], c:'#c9403a' },
+    { v:[[0.40,0.28],[0.36,0.18]], c:'#2b2320' },
+    { v:[[0.60,0.28],[0.64,0.18]], c:'#2b2320' },
+    { v:circleVerts(0.44,0.48,0.02,8), c:'#e8b83f' },
+    { v:circleVerts(0.56,0.48,0.02,8), c:'#e8b83f' }
   ],
-  "She Hates Me": [
+  "She Hates Me": [ // a scowling figure, arms crossed, brows furrowed
     { v:circleVerts(0.42,0.42,0.09,12), c:'#c9a06a' },
     { v:[[0.42, 0.51], [0.42, 0.7]], c:'#4a4a52' },
     { v:[[0.32, 0.68], [0.52, 0.68]], c:'#c9403a' },
+    { v:[[0.36,0.38],[0.40,0.40]], c:'#2b2320' },
+    { v:[[0.48,0.40],[0.44,0.38]], c:'#2b2320' }
   ],
-  "Bombtrack": [
+  "Bombtrack": [ // an armored bomb vehicle with a lit fuse sparking
     { v:[[0.24, 0.6], [0.24, 0.4], [0.6, 0.4], [0.66, 0.5], [0.76, 0.5], [0.76, 0.6], [0.24, 0.6]], c:'#4a4a52' },
     { v:circleVerts(0.34,0.66,0.05,10), c:'#c9403a' },
     { v:circleVerts(0.62,0.66,0.05,10), c:'#c9403a' },
+    { v:[[0.5,0.40],[0.54,0.28],[0.58,0.32]], c:'#8a5a2b' },
+    { v:[[0.58,0.32],[0.64,0.24],[0.60,0.20],[0.68,0.18]], c:'#e8843f' }
   ],
-  "Rollin' (Air Raid Vehicle)": [
+  "Rollin' (Air Raid Vehicle)": [ // an armored vehicle rolling on treads, antenna up
     { v:[[0.24, 0.6], [0.24, 0.4], [0.6, 0.4], [0.66, 0.5], [0.76, 0.5], [0.76, 0.6], [0.24, 0.6]], c:'#4a4a52' },
+    { v:[[0.22,0.6],[0.78,0.6],[0.78,0.68],[0.22,0.68],[0.22,0.6]], c:'#2b2320' },
+    { v:circleVerts(0.32,0.68,0.04,10), c:'#5a5a62' },
+    { v:circleVerts(0.5,0.68,0.04,10), c:'#5a5a62' },
+    { v:circleVerts(0.68,0.68,0.04,10), c:'#5a5a62' },
+    { v:[[0.66,0.40],[0.70,0.28]], c:'#8a8a92' }
   ],
   "Society": [
     { v:circleVerts(0.34,0.42,0.07,10), c:'#c9a06a' },
@@ -3957,8 +4222,12 @@ const ICON_VERTS = {
     { v:circleVerts(0.66,0.42,0.07,10), c:'#c9a06a' },
     { v:[[0.24, 0.66], [0.76, 0.66]], c:'#4a4a52' },
   ],
-  "The Prowl": [
+  "The Prowl": [ // a prowling cat silhouette, eyes glinting in the dark
     { v:[[0.3, 0.6], [0.34, 0.44], [0.44, 0.36], [0.56, 0.36], [0.6, 0.46], [0.7, 0.42]], c:'#2b2320' },
+    { v:circleVerts(0.40,0.42,0.012,8), c:'#e8d840' },
+    { v:circleVerts(0.66,0.42,0.012,8), c:'#e8d840' },
+    { v:[[0.28,0.60],[0.18,0.66]], c:'#2b2320' },
+    { v:[[0.20,0.72],[0.76,0.72]], c:'#4a4a52' }
   ],
   "Major Tom (...völlig losgelöst)": [
     { v:[[0.44, 0.3], [0.56, 0.3], [0.62, 0.6], [0.5, 0.8], [0.38, 0.6], [0.44, 0.3]], c:'#e8e4d8' },
@@ -4315,6 +4584,7 @@ function startRound(){
   locked = false;
   startTime = null;
   resultEl.style.display = 'none';
+  correctThumbEl.classList.remove('shown');
   nextBtn.style.display = 'none';
   progressBar.style.transform = 'scaleX(1)';
   roundNumEl.textContent = roundIdx+1;
@@ -4348,18 +4618,11 @@ function finishRound(chosen, btnEl){
   }
   scoreValEl.textContent = score;
 
-  resultEl.style.display = 'block';
-  if(chosen === null){
-    verdictEl.textContent = 'Zeit um!';
-    resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}. `;
-  } else if(correct){
-    verdictEl.textContent = 'Richtig!';
-    resultTextEl.innerHTML = `+${gained} Punkte für <b>${song.title}</b>. `;
-  } else {
-    verdictEl.textContent = 'Daneben.';
-    resultTextEl.innerHTML = `Es war <b>${song.title}</b> von ${song.artist}, nicht ${chosen.title}. `;
-  }
-  resultTextEl.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
+  // The correct/wrong answer is already visible via the green/red option
+  // borders above (set in the forEach loop above) — no separate result box,
+  // since it used to push the page layout down and disrupt the game flow.
+  // On a correct guess, show a brief thumbs-up over the drawing instead.
+  if(correct) correctThumbEl.classList.add('shown');
 
   nextBtn.style.display = 'none';
   setTimeout(goNext, 4000);
