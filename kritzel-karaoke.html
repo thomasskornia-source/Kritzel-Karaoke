@@ -55,7 +55,7 @@
   .sub{color:var(--muted);font-size:12.5px;margin-bottom:10px;}
 
   .name-row{
-    display:flex;gap:8px;align-items:center;margin-bottom:10px;
+    display:flex;gap:8px;align-items:center;margin-top:8px;margin-bottom:10px;
   }
   .name-row input{
     flex:1;background:transparent;border:1px solid var(--line);
@@ -169,18 +169,45 @@
   }
   .round-countdown.shown{opacity:1;transform:translate(-50%,-50%) scale(1);}
 
-  .sp-mode-toggle{
-    display:none;gap:8px;margin-bottom:10px;
+  /* Snippet-length picker (Hör-Modus only): three circles, each a fixed
+     color per length (5=rot/kurz&schwer, 8=gelb/Standard, 12=grün/lang&leicht),
+     the number centered and "sekunden" (schwarz) sitting IN the colored ring
+     band itself, top-left, following its curve. The colored ring is
+     permanent on all three; only scale/glow marks the currently-selected
+     one. Circles use flex:1 so all the available screen width goes into
+     making them as large as reasonably possible (capped so they don't get
+     absurd on a tablet/desktop-width window). */
+  .len-picker{
+    display:none;gap:14px;margin-top:28px;margin-bottom:12px;justify-content:center;align-items:stretch;
   }
-  .sp-mode-btn{
-    flex:1;background:transparent;border:1px solid var(--line);
-    color:var(--muted);padding:9px 8px;border-radius:8px;
-    font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
-    transition:border-color .15s, background .15s, color .15s;
+  .len-circle{
+    background:transparent;border:none;padding:0;cursor:pointer;
+    flex:1 1 0;min-width:0;max-width:150px;aspect-ratio:1/1;border-radius:50%;
+    transition:transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+    opacity:.62;
   }
-  .sp-mode-btn.active{
-    border-color:var(--pen);color:var(--ink);background:rgba(230,57,43,0.08);
+  .len-circle svg{width:100%;height:100%;display:block;}
+  /* Ring stroke is deliberately a bit wider than the "sekunden" label's
+     letter height, per [stated] spec, so the label sits fully inside the
+     colored band instead of spilling past its edge. */
+  .len-circle-ring{fill:none;stroke-width:10;}
+  .len-circle-num{
+    font-family:'Space Grotesk', sans-serif;font-weight:700;font-size:30px;fill:var(--ink);
+    dominant-baseline:central;
   }
+  .len-circle-label{
+    font-family:'Space Grotesk', sans-serif;font-size:8px;font-weight:700;
+    letter-spacing:1px;fill:#000;text-transform:uppercase;
+  }
+  .len-circle.selected{
+    opacity:1;transform:scale(1.1);
+  }
+  .len-circle-5 .len-circle-ring{stroke:var(--pen);}
+  .len-circle-8 .len-circle-ring{stroke:var(--gold);}
+  .len-circle-12 .len-circle-ring{stroke:var(--good);}
+  .len-circle-5.selected{box-shadow:0 0 18px 3px rgba(230,57,43,0.45);border-radius:50%;}
+  .len-circle-8.selected{box-shadow:0 0 18px 3px rgba(201,162,39,0.45);border-radius:50%;}
+  .len-circle-12.selected{box-shadow:0 0 18px 3px rgba(95,174,130,0.45);border-radius:50%;}
 
   .hidden-embed{
     position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;
@@ -492,6 +519,56 @@
   }
   .mode-box:hover{border-color:#e6c44a;background:rgba(230,196,74,0.1);}
 
+  /* --- Singleplayer mode-box split into two direct shortcuts (pencil = Zeichnen,
+       Lautsprecher = Hören) instead of the walking-character button the other
+       modes still use. The outer box keeps the same .mode-box look/border; the
+       label sits centered between the two icon buttons, which each carry their
+       own click handler straight into Singleplayer with the mode pre-selected. */
+  .mode-box-sp{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:8px 8px 8px 10px;
+  }
+  .mode-box-sp-label{
+    flex:1;text-align:center;pointer-events:none;
+  }
+  .sp-icon-btn{
+    flex-shrink:0;width:40px;height:40px;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid rgba(230,196,74,0.4);border-radius:8px;
+    color:var(--ink);cursor:pointer;transition:border-color .15s, background .15s;
+  }
+  .sp-icon-btn:hover{border-color:#e6c44a;background:rgba(230,196,74,0.18);}
+  .sp-icon-btn svg{width:21px;height:21px;display:block;}
+
+  /* Pencil: briefly "scribbles" (a quick back-and-forth wobble, once) the
+     instant the splash buttons appear — mirrors the one-shot timing the
+     walk-in characters use below. */
+  @keyframes pencilScribble{
+    0%,100%{transform:rotate(0deg);}
+    12%{transform:rotate(-16deg);}
+    24%{transform:rotate(11deg);}
+    36%{transform:rotate(-13deg);}
+    48%{transform:rotate(9deg);}
+    60%{transform:rotate(-7deg);}
+    72%{transform:rotate(4deg);}
+    84%{transform:rotate(-2deg);}
+  }
+  .splash-modes.shown .pencil-scribble-group{
+    transform-box:fill-box;transform-origin:80% 80%;
+    animation:pencilScribble 1.5s ease-in-out .8s 1;
+  }
+
+  /* Speaker: the inner "membrane" circle pulses continuously to suggest the
+     diaphragm vibrating, once the splash buttons are visible. */
+  @keyframes speakerMembranePulse{
+    0%,100%{transform:scale(0.72);}
+    50%{transform:scale(1.05);}
+  }
+  .splash-modes.shown .speaker-membrane{
+    transform-box:fill-box;transform-origin:50% 50%;
+    animation:speakerMembranePulse 1.1s ease-in-out .8s infinite;
+  }
+
   /* --- Little characters that walk into the SP/MP/TP mode buttons on the
        splash screen. Each is a tiny CSS "peg doll" (head/body/2 arms/2 legs)
        positioned at the very edge of its button so the label stays readable.
@@ -595,7 +672,25 @@
     <div class="splash-karaoke" id="splashKaraoke">Karaoke</div>
   </div>
   <div class="splash-modes" id="splashModes">
-    <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
+    <div class="mode-box mode-box-sp" id="splashSoloBox">
+      <button class="sp-icon-btn" id="splashSoloDrawBtn" aria-label="Singleplayer: Zeichnen-Modus" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <g class="pencil-scribble-group">
+            <path d="M4 20 L6 14 L16 4 L20 8 L10 18 L4 20Z" fill="currentColor" opacity="0.18"/>
+            <path d="M4 20 L6 14 L16 4 L20 8 L10 18 L4 20Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/>
+            <path d="M14 6 L18 10" stroke="currentColor" stroke-width="1.3"/>
+          </g>
+        </svg>
+      </button>
+      <span class="mode-box-sp-label">Singleplayer</span>
+      <button class="sp-icon-btn" id="splashSoloListenBtn" aria-label="Singleplayer: Hören-Modus" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <circle cx="12" cy="12" r="6.4" fill="none" stroke="currentColor" stroke-width="1.1" opacity="0.55"/>
+          <circle class="speaker-membrane" cx="12" cy="12" r="3.6" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
     <button class="mode-box" id="splashMpBtn">Multiplayer</button>
     <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
     <!-- Stille Post Modus: auf Wunsch des Nutzers vorübergehend vom Startbildschirm
@@ -619,9 +714,37 @@
     <button class="start-btn arrow-btn" id="mpModeBtn">&#8594;</button>
   </div>
 
-  <div class="sp-mode-toggle" id="spModeToggle">
-    <button type="button" class="sp-mode-btn active" id="spModeDrawBtn">🖊️ Zeichnen</button>
-    <button type="button" class="sp-mode-btn" id="spModeListenBtn">🎧 Hören</button>
+  <!-- Draw/Hör mode is now chosen once, up front, via the two splash-screen
+       icons (Stift = Zeichnen, Lautsprecher = Hören — see splashSoloDrawBtn/
+       splashSoloListenBtn) rather than switched here, so the old in-page
+       Zeichnen/Hören toggle that used to live here was removed per [stated]
+       request ("kann oben die wahlmöglichkeit zeichnen/hören verschwinden"). -->
+
+  <div class="len-picker" id="spLenPicker">
+    <button type="button" class="len-circle len-circle-5" data-secs="5" aria-label="5 Sekunden Schnipsel-Länge">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs><path id="lenArc5" d="M 15 50 A 35 35 0 0 1 85 50" fill="none"/></defs>
+        <circle class="len-circle-ring" cx="50" cy="50" r="35"/>
+        <text class="len-circle-label"><textPath href="#lenArc5" startOffset="50%" text-anchor="middle">sekunden</textPath></text>
+        <text class="len-circle-num" x="50" y="50" text-anchor="middle">5</text>
+      </svg>
+    </button>
+    <button type="button" class="len-circle len-circle-8 selected" data-secs="8" aria-label="8 Sekunden Schnipsel-Länge">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs><path id="lenArc8" d="M 15 50 A 35 35 0 0 1 85 50" fill="none"/></defs>
+        <circle class="len-circle-ring" cx="50" cy="50" r="35"/>
+        <text class="len-circle-label"><textPath href="#lenArc8" startOffset="50%" text-anchor="middle">sekunden</textPath></text>
+        <text class="len-circle-num" x="50" y="50" text-anchor="middle">8</text>
+      </svg>
+    </button>
+    <button type="button" class="len-circle len-circle-12" data-secs="12" aria-label="12 Sekunden Schnipsel-Länge">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs><path id="lenArc12" d="M 15 50 A 35 35 0 0 1 85 50" fill="none"/></defs>
+        <circle class="len-circle-ring" cx="50" cy="50" r="35"/>
+        <text class="len-circle-label"><textPath href="#lenArc12" startOffset="50%" text-anchor="middle">sekunden</textPath></text>
+        <text class="len-circle-num" x="50" y="50" text-anchor="middle">12</text>
+      </svg>
+    </button>
   </div>
 
   <div class="err-banner" id="errBanner"></div>
@@ -680,6 +803,11 @@
   <div class="board" id="tpBoardWrap">
     <h2>Teamplayer Top 10</h2>
     <ol id="tpBoardList"></ol>
+  </div>
+
+  <div class="board" id="listenBoardWrap">
+    <h2>Hörmodus Top 10</h2>
+    <ol id="listenBoardList"></ol>
   </div>
 
   <!-- ===== Multiplayer: Entry (create/join) ===== -->
@@ -816,6 +944,7 @@
 
 <script>
 window.leaderboardReady = new Promise((resolve) => { window.__resolveLeaderboard = resolve; });
+window.listenLeaderboardReady = new Promise((resolve) => { window.__resolveListenLeaderboard = resolve; });
 window.mpReady = new Promise((resolve) => { window.__resolveMp = resolve; });
 
 function withTimeout(promise, ms){
@@ -1398,9 +1527,6 @@ const finalEl = document.getElementById('final');
 const finalScoreEl = document.getElementById('finalScore');
 const boardList = document.getElementById('boardList');
 const playerNameInput = document.getElementById('playerName');
-const spModeToggle = document.getElementById('spModeToggle');
-const spModeDrawBtn = document.getElementById('spModeDrawBtn');
-const spModeListenBtn = document.getElementById('spModeListenBtn');
 const listenStageEl = document.getElementById('listenStage');
 const listenPlayBtn = document.getElementById('listenPlayBtn');
 const listenHintEl = document.getElementById('listenHint');
@@ -1409,14 +1535,35 @@ const revealFrameEl = document.getElementById('revealFrame');
 const revealCoverEl = document.getElementById('revealCover');
 const revealTitleEl = document.getElementById('revealTitle');
 const revealArtistEl = document.getElementById('revealArtist');
+const listenBoardWrap = document.getElementById('listenBoardWrap');
+const listenBoardList = document.getElementById('listenBoardList');
+const lenPickerEl = document.getElementById('spLenPicker');
+const lenCircleBtns = Array.from(document.querySelectorAll('.len-circle'));
 
 let order = [];
 let roundIdx = 0;
 let score = 0;
 let rafId = null;
 let roundMode = 'draw'; // 'draw' | 'listen' — chosen on the SP entry screen
-const SNIPPET_MS = 8000;
+// Snippet length is adjustable via the three "Sekunden" circles on the SP
+// entry screen (only shown in Hör-Modus) — 8s stays the original/default so
+// existing scoring balance is untouched at that preset (see
+// snippetLengthMultiplier() below).
+let SNIPPET_MS = 8000;
 const SNIPPET_FADE_MS = 1000;
+const SNIPPET_LENGTH_PRESETS = [5, 8, 12];
+const REFERENCE_SNIPPET_SEC = 8;
+// Which mode a currently-running SP game actually started in — snapshotted
+// once at game start (not read live from `roundMode`) so that the
+// Zeichnen/Hören toggle staying visible/clickable during play can't quietly
+// retarget the final-screen board or which leaderboard a score is saved to
+// mid-game.
+let activeGameRoundMode = 'draw';
+// Actual snippet length (ms) used for the round currently playing/just
+// played — captured the moment real playback starts (not at round load),
+// since that's the true length the player actually had to work with and
+// what the scoring bonus below should be based on.
+let roundSnippetMs = null;
 let spotifyController = null;
 let spotifyControllerReady = false;
 let spotifyApiLoadStarted = false;
@@ -1425,6 +1572,13 @@ let listenPlaying = false;
 let listenRoundTimerStarted = false;
 let listenAutoplayWatchdog = null;
 let fadeInterval = null;
+
+// Shorter snippet = less information = harder to recognize = worth more;
+// longer snippet = easier = worth less. Anchored at the original 8s default
+// so the previous scoring balance is unchanged at that preset.
+function snippetLengthMultiplier(secs){
+  return REFERENCE_SNIPPET_SEC / secs;
+}
 const trackMetaCache = {};
 let currentMode = null; // 'sp' | 'mp' | 'tp' | null — which mode was picked on the splash screen ('tp' = multiplayer with team mode on)
 function setModeBadge(mode){
@@ -4651,6 +4805,12 @@ function ensureSpotifyController(onReady){
               cancelAnimationFrame(rafId);
               rafId = requestAnimationFrame(loop);
             }
+            // Capture the actual length this round is playing with — read
+            // right here (not e.g. at round-load time) so a length change via
+            // the Sekunden-Kreise always reflects what really just started
+            // playing, which is what the scoring bonus in finishRound() should
+            // be based on.
+            roundSnippetMs = SNIPPET_MS;
             fadeVolume(0, 1, SNIPPET_FADE_MS);
             clearTimeout(listenTimer);
             listenTimer = setTimeout(() => {
@@ -4911,6 +5071,7 @@ function startRound(){
     canvas.style.display = 'none';
     listenStageEl.style.display = 'flex';
     listenRoundTimerStarted = false;
+    roundSnippetMs = null;
     cancelAnimationFrame(rafId);
     rafId = null;
     stopListenSnippet();
@@ -4947,6 +5108,16 @@ function finishRound(chosen, btnEl){
   let gained = 0;
   if(correct){
     gained = Math.max(15, Math.round(100 * timeLeftFrac));
+    if(roundMode === 'listen'){
+      // Shorter Schnipsel = weniger Information = schwerer -> mehr Punkte.
+      // roundSnippetMs is the length actually used for THIS round (captured
+      // the moment playback started); falls back to the live SNIPPET_MS in
+      // the edge case of a correct guess registered before playback ever
+      // began (locked stays false until then, so this is rare).
+      const secs = Math.round((roundSnippetMs || SNIPPET_MS) / 1000);
+      const mult = snippetLengthMultiplier(secs);
+      gained = Math.max(15, Math.round(gained * mult));
+    }
     score += gained;
   }
   scoreValEl.textContent = score;
@@ -4997,30 +5168,53 @@ function showFinal(){
   nextBtn.style.display = 'none';
   finalEl.style.display = 'block';
   finalScoreEl.textContent = score;
-  document.querySelector('.board').style.display = 'block';
+  updateSpBoardVisibility(activeGameRoundMode);
 }
 
-async function loadBoard(){
-  boardList.innerHTML = '<li class="empty">Lade…</li>';
+// Singleplayer has two separate Top 10s (Zeichnen vs. Hören). Which
+// leaderboard API/DOM list applies is passed in explicitly rather than read
+// off a single shared variable: the pre-game entry-screen preview follows
+// the live mode toggle, while anything about a game already in progress or
+// just finished follows `activeGameRoundMode` (snapshotted once at game
+// start) so mid-game toggle fiddling can't quietly retarget it.
+function spLeaderboardReadyFor(mode){
+  return mode === 'listen' ? window.listenLeaderboardReady : window.leaderboardReady;
+}
+function spBoardListElFor(mode){
+  return mode === 'listen' ? listenBoardList : boardList;
+}
+function updateSpBoardVisibility(mode){
+  document.querySelector('.board').style.display = (currentMode === 'sp' && mode !== 'listen') ? 'block' : 'none';
+  listenBoardWrap.style.display = (currentMode === 'sp' && mode === 'listen') ? 'block' : 'none';
+}
+function hideSpBoards(){
+  document.querySelector('.board').style.display = 'none';
+  listenBoardWrap.style.display = 'none';
+}
+
+async function loadBoard(mode){
+  const listEl = spBoardListElFor(mode);
+  listEl.innerHTML = '<li class="empty">Lade…</li>';
   try{
-    const api = await withTimeout(window.leaderboardReady, 6000);
+    const api = await withTimeout(spLeaderboardReadyFor(mode), 6000);
     const list = await api.getEntries();
-    renderBoard(list);
+    renderBoard(list, mode);
   }catch(e){
-    boardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
+    listEl.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
   }
 }
 
-function renderBoard(list){
+function renderBoard(list, mode){
+  const listEl = spBoardListElFor(mode);
   if(!list.length){
-    boardList.innerHTML = '<li class="empty">Noch keine Einträge — sei die/der Erste.</li>';
+    listEl.innerHTML = '<li class="empty">Noch keine Einträge — sei die/der Erste.</li>';
     return;
   }
-  boardList.innerHTML = '';
+  listEl.innerHTML = '';
   list.slice(0,10).forEach(entry => {
     const li = document.createElement('li');
     li.innerHTML = `<span>${entry.name}</span><b class="score-val">${entry.score}</b>`;
-    boardList.appendChild(li);
+    listEl.appendChild(li);
   });
 }
 
@@ -5030,7 +5224,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Speichere…';
   try{
-    const api = await withTimeout(window.leaderboardReady, 6000);
+    const api = await withTimeout(spLeaderboardReadyFor(activeGameRoundMode), 6000);
     let list = [];
     try{
       list = await api.getEntries();
@@ -5039,7 +5233,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     list.sort((a,b) => b.score - a.score);
     list = list.slice(0,10);
     await api.saveEntries(list);
-    renderBoard(list);
+    renderBoard(list, activeGameRoundMode);
     saveBtn.textContent = 'Gespeichert ✓';
   }catch(e){
     saveBtn.textContent = 'Fehler — nochmal versuchen';
@@ -5052,12 +5246,13 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   document.querySelector('.progress').style.display = 'block';
   optionsEl.style.display = 'grid';
   finalEl.style.display = 'none';
-  document.querySelector('.board').style.display = 'none';
+  hideSpBoards();
   document.getElementById('saveBtn').disabled = false;
   document.getElementById('saveBtn').textContent = 'Im Leaderboard speichern';
   score = 0;
   roundIdx = 0;
   scoreValEl.textContent = 0;
+  activeGameRoundMode = roundMode;
   order = pickRoundOrder();
   startRound();
 });
@@ -5079,8 +5274,9 @@ startGameBtn.addEventListener('click', () => {
     }
     playerNameInput.disabled = true;
     startGameBtn.style.display = 'none';
-    document.querySelector('.board').style.display = 'none';
+    hideSpBoards();
     gameArea.style.display = 'flex';
+    activeGameRoundMode = roundMode;
     order = pickRoundOrder();
     resizeCanvas();
     startRound();
@@ -5117,7 +5313,7 @@ playerNameInput.addEventListener('keydown', (e) => {
   else if(mpModeBtn.style.display !== 'none') mpModeBtn.click();
 });
 
-loadBoard();
+loadBoard('draw');
 
 /* =========================================================
    MULTIPLAYER — "Zeichner-Rate-Duell"
@@ -5261,7 +5457,7 @@ function updateMultiplayerBoardVisibility(){
 
 function showMpScreen(name){
   document.querySelector('.name-row').style.display = 'none';
-  document.querySelector('.board').style.display = 'none';
+  hideSpBoards();
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
   gameArea.style.display = 'none';
@@ -5276,7 +5472,7 @@ function showMpScreen(name){
 function showStartScreen(){
   showMpScreen(null);
   document.querySelector('.name-row').style.display = 'flex';
-  document.querySelector('.board').style.display = currentMode === 'sp' ? 'block' : 'none';
+  updateSpBoardVisibility(roundMode);
   updateMultiplayerBoardVisibility();
   playerNameInput.disabled = false;
   if(currentMode === 'sp'){ startGameBtn.style.display = ''; mpModeBtn.style.display = 'none'; }
@@ -5296,7 +5492,7 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   // the create/join fields below, instead of swapping to a separate screen.
   playerNameInput.disabled = true;
   mpModeBtn.style.display = 'none';
-  document.querySelector('.board').style.display = 'none';
+  hideSpBoards();
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'block';
@@ -6566,11 +6762,10 @@ function makeModeWalker(direction, skinClass){
   return el;
 }
 function addModeWalkers(){
-  const soloBtn = document.getElementById('splashSoloBtn');
   const mpBtn = document.getElementById('splashMpBtn');
   const teamBtn = document.getElementById('splashTeamBtn');
-  // SP: one character walks in.
-  if(soloBtn) soloBtn.appendChild(makeModeWalker('left', 'mw-a'));
+  // SP: no walker anymore — the box shows a pencil/speaker icon pair instead
+  // (see "#splashSoloBox" markup and setRoundMode-driven click handlers below).
   // MP: one from the left, one from the right.
   if(mpBtn){
     mpBtn.appendChild(makeModeWalker('left', 'mw-b'));
@@ -6634,21 +6829,43 @@ function goToSingleplayerEntry(){
   document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('mpModeBtn').style.display = 'none';
   document.getElementById('startGameBtn').style.display = '';
-  document.querySelector('.board').style.display = 'block';
-  spModeToggle.style.display = 'flex';
+  updateLenPickerVisibility();
+  updateSpBoardVisibility(roundMode);
+  loadBoard(roundMode);
   updateMultiplayerBoardVisibility();
   updateContinueButtons();
   playerNameInput.focus();
 }
 
+// Shows/hides the snippet-length circles: singleplayer + Hör-Modus only.
+// Mode itself is now chosen once via the splash-screen pencil/speaker icons
+// (setRoundMode() is only ever called from those two click handlers below),
+// not switched here, so this just follows currentMode/roundMode directly.
+function updateLenPickerVisibility(){
+  lenPickerEl.style.display = (currentMode === 'sp' && roundMode === 'listen') ? 'flex' : 'none';
+}
+
 function setRoundMode(mode){
   roundMode = mode;
-  spModeDrawBtn.classList.toggle('active', mode === 'draw');
-  spModeListenBtn.classList.toggle('active', mode === 'listen');
   if(mode === 'listen') ensureSpotifyController();
+  updateLenPickerVisibility();
+  // Only refresh the entry-screen leaderboard preview while actually ON the
+  // entry screen — a stray call while a game is already running must never
+  // make a Top-10 board pop up over it.
+  const onEntryScreen = gameArea.style.display === 'none' && finalEl.style.display !== 'block';
+  if(onEntryScreen){
+    updateSpBoardVisibility(mode);
+    loadBoard(mode);
+  }
 }
-spModeDrawBtn.addEventListener('click', () => setRoundMode('draw'));
-spModeListenBtn.addEventListener('click', () => setRoundMode('listen'));
+lenCircleBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const secs = Number(btn.dataset.secs);
+    if(!secs) return;
+    SNIPPET_MS = secs * 1000;
+    lenCircleBtns.forEach(b => b.classList.toggle('selected', b === btn));
+  });
+});
 function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   hideSplash(!!prefillCode);
   // "Teamplayer" and "Telestrationsplayer" on the splash are shortcuts into
@@ -6665,14 +6882,21 @@ function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
-  document.querySelector('.board').style.display = 'none';
-  spModeToggle.style.display = 'none';
+  hideSpBoards();
+  updateLenPickerVisibility();
   updateMultiplayerBoardVisibility();
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
   updateContinueButtons();
   playerNameInput.focus();
 }
-document.getElementById('splashSoloBtn').addEventListener('click', () => goToSingleplayerEntry());
+document.getElementById('splashSoloDrawBtn').addEventListener('click', () => {
+  setRoundMode('draw');
+  goToSingleplayerEntry();
+});
+document.getElementById('splashSoloListenBtn').addEventListener('click', () => {
+  setRoundMode('listen');
+  goToSingleplayerEntry();
+});
 document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
 document.getElementById('splashTeamBtn').addEventListener('click', () => goToMultiplayerEntry(null, true));
 document.getElementById('splashChainBtn').addEventListener('click', () => goToMultiplayerEntry(null, false, true));
@@ -6683,10 +6907,13 @@ function goToSplash(){
   stopListenSnippet();
   mpTeardown();
   document.querySelector('.name-row').style.display = 'none';
-  spModeToggle.style.display = 'none';
+  // setModeBadge(null) hasn't run yet at this point, so an unconditional hide
+  // here (not updateLenPickerVisibility(), which still reads currentMode as
+  // whatever it was before this teardown) is what's needed.
+  lenPickerEl.style.display = 'none';
   gameArea.style.display = 'none';
   finalEl.style.display = 'none';
-  document.querySelector('.board').style.display = 'none';
+  hideSpBoards();
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'none';
@@ -6888,7 +7115,7 @@ async function handleSpotifyRedirect(){
         hideSplash(true);
         setModeBadge('mp');
         document.getElementById('startGameBtn').style.display = 'none';
-        document.querySelector('.board').style.display = 'none';
+        hideSpBoards();
         enterRoom(returnRoom);
         await showSpotifyPlaylistPicker(data.access_token);
       }
@@ -6928,6 +7155,21 @@ handleSpotifyRedirect();
 
     if(window.__resolveLeaderboard){
       window.__resolveLeaderboard({ getEntries, saveEntries });
+    }
+
+    // Separate Top 10 for Hör-Modus — own board doc, same get/save shape as
+    // the draw-mode one above, so loadBoard()/renderBoard()/saveBtn logic
+    // can stay generic and just be pointed at either API.
+    const listenBoardRef = db.collection('kritzel').doc('leaderboard_listen');
+    async function getListenEntries(){
+      const snap = await listenBoardRef.get();
+      return snap.exists ? (snap.data().entries || []) : [];
+    }
+    async function saveListenEntries(list){
+      await listenBoardRef.set({ entries: list });
+    }
+    if(window.__resolveListenLeaderboard){
+      window.__resolveListenLeaderboard({ getEntries: getListenEntries, saveEntries: saveListenEntries });
     }
 
     const roomsCol = db.collection('kritzel_rooms');
