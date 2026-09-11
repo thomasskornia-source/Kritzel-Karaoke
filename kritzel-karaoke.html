@@ -481,29 +481,27 @@
 
   /* --- Singleplayer mode-box split into two direct shortcuts (pencil = Zeichnen,
        Lautsprecher = Hören) instead of the walking-character button the other
-       modes still use. The outer box keeps the same .mode-box look/border; the
-       label sits centered between the two icon buttons, which each carry their
-       own click handler straight into Singleplayer with the mode pre-selected. */
+       modes still use. Per [stated] request the border moved OFF the outer
+       Singleplayer pill and ONTO each icon button instead (the opposite of
+       Multiplayer/Teamplayer, which keep the plain pill border) — the label
+       sits centered between the two round-framed icon buttons. */
   .mode-box-sp{
     display:flex;align-items:center;justify-content:space-between;gap:6px;
     padding:8px 6px 8px 8px;
+    border:none;background:transparent;
   }
+  .mode-box-sp:hover{border:none;background:transparent;}
   .mode-box-sp-label{
     flex:1;text-align:center;pointer-events:none;
   }
-  /* No frame around the icons themselves per [stated] request ("keinen
-     Rahmen um den Stift und den Lautsprecher") — only the outer Singleplayer
-     pill (.mode-box, shared look with Multiplayer/Teamplayer) keeps a
-     border. A gentle scale-up on hover/tap stands in for the old
-     border/background hover feedback. Bigger than before (was 40px/21px). */
   .sp-icon-btn{
     flex-shrink:0;width:56px;height:56px;padding:0;
     display:flex;align-items:center;justify-content:center;
-    background:transparent;border:none;
-    color:var(--ink);cursor:pointer;transition:transform .15s ease;
+    background:transparent;border:1px solid rgba(230,196,74,0.55);border-radius:50%;
+    color:var(--ink);cursor:pointer;transition:border-color .15s ease, background .15s ease, transform .15s ease;
   }
-  .sp-icon-btn:hover{transform:scale(1.08);}
-  .sp-icon-btn svg{width:36px;height:36px;display:block;}
+  .sp-icon-btn:hover{border-color:#e6c44a;background:rgba(230,196,74,0.1);transform:scale(1.06);}
+  .sp-icon-btn svg{width:34px;height:34px;display:block;}
 
   /* Pencil: briefly "scribbles" (a quick back-and-forth wobble, once) the
      instant the splash buttons appear — mirrors the one-shot timing the
