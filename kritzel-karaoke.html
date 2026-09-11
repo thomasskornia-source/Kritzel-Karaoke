@@ -153,6 +153,62 @@
   }
   .correct-thumb.shown{opacity:1;transform:scale(1);}
 
+  .sp-mode-toggle{
+    display:none;gap:8px;margin-bottom:10px;
+  }
+  .sp-mode-btn{
+    flex:1;background:transparent;border:1px solid var(--line);
+    color:var(--muted);padding:9px 8px;border-radius:8px;
+    font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+    transition:border-color .15s, background .15s, color .15s;
+  }
+  .sp-mode-btn.active{
+    border-color:var(--pen);color:var(--ink);background:rgba(230,57,43,0.08);
+  }
+
+  .hidden-embed{
+    position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;
+    pointer-events:none;left:-9999px;
+  }
+
+  .listen-stage{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;
+  }
+  .listen-play-btn{
+    width:min(28vw,110px);height:min(28vw,110px);border-radius:50%;
+    background:var(--pen);color:#0a0a0a;border:none;
+    font-size:min(9vw,36px);line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 0 rgba(230,57,43,0.5);
+    animation:listenPulse 2s ease-out infinite;
+  }
+  .listen-play-btn:disabled{opacity:.4;cursor:default;animation:none;}
+  .listen-play-btn.playing{animation:none;background:var(--good);}
+  @keyframes listenPulse{
+    0%{box-shadow:0 0 0 0 rgba(230,57,43,0.45);}
+    70%{box-shadow:0 0 0 18px rgba(230,57,43,0);}
+    100%{box-shadow:0 0 0 0 rgba(230,57,43,0);}
+  }
+  .listen-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:0 20px;}
+
+  .reveal-frame{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;
+    background:var(--paper-deep);opacity:0;pointer-events:none;
+    transform:scale(0.9);
+    transition:opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+    z-index:6;padding:16px;
+  }
+  .reveal-frame.shown{opacity:1;transform:scale(1);}
+  .reveal-cover{
+    width:min(38vw,150px);height:min(38vw,150px);border-radius:8px;
+    object-fit:cover;border:1px solid var(--line);
+    box-shadow:0 6px 22px rgba(0,0,0,0.5);
+  }
+  .reveal-title{font-family:'Caveat',cursive;font-size:24px;color:var(--ink);text-align:center;line-height:1.15;}
+  .reveal-artist{color:var(--muted);font-size:12.5px;text-align:center;}
+
   .next-btn{
     margin-top:14px;width:100%;
     background:var(--pen);color:#0a0a0a;border:none;
@@ -547,6 +603,11 @@
     <button class="start-btn arrow-btn" id="mpModeBtn">&#8594;</button>
   </div>
 
+  <div class="sp-mode-toggle" id="spModeToggle">
+    <button type="button" class="sp-mode-btn active" id="spModeDrawBtn">🖊️ Zeichnen</button>
+    <button type="button" class="sp-mode-btn" id="spModeListenBtn">🎧 Hören</button>
+  </div>
+
   <div class="err-banner" id="errBanner"></div>
 
   <div class="game-area" id="gameArea" style="display:none;">
@@ -557,6 +618,16 @@
 
   <div class="stage" id="stage">
     <canvas id="canvas"></canvas>
+    <div class="listen-stage" id="listenStage">
+      <div class="hidden-embed" id="spotifyHiddenEmbed"></div>
+      <button class="listen-play-btn" id="listenPlayBtn" disabled>▶</button>
+      <div class="listen-hint" id="listenHint">Player wird geladen…</div>
+    </div>
+    <div class="reveal-frame" id="revealFrame">
+      <img class="reveal-cover" id="revealCover" alt="">
+      <div class="reveal-title" id="revealTitle"></div>
+      <div class="reveal-artist" id="revealArtist"></div>
+    </div>
     <div class="correct-thumb" id="correctThumb">👍</div>
   </div>
 
@@ -1307,11 +1378,30 @@ const finalEl = document.getElementById('final');
 const finalScoreEl = document.getElementById('finalScore');
 const boardList = document.getElementById('boardList');
 const playerNameInput = document.getElementById('playerName');
+const spModeToggle = document.getElementById('spModeToggle');
+const spModeDrawBtn = document.getElementById('spModeDrawBtn');
+const spModeListenBtn = document.getElementById('spModeListenBtn');
+const listenStageEl = document.getElementById('listenStage');
+const listenPlayBtn = document.getElementById('listenPlayBtn');
+const listenHintEl = document.getElementById('listenHint');
+const spotifyHiddenEmbedEl = document.getElementById('spotifyHiddenEmbed');
+const revealFrameEl = document.getElementById('revealFrame');
+const revealCoverEl = document.getElementById('revealCover');
+const revealTitleEl = document.getElementById('revealTitle');
+const revealArtistEl = document.getElementById('revealArtist');
 
 let order = [];
 let roundIdx = 0;
 let score = 0;
 let rafId = null;
+let roundMode = 'draw'; // 'draw' | 'listen' — chosen on the SP entry screen
+const SNIPPET_MS = 8000;
+let spotifyController = null;
+let spotifyControllerReady = false;
+let spotifyApiLoadStarted = false;
+let listenTimer = null;
+let listenPlaying = false;
+const trackMetaCache = {};
 let currentMode = null; // 'sp' | 'mp' | 'tp' | null — which mode was picked on the splash screen ('tp' = multiplayer with team mode on)
 function setModeBadge(mode){
   currentMode = mode;
@@ -4486,6 +4576,137 @@ function buildIcon(title){
   }));
 }
 
+// ---- Hör-Modus: Spotify iFrame Embed API, versteckter Player + eigener Button ----
+// (siehe spotify-snippet-test2.html — Tippen auf einen eigenen Button, der
+// controller.play() aufruft, hat sich auf dem echten Gerät als zuverlässig
+// erwiesen; der sichtbare Spotify-Player würde Titel/Interpret verraten,
+// daher bleibt er per CSS unsichtbar und wir bauen eine eigene Hülle drumherum.)
+let spotifyReadyCallbacks = [];
+
+function getSpotifyTrackId(song){
+  if(!song || !song.url) return null;
+  const m = song.url.match(/track\/([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function ensureSpotifyController(onReady){
+  if(spotifyControllerReady && spotifyController){
+    if(onReady) onReady(spotifyController);
+    return;
+  }
+  if(onReady) spotifyReadyCallbacks.push(onReady);
+  if(spotifyApiLoadStarted) return;
+  spotifyApiLoadStarted = true;
+  window.onSpotifyIframeApiReady = (IFrameAPI) => {
+    const initialSong = (order.length && SONGS[order[roundIdx]]) || SONGS[0];
+    const trackId = getSpotifyTrackId(initialSong) || getSpotifyTrackId(SONGS[0]);
+    const options = { uri: 'spotify:track:' + trackId, width: '1', height: '1' };
+    IFrameAPI.createController(spotifyHiddenEmbedEl, options, (EmbedController) => {
+      spotifyController = EmbedController;
+      EmbedController.addListener('ready', () => {
+        spotifyControllerReady = true;
+        spotifyReadyCallbacks.forEach(cb => { try{ cb(EmbedController); }catch(e){} });
+        spotifyReadyCallbacks = [];
+      });
+      EmbedController.addListener('playback_update', (e) => {
+        const d = e && e.data || {};
+        if(d.isPaused === false) listenPlaying = true;
+        if(d.isPaused === true) listenPlaying = false;
+      });
+    });
+  };
+  const s = document.createElement('script');
+  s.src = 'https://open.spotify.com/embed/iframe-api/v1';
+  s.async = true;
+  document.head.appendChild(s);
+}
+
+function loadListenTrack(song){
+  listenPlayBtn.disabled = true;
+  listenPlayBtn.classList.remove('playing');
+  listenPlayBtn.textContent = '▶';
+  listenHintEl.textContent = 'Player wird geladen…';
+  const trackId = getSpotifyTrackId(song);
+  if(!trackId){
+    listenHintEl.textContent = 'Kein Spotify-Link für diesen Song hinterlegt.';
+    return;
+  }
+  ensureSpotifyController((controller) => {
+    try{ controller.loadUri('spotify:track:' + trackId); }catch(e){}
+    listenPlaying = false;
+    // kurze Karenzzeit, damit ein vereinzeltes isPaused-Event des vorherigen
+    // Songs nicht in die neue Runde durchsickert
+    setTimeout(() => {
+      if(roundMode === 'listen' && !locked && SONGS[order[roundIdx]] === song){
+        listenPlayBtn.disabled = false;
+        listenHintEl.textContent = 'Antippen zum Anhören';
+      }
+    }, 500);
+  });
+}
+
+function startListenSnippet(){
+  if(!spotifyController || listenPlayBtn.disabled) return;
+  listenPlayBtn.disabled = true;
+  listenPlayBtn.classList.add('playing');
+  listenPlayBtn.textContent = '❚❚';
+  listenHintEl.textContent = 'Läuft…';
+  try{ spotifyController.play(); }catch(e){}
+  clearTimeout(listenTimer);
+  listenTimer = setTimeout(() => {
+    stopListenSnippet();
+    if(roundMode === 'listen' && !locked){
+      listenPlayBtn.disabled = false;
+      listenPlayBtn.classList.remove('playing');
+      listenPlayBtn.textContent = '↻';
+      listenHintEl.textContent = 'Nochmal hören oder tippen';
+    }
+  }, SNIPPET_MS);
+}
+listenPlayBtn.addEventListener('click', startListenSnippet);
+
+function stopListenSnippet(){
+  clearTimeout(listenTimer);
+  listenTimer = null;
+  if(spotifyController){
+    try{ spotifyController.pause(); }catch(e){}
+  }
+  listenPlaying = false;
+}
+
+async function fetchTrackMeta(song){
+  if(trackMetaCache[song.title]) return trackMetaCache[song.title];
+  try{
+    const res = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(song.url));
+    if(!res.ok) throw new Error('oEmbed ' + res.status);
+    const data = await res.json();
+    const meta = { thumbnail: data.thumbnail_url || null };
+    trackMetaCache[song.title] = meta;
+    return meta;
+  }catch(e){
+    const meta = { thumbnail: null };
+    trackMetaCache[song.title] = meta;
+    return meta;
+  }
+}
+
+async function showRevealFrame(song){
+  revealTitleEl.textContent = song.title;
+  revealArtistEl.textContent = song.artist;
+  revealCoverEl.style.display = 'none';
+  revealCoverEl.src = '';
+  revealFrameEl.classList.add('shown');
+  const meta = await fetchTrackMeta(song);
+  if(meta.thumbnail && SONGS[order[roundIdx]] === song){
+    revealCoverEl.src = meta.thumbnail;
+    revealCoverEl.style.display = 'block';
+  }
+}
+function hideRevealFrame(){
+  revealFrameEl.classList.remove('shown');
+  revealCoverEl.src = '';
+}
+
 function generatePath(song, w, h){
   return buildIcon(song.title).map(stroke => ({
     color: stroke.color,
@@ -4539,7 +4760,7 @@ function drawFrame(elapsed){
 function loop(ts){
   if(startTime===null) startTime = ts;
   const elapsed = ts - startTime;
-  drawFrame(elapsed);
+  if(roundMode === 'draw') drawFrame(elapsed);
   progressBar.style.transform = `scaleX(${1 - Math.min(1, elapsed/ROUND_MS)})`;
   const segMs = (ROUND_MS - FREE_MS)/5;
   const segIdx = Math.min(eliminationOrder.length, Math.floor(Math.max(0, elapsed-FREE_MS)/segMs));
@@ -4585,11 +4806,21 @@ function startRound(){
   startTime = null;
   resultEl.style.display = 'none';
   correctThumbEl.classList.remove('shown');
+  hideRevealFrame();
   nextBtn.style.display = 'none';
   progressBar.style.transform = 'scaleX(1)';
   roundNumEl.textContent = roundIdx+1;
   const song = SONGS[order[roundIdx]];
-  strokes = generatePath(song, stage.clientWidth, stage.clientHeight);
+  if(roundMode === 'listen'){
+    canvas.style.display = 'none';
+    listenStageEl.style.display = 'flex';
+    stopListenSnippet();
+    loadListenTrack(song);
+  } else {
+    canvas.style.display = 'block';
+    listenStageEl.style.display = 'none';
+    strokes = generatePath(song, stage.clientWidth, stage.clientHeight);
+  }
   renderOptions(song);
   resizeCanvas();
   rafId = requestAnimationFrame(loop);
@@ -4617,6 +4848,12 @@ function finishRound(chosen, btnEl){
     score += gained;
   }
   scoreValEl.textContent = score;
+
+  if(roundMode === 'listen'){
+    stopListenSnippet();
+    listenPlayBtn.disabled = true;
+    showRevealFrame(song);
+  }
 
   // The correct/wrong answer is already visible via the green/red option
   // borders above (set in the forEach loop above) — no separate result box,
@@ -6285,10 +6522,20 @@ function goToSingleplayerEntry(){
   document.getElementById('mpModeBtn').style.display = 'none';
   document.getElementById('startGameBtn').style.display = '';
   document.querySelector('.board').style.display = 'block';
+  spModeToggle.style.display = 'flex';
   updateMultiplayerBoardVisibility();
   updateContinueButtons();
   playerNameInput.focus();
 }
+
+function setRoundMode(mode){
+  roundMode = mode;
+  spModeDrawBtn.classList.toggle('active', mode === 'draw');
+  spModeListenBtn.classList.toggle('active', mode === 'listen');
+  if(mode === 'listen') ensureSpotifyController();
+}
+spModeDrawBtn.addEventListener('click', () => setRoundMode('draw'));
+spModeListenBtn.addEventListener('click', () => setRoundMode('listen'));
 function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   hideSplash(!!prefillCode);
   // "Teamplayer" and "Telestrationsplayer" on the splash are shortcuts into
@@ -6306,6 +6553,7 @@ function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
   document.querySelector('.board').style.display = 'none';
+  spModeToggle.style.display = 'none';
   updateMultiplayerBoardVisibility();
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
   updateContinueButtons();
@@ -6319,8 +6567,10 @@ document.getElementById('splashChainBtn').addEventListener('click', () => goToMu
 // ---- Clicking the heading resets everything and goes back to the splash screen ----
 function goToSplash(){
   cancelAnimationFrame(rafId);
+  stopListenSnippet();
   mpTeardown();
   document.querySelector('.name-row').style.display = 'none';
+  spModeToggle.style.display = 'none';
   gameArea.style.display = 'none';
   finalEl.style.display = 'none';
   document.querySelector('.board').style.display = 'none';
