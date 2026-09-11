@@ -5264,7 +5264,12 @@ function pickRoundOrder(){
 const startGameBtn = document.getElementById('startGameBtn');
 const gameArea = document.getElementById('gameArea');
 
-startGameBtn.addEventListener('click', () => {
+// Shared by the arrow start button AND (for Hör-Modus) picking a snippet-length
+// circle directly — selecting a length is itself the "start" action there, so
+// the picker disappears and the round begins in one tap instead of requiring
+// a separate confirm step (also makes sure the picker never lingers visible
+// over the running game).
+function startSpGame(){
   try{
     const name = playerNameInput.value.trim();
     if(!name){
@@ -5274,6 +5279,7 @@ startGameBtn.addEventListener('click', () => {
     }
     playerNameInput.disabled = true;
     startGameBtn.style.display = 'none';
+    lenPickerEl.style.display = 'none';
     hideSpBoards();
     gameArea.style.display = 'flex';
     activeGameRoundMode = roundMode;
@@ -5285,7 +5291,8 @@ startGameBtn.addEventListener('click', () => {
     b.style.display = 'block';
     b.textContent = 'Fehler beim Start: ' + err.message;
   }
-});
+}
+startGameBtn.addEventListener('click', startSpGame);
 
 const mpModeBtn = document.getElementById('mpModeBtn');
 
@@ -6864,6 +6871,10 @@ lenCircleBtns.forEach(btn => {
     if(!secs) return;
     SNIPPET_MS = secs * 1000;
     lenCircleBtns.forEach(b => b.classList.toggle('selected', b === btn));
+    // Picking the length IS the start action in Hör-Modus: the picker
+    // disappears and the round begins immediately (still requires a name —
+    // startSpGame() shows the usual red-border validation if it's empty).
+    startSpGame();
   });
 });
 function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
