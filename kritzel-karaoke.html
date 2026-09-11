@@ -104,6 +104,10 @@
     overflow:hidden;
     flex-shrink:1;
   }
+  .stage.no-frame{
+    background:transparent;
+    border-color:transparent;
+  }
   canvas{width:100%;height:100%;display:block;}
 
   .progress{
@@ -189,14 +193,14 @@
   }
   .listen-play-btn{
     width:min(28vw,110px);height:min(28vw,110px);border-radius:50%;
-    background:#f2ece2;color:#0a0a0a;border:none;
-    font-size:min(9vw,36px);line-height:1;cursor:pointer;
+    background:transparent;color:#f2ece2;border:3px solid #f2ece2;
+    font-size:min(9vw,34px);line-height:1;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 0 0 0 rgba(242,236,226,0.55);
     animation:listenPulse 2s ease-out infinite;
   }
   .listen-play-btn:disabled{opacity:.4;cursor:default;animation:none;}
-  .listen-play-btn.playing{animation:none;background:var(--good);color:#0a0a0a;}
+  .listen-play-btn.playing{animation:none;border-color:var(--good);color:var(--good);}
   @keyframes listenPulse{
     0%{box-shadow:0 0 0 0 rgba(242,236,226,0.4);}
     70%{box-shadow:0 0 0 18px rgba(242,236,226,0);}
@@ -207,16 +211,16 @@
   .reveal-frame{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:8px;
-    background:var(--paper-deep);opacity:0;pointer-events:none;
+    background:transparent;opacity:0;pointer-events:none;
     transform:scale(0.9);
     transition:opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
     z-index:6;padding:16px;
   }
   .reveal-frame.shown{opacity:1;transform:scale(1);}
   .reveal-cover{
-    width:min(56vw,230px);height:min(56vw,230px);border-radius:8px;
-    object-fit:cover;border:1px solid var(--line);
-    box-shadow:0 6px 22px rgba(0,0,0,0.5);
+    width:min(78vw,320px);height:min(78vw,320px);border-radius:10px;
+    object-fit:cover;border:none;
+    box-shadow:0 6px 26px rgba(0,0,0,0.55);
   }
   .reveal-title{font-family:'Caveat',cursive;font-size:24px;color:var(--ink);text-align:center;line-height:1.15;}
   .reveal-artist{color:var(--muted);font-size:12.5px;text-align:center;}
@@ -1412,6 +1416,7 @@ let score = 0;
 let rafId = null;
 let roundMode = 'draw'; // 'draw' | 'listen' — chosen on the SP entry screen
 const SNIPPET_MS = 8000;
+const SNIPPET_FADE_MS = 1000;
 let spotifyController = null;
 let spotifyControllerReady = false;
 let spotifyApiLoadStarted = false;
@@ -1419,6 +1424,7 @@ let listenTimer = null;
 let listenPlaying = false;
 let listenRoundTimerStarted = false;
 let listenAutoplayWatchdog = null;
+let fadeInterval = null;
 const trackMetaCache = {};
 let currentMode = null; // 'sp' | 'mp' | 'tp' | null — which mode was picked on the splash screen ('tp' = multiplayer with team mode on)
 function setModeBadge(mode){
@@ -4645,11 +4651,14 @@ function ensureSpotifyController(onReady){
               cancelAnimationFrame(rafId);
               rafId = requestAnimationFrame(loop);
             }
+            fadeVolume(0, 1, SNIPPET_FADE_MS);
             clearTimeout(listenTimer);
             listenTimer = setTimeout(() => {
-              stopListenSnippet();
-              showListenReplayUI();
-            }, SNIPPET_MS);
+              fadeVolume(1, 0, SNIPPET_FADE_MS, () => {
+                stopListenSnippet();
+                showListenReplayUI();
+              });
+            }, Math.max(0, SNIPPET_MS - SNIPPET_FADE_MS));
           }
         }
         if(d.isPaused === true) listenPlaying = false;
@@ -4660,6 +4669,32 @@ function ensureSpotifyController(onReady){
   s.src = 'https://open.spotify.com/embed/iframe-api/v1';
   s.async = true;
   document.head.appendChild(s);
+}
+
+// Sanfter 1s-Fade statt hartem Ein-/Ausblenden der Musik. Spotifys iFrame-API
+// dokumentiert setVolume() nicht offiziell — daher defensiv mit try/catch, und
+// wenn der Aufruf nichts bewirkt (nicht unterstützt), läuft alles wie zuvor,
+// nur ohne hörbaren Fade.
+function fadeVolume(from, to, durationMs, onDone){
+  clearInterval(fadeInterval);
+  fadeInterval = null;
+  if(!spotifyController || typeof spotifyController.setVolume !== 'function'){
+    if(onDone) onDone();
+    return;
+  }
+  const steps = 20;
+  const stepMs = durationMs / steps;
+  let i = 0;
+  fadeInterval = setInterval(() => {
+    i++;
+    const v = from + (to - from) * (i / steps);
+    try{ spotifyController.setVolume(Math.max(0, Math.min(1, v))); }catch(e){}
+    if(i >= steps){
+      clearInterval(fadeInterval);
+      fadeInterval = null;
+      if(onDone) onDone();
+    }
+  }, stepMs);
 }
 
 function loadListenTrack(song){
@@ -4705,6 +4740,7 @@ function showListenReplayUI(){
 function startListenSnippet(){
   if(!spotifyController || listenPlayBtn.disabled) return;
   listenPlayBtn.disabled = true;
+  try{ spotifyController.setVolume(0); }catch(e){}
   try{ spotifyController.play(); }catch(e){}
 }
 listenPlayBtn.addEventListener('click', startListenSnippet);
@@ -4713,6 +4749,8 @@ function stopListenSnippet(){
   clearTimeout(listenTimer);
   listenTimer = null;
   clearTimeout(listenAutoplayWatchdog);
+  clearInterval(fadeInterval);
+  fadeInterval = null;
   if(spotifyController){
     try{ spotifyController.pause(); }catch(e){}
   }
@@ -4868,6 +4906,7 @@ function startRound(){
   progressBar.style.transform = 'scaleX(1)';
   roundNumEl.textContent = roundIdx+1;
   const song = SONGS[order[roundIdx]];
+  stage.classList.toggle('no-frame', roundMode === 'listen');
   if(roundMode === 'listen'){
     canvas.style.display = 'none';
     listenStageEl.style.display = 'flex';
