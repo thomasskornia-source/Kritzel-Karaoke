@@ -189,18 +189,18 @@
   }
   .listen-play-btn{
     width:min(28vw,110px);height:min(28vw,110px);border-radius:50%;
-    background:var(--pen);color:#0a0a0a;border:none;
+    background:#f2ece2;color:#0a0a0a;border:none;
     font-size:min(9vw,36px);line-height:1;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 0 0 rgba(230,57,43,0.5);
+    box-shadow:0 0 0 0 rgba(242,236,226,0.55);
     animation:listenPulse 2s ease-out infinite;
   }
   .listen-play-btn:disabled{opacity:.4;cursor:default;animation:none;}
-  .listen-play-btn.playing{animation:none;background:var(--good);}
+  .listen-play-btn.playing{animation:none;background:var(--good);color:#0a0a0a;}
   @keyframes listenPulse{
-    0%{box-shadow:0 0 0 0 rgba(230,57,43,0.45);}
-    70%{box-shadow:0 0 0 18px rgba(230,57,43,0);}
-    100%{box-shadow:0 0 0 0 rgba(230,57,43,0);}
+    0%{box-shadow:0 0 0 0 rgba(242,236,226,0.4);}
+    70%{box-shadow:0 0 0 18px rgba(242,236,226,0);}
+    100%{box-shadow:0 0 0 0 rgba(242,236,226,0);}
   }
   .listen-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:0 20px;}
 
@@ -1384,6 +1384,7 @@ const resultEl = document.getElementById('result');
 const verdictThumbEl = document.getElementById('verdictThumb');
 const roundCountdownEl = document.getElementById('roundCountdown');
 let verdictThumbTimer = null;
+const CORRECT_REACTIONS = ['👍', '🤘', '👍👍', '😄', '🙌', '🎉'];
 const verdictEl = document.getElementById('verdict');
 const resultTextEl = document.getElementById('resultText');
 const nextBtn = document.getElementById('nextBtn');
@@ -4679,30 +4680,16 @@ function loadListenTrack(song){
     // Songs nicht in die neue Runde durchsickert
     setTimeout(() => {
       if(roundMode === 'listen' && !locked && SONGS[order[roundIdx]] === song){
-        attemptAutoplay(song);
+        // Der automatische Start-ohne-Antippen-Versuch wurde auf Nutzer-Feedback
+        // ("scheint nicht ganz zu klappen") wieder entfernt — der Nutzer tippt
+        // bewusst auf den (weißen) Play-Button; die Rundenzeit startet trotzdem
+        // erst mit dem tatsächlichen Wiedergabebeginn (siehe playback_update
+        // weiter oben), nicht schon jetzt beim Laden.
+        listenPlayBtn.disabled = false;
+        listenHintEl.textContent = 'Antippen zum Anhören';
       }
     }, 500);
   });
-}
-
-// Versucht, den Schnipsel ohne Antippen zu starten. iOS/Safari erlaubt das nur,
-// wenn kürzlich eine echte Nutzer-Geste stattfand (z. B. der Tipp auf "Runde
-// starten" oder eine vorige Antwort) — klappt das nicht, taucht nach kurzer
-// Wartezeit automatisch der Play-Button als Fallback zum manuellen Antippen auf.
-function attemptAutoplay(song){
-  listenPlayBtn.disabled = true;
-  listenPlayBtn.style.display = 'none';
-  listenHintEl.textContent = 'Lädt…';
-  try{ spotifyController.play(); }catch(e){}
-  clearTimeout(listenAutoplayWatchdog);
-  listenAutoplayWatchdog = setTimeout(() => {
-    if(!listenPlaying && roundMode === 'listen' && !locked && SONGS[order[roundIdx]] === song){
-      listenPlayBtn.style.display = '';
-      listenPlayBtn.disabled = false;
-      listenPlayBtn.textContent = '▶';
-      listenHintEl.textContent = 'Antippen zum Anhören';
-    }
-  }, 1200);
 }
 
 function showListenReplayUI(){
@@ -4941,7 +4928,9 @@ function finishRound(chosen, btnEl){
   // the way so it doesn't cover the (listen-mode) album cover in the middle.
   clearTimeout(verdictThumbTimer);
   verdictThumbEl.classList.remove('correct', 'wrong');
-  verdictThumbEl.textContent = correct ? '👍' : '👎';
+  verdictThumbEl.textContent = correct
+    ? CORRECT_REACTIONS[Math.floor(Math.random()*CORRECT_REACTIONS.length)]
+    : '👎';
   verdictThumbEl.classList.add(correct ? 'correct' : 'wrong');
   verdictThumbEl.classList.add('shown');
   verdictThumbTimer = setTimeout(() => verdictThumbEl.classList.remove('shown'), 1300);
