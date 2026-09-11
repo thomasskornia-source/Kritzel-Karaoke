@@ -143,15 +143,27 @@
   .result a{color:var(--pen);text-decoration:none;border-bottom:1px solid var(--pen-dim);}
   .result .verdict{font-family:'Caveat',cursive;font-size:26px;margin-bottom:4px;display:block;}
 
-  .correct-thumb{
-    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-size:min(20vw,80px);opacity:0;pointer-events:none;
+  .verdict-thumb{
+    position:absolute;right:10px;bottom:10px;
+    font-size:min(13vw,44px);opacity:0;pointer-events:none;
     transform:scale(0.5);
     transition:opacity .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
-    filter:drop-shadow(0 0 14px rgba(95,174,130,0.65));
-    z-index:5;
+    filter:drop-shadow(0 2px 10px rgba(0,0,0,0.55));
+    z-index:7;
   }
-  .correct-thumb.shown{opacity:1;transform:scale(1);}
+  .verdict-thumb.shown{opacity:1;transform:scale(1);}
+  .verdict-thumb.correct{filter:drop-shadow(0 0 14px rgba(95,174,130,0.65));}
+  .verdict-thumb.wrong{filter:drop-shadow(0 0 14px rgba(230,57,43,0.65));}
+
+  .round-countdown{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.6);
+    font-family:'Caveat',cursive;font-weight:700;font-size:min(30vw,120px);
+    color:var(--pen);opacity:0;pointer-events:none;
+    text-shadow:0 0 20px rgba(230,57,43,0.6);
+    transition:opacity .15s ease, transform .15s ease;
+    z-index:4;
+  }
+  .round-countdown.shown{opacity:1;transform:translate(-50%,-50%) scale(1);}
 
   .sp-mode-toggle{
     display:none;gap:8px;margin-bottom:10px;
@@ -202,7 +214,7 @@
   }
   .reveal-frame.shown{opacity:1;transform:scale(1);}
   .reveal-cover{
-    width:min(38vw,150px);height:min(38vw,150px);border-radius:8px;
+    width:min(56vw,230px);height:min(56vw,230px);border-radius:8px;
     object-fit:cover;border:1px solid var(--line);
     box-shadow:0 6px 22px rgba(0,0,0,0.5);
   }
@@ -628,7 +640,8 @@
       <div class="reveal-title" id="revealTitle"></div>
       <div class="reveal-artist" id="revealArtist"></div>
     </div>
-    <div class="correct-thumb" id="correctThumb">👍</div>
+    <div class="round-countdown" id="roundCountdown"></div>
+    <div class="verdict-thumb" id="verdictThumb"></div>
   </div>
 
   <div class="progress"><i id="progressBar"></i></div>
@@ -1368,7 +1381,9 @@ const stage = document.getElementById('stage');
 const progressBar = document.getElementById('progressBar');
 const optionsEl = document.getElementById('options');
 const resultEl = document.getElementById('result');
-const correctThumbEl = document.getElementById('correctThumb');
+const verdictThumbEl = document.getElementById('verdictThumb');
+const roundCountdownEl = document.getElementById('roundCountdown');
+let verdictThumbTimer = null;
 const verdictEl = document.getElementById('verdict');
 const resultTextEl = document.getElementById('resultText');
 const nextBtn = document.getElementById('nextBtn');
@@ -1401,6 +1416,8 @@ let spotifyControllerReady = false;
 let spotifyApiLoadStarted = false;
 let listenTimer = null;
 let listenPlaying = false;
+let listenRoundTimerStarted = false;
+let listenAutoplayWatchdog = null;
 const trackMetaCache = {};
 let currentMode = null; // 'sp' | 'mp' | 'tp' | null — which mode was picked on the splash screen ('tp' = multiplayer with team mode on)
 function setModeBadge(mode){
@@ -4610,7 +4627,30 @@ function ensureSpotifyController(onReady){
       });
       EmbedController.addListener('playback_update', (e) => {
         const d = e && e.data || {};
-        if(d.isPaused === false) listenPlaying = true;
+        if(d.isPaused === false){
+          listenPlaying = true;
+          clearTimeout(listenAutoplayWatchdog);
+          if(roundMode === 'listen' && !locked){
+            listenPlayBtn.disabled = true;
+            listenPlayBtn.classList.add('playing');
+            listenPlayBtn.textContent = '❚❚';
+            listenHintEl.textContent = 'Läuft…';
+            // Die Rundenzeit (Punkte/Fortschrittsbalken/5-4-3-2-1) startet erst
+            // JETZT, beim tatsächlichen Beginn der Wiedergabe — nicht schon beim
+            // Rundenstart/Laden, damit Ladezeit nicht von der Antwortzeit abgeht.
+            if(!listenRoundTimerStarted){
+              listenRoundTimerStarted = true;
+              startTime = null;
+              cancelAnimationFrame(rafId);
+              rafId = requestAnimationFrame(loop);
+            }
+            clearTimeout(listenTimer);
+            listenTimer = setTimeout(() => {
+              stopListenSnippet();
+              showListenReplayUI();
+            }, SNIPPET_MS);
+          }
+        }
         if(d.isPaused === true) listenPlaying = false;
       });
     });
@@ -4623,6 +4663,7 @@ function ensureSpotifyController(onReady){
 
 function loadListenTrack(song){
   listenPlayBtn.disabled = true;
+  listenPlayBtn.style.display = '';
   listenPlayBtn.classList.remove('playing');
   listenPlayBtn.textContent = '▶';
   listenHintEl.textContent = 'Player wird geladen…';
@@ -4638,36 +4679,53 @@ function loadListenTrack(song){
     // Songs nicht in die neue Runde durchsickert
     setTimeout(() => {
       if(roundMode === 'listen' && !locked && SONGS[order[roundIdx]] === song){
-        listenPlayBtn.disabled = false;
-        listenHintEl.textContent = 'Antippen zum Anhören';
+        attemptAutoplay(song);
       }
     }, 500);
   });
 }
 
+// Versucht, den Schnipsel ohne Antippen zu starten. iOS/Safari erlaubt das nur,
+// wenn kürzlich eine echte Nutzer-Geste stattfand (z. B. der Tipp auf "Runde
+// starten" oder eine vorige Antwort) — klappt das nicht, taucht nach kurzer
+// Wartezeit automatisch der Play-Button als Fallback zum manuellen Antippen auf.
+function attemptAutoplay(song){
+  listenPlayBtn.disabled = true;
+  listenPlayBtn.style.display = 'none';
+  listenHintEl.textContent = 'Lädt…';
+  try{ spotifyController.play(); }catch(e){}
+  clearTimeout(listenAutoplayWatchdog);
+  listenAutoplayWatchdog = setTimeout(() => {
+    if(!listenPlaying && roundMode === 'listen' && !locked && SONGS[order[roundIdx]] === song){
+      listenPlayBtn.style.display = '';
+      listenPlayBtn.disabled = false;
+      listenPlayBtn.textContent = '▶';
+      listenHintEl.textContent = 'Antippen zum Anhören';
+    }
+  }, 1200);
+}
+
+function showListenReplayUI(){
+  if(roundMode === 'listen' && !locked){
+    listenPlayBtn.style.display = '';
+    listenPlayBtn.disabled = false;
+    listenPlayBtn.classList.remove('playing');
+    listenPlayBtn.textContent = '↻';
+    listenHintEl.textContent = 'Nochmal hören';
+  }
+}
+
 function startListenSnippet(){
   if(!spotifyController || listenPlayBtn.disabled) return;
   listenPlayBtn.disabled = true;
-  listenPlayBtn.classList.add('playing');
-  listenPlayBtn.textContent = '❚❚';
-  listenHintEl.textContent = 'Läuft…';
   try{ spotifyController.play(); }catch(e){}
-  clearTimeout(listenTimer);
-  listenTimer = setTimeout(() => {
-    stopListenSnippet();
-    if(roundMode === 'listen' && !locked){
-      listenPlayBtn.disabled = false;
-      listenPlayBtn.classList.remove('playing');
-      listenPlayBtn.textContent = '↻';
-      listenHintEl.textContent = 'Nochmal hören oder tippen';
-    }
-  }, SNIPPET_MS);
 }
 listenPlayBtn.addEventListener('click', startListenSnippet);
 
 function stopListenSnippet(){
   clearTimeout(listenTimer);
   listenTimer = null;
+  clearTimeout(listenAutoplayWatchdog);
   if(spotifyController){
     try{ spotifyController.pause(); }catch(e){}
   }
@@ -4761,6 +4819,16 @@ function loop(ts){
   if(startTime===null) startTime = ts;
   const elapsed = ts - startTime;
   if(roundMode === 'draw') drawFrame(elapsed);
+  if(roundMode === 'listen'){
+    const remaining = ROUND_MS - elapsed;
+    if(remaining > 0 && remaining <= 5000){
+      const n = Math.ceil(remaining/1000);
+      if(roundCountdownEl.textContent !== String(n)) roundCountdownEl.textContent = n;
+      roundCountdownEl.classList.add('shown');
+    } else {
+      roundCountdownEl.classList.remove('shown');
+    }
+  }
   progressBar.style.transform = `scaleX(${1 - Math.min(1, elapsed/ROUND_MS)})`;
   const segMs = (ROUND_MS - FREE_MS)/5;
   const segIdx = Math.min(eliminationOrder.length, Math.floor(Math.max(0, elapsed-FREE_MS)/segMs));
@@ -4805,7 +4873,9 @@ function startRound(){
   locked = false;
   startTime = null;
   resultEl.style.display = 'none';
-  correctThumbEl.classList.remove('shown');
+  clearTimeout(verdictThumbTimer);
+  verdictThumbEl.classList.remove('shown');
+  roundCountdownEl.classList.remove('shown');
   hideRevealFrame();
   nextBtn.style.display = 'none';
   progressBar.style.transform = 'scaleX(1)';
@@ -4814,16 +4884,22 @@ function startRound(){
   if(roundMode === 'listen'){
     canvas.style.display = 'none';
     listenStageEl.style.display = 'flex';
+    listenRoundTimerStarted = false;
+    cancelAnimationFrame(rafId);
+    rafId = null;
     stopListenSnippet();
     loadListenTrack(song);
+    // Die Rundenzeit (rafId/loop) startet erst, sobald die Wiedergabe
+    // tatsächlich beginnt — siehe playback_update-Listener oben — damit
+    // Ladezeit nicht von der Antwortzeit abgeht.
   } else {
     canvas.style.display = 'block';
     listenStageEl.style.display = 'none';
     strokes = generatePath(song, stage.clientWidth, stage.clientHeight);
+    rafId = requestAnimationFrame(loop);
   }
   renderOptions(song);
   resizeCanvas();
-  rafId = requestAnimationFrame(loop);
 }
 
 function finishRound(chosen, btnEl){
@@ -4849,17 +4925,26 @@ function finishRound(chosen, btnEl){
   }
   scoreValEl.textContent = score;
 
+  roundCountdownEl.classList.remove('shown');
+
   if(roundMode === 'listen'){
     stopListenSnippet();
     listenPlayBtn.disabled = true;
+    listenPlayBtn.style.display = 'none';
     showRevealFrame(song);
   }
 
   // The correct/wrong answer is already visible via the green/red option
   // borders above (set in the forEach loop above) — no separate result box,
   // since it used to push the page layout down and disrupt the game flow.
-  // On a correct guess, show a brief thumbs-up over the drawing instead.
-  if(correct) correctThumbEl.classList.add('shown');
+  // A brief thumbs-up/-down appears in the corner instead — short and out of
+  // the way so it doesn't cover the (listen-mode) album cover in the middle.
+  clearTimeout(verdictThumbTimer);
+  verdictThumbEl.classList.remove('correct', 'wrong');
+  verdictThumbEl.textContent = correct ? '👍' : '👎';
+  verdictThumbEl.classList.add(correct ? 'correct' : 'wrong');
+  verdictThumbEl.classList.add('shown');
+  verdictThumbTimer = setTimeout(() => verdictThumbEl.classList.remove('shown'), 1300);
 
   nextBtn.style.display = 'none';
   setTimeout(goNext, 4000);
