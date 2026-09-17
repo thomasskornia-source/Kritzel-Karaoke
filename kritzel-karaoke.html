@@ -55,7 +55,7 @@
   .sub{color:var(--muted);font-size:12.5px;margin-bottom:10px;}
 
   .name-row{
-    display:flex;gap:8px;align-items:center;margin-top:8px;margin-bottom:10px;
+    display:flex;gap:8px;align-items:center;margin-bottom:10px;
   }
   .name-row input{
     flex:1;background:transparent;border:1px solid var(--line);
@@ -104,10 +104,6 @@
     overflow:hidden;
     flex-shrink:1;
   }
-  .stage.no-frame{
-    background:transparent;
-    border-color:transparent;
-  }
   canvas{width:100%;height:100%;display:block;}
 
   .progress{
@@ -147,27 +143,28 @@
   .result a{color:var(--pen);text-decoration:none;border-bottom:1px solid var(--pen-dim);}
   .result .verdict{font-family:'Caveat',cursive;font-size:26px;margin-bottom:4px;display:block;}
 
-  .verdict-thumb{
-    position:absolute;right:10px;bottom:10px;
-    font-size:min(13vw,44px);opacity:0;pointer-events:none;
+  .correct-thumb{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:min(20vw,80px);opacity:0;pointer-events:none;
     transform:scale(0.5);
     transition:opacity .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
-    filter:drop-shadow(0 2px 10px rgba(0,0,0,0.55));
-    z-index:7;
+    filter:drop-shadow(0 0 14px rgba(95,174,130,0.65));
+    z-index:5;
   }
-  .verdict-thumb.shown{opacity:1;transform:scale(1);}
-  .verdict-thumb.correct{filter:drop-shadow(0 0 14px rgba(95,174,130,0.65));}
-  .verdict-thumb.wrong{filter:drop-shadow(0 0 14px rgba(230,57,43,0.65));}
+  .correct-thumb.shown{opacity:1;transform:scale(1);}
 
-  .round-countdown{
-    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.6);
-    font-family:'Caveat',cursive;font-weight:700;font-size:min(30vw,120px);
-    color:var(--pen);opacity:0;pointer-events:none;
-    text-shadow:0 0 20px rgba(230,57,43,0.6);
-    transition:opacity .15s ease, transform .15s ease;
-    z-index:4;
+  .sp-mode-toggle{
+    display:none;gap:8px;margin-bottom:10px;
   }
-  .round-countdown.shown{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  .sp-mode-btn{
+    flex:1;background:transparent;border:1px solid var(--line);
+    color:var(--muted);padding:9px 8px;border-radius:8px;
+    font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+    transition:border-color .15s, background .15s, color .15s;
+  }
+  .sp-mode-btn.active{
+    border-color:var(--pen);color:var(--ink);background:rgba(230,57,43,0.08);
+  }
 
   .hidden-embed{
     position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;
@@ -180,34 +177,34 @@
   }
   .listen-play-btn{
     width:min(28vw,110px);height:min(28vw,110px);border-radius:50%;
-    background:transparent;color:#f2ece2;border:3px solid #f2ece2;
-    font-size:min(9vw,34px);line-height:1;cursor:pointer;
+    background:var(--pen);color:#0a0a0a;border:none;
+    font-size:min(9vw,36px);line-height:1;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 0 0 rgba(242,236,226,0.55);
+    box-shadow:0 0 0 0 rgba(230,57,43,0.5);
     animation:listenPulse 2s ease-out infinite;
   }
   .listen-play-btn:disabled{opacity:.4;cursor:default;animation:none;}
-  .listen-play-btn.playing{animation:none;border-color:var(--good);color:var(--good);}
+  .listen-play-btn.playing{animation:none;background:var(--good);}
   @keyframes listenPulse{
-    0%{box-shadow:0 0 0 0 rgba(242,236,226,0.4);}
-    70%{box-shadow:0 0 0 18px rgba(242,236,226,0);}
-    100%{box-shadow:0 0 0 0 rgba(242,236,226,0);}
+    0%{box-shadow:0 0 0 0 rgba(230,57,43,0.45);}
+    70%{box-shadow:0 0 0 18px rgba(230,57,43,0);}
+    100%{box-shadow:0 0 0 0 rgba(230,57,43,0);}
   }
   .listen-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:0 20px;}
 
   .reveal-frame{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:8px;
-    background:transparent;opacity:0;pointer-events:none;
+    background:var(--paper-deep);opacity:0;pointer-events:none;
     transform:scale(0.9);
     transition:opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
     z-index:6;padding:16px;
   }
   .reveal-frame.shown{opacity:1;transform:scale(1);}
   .reveal-cover{
-    width:min(78vw,320px);height:min(78vw,320px);border-radius:10px;
-    object-fit:cover;border:none;
-    box-shadow:0 6px 26px rgba(0,0,0,0.55);
+    width:min(38vw,150px);height:min(38vw,150px);border-radius:8px;
+    object-fit:cover;border:1px solid var(--line);
+    box-shadow:0 6px 22px rgba(0,0,0,0.5);
   }
   .reveal-title{font-family:'Caveat',cursive;font-size:24px;color:var(--ink);text-align:center;line-height:1.15;}
   .reveal-artist{color:var(--muted);font-size:12.5px;text-align:center;}
@@ -479,66 +476,6 @@
   }
   .mode-box:hover{border-color:#e6c44a;background:rgba(230,196,74,0.1);}
 
-  /* --- Singleplayer mode-box split into two direct shortcuts (pencil = Zeichnen,
-       Lautsprecher = Hören) instead of the walking-character button the other
-       modes still use. Per [stated] request the border moved OFF the outer
-       Singleplayer pill and ONTO each icon button instead (the opposite of
-       Multiplayer/Teamplayer, which keep the plain pill border) — the label
-       sits centered between the two round-framed icon buttons. */
-  .mode-box-sp{
-    display:flex;align-items:center;justify-content:space-between;gap:6px;
-    padding:8px 6px 8px 8px;
-    border:none;background:transparent;
-  }
-  .mode-box-sp:hover{border:none;background:transparent;}
-  .mode-box-sp-label{
-    flex:1;text-align:center;pointer-events:none;
-  }
-  .sp-icon-btn{
-    flex-shrink:0;width:56px;height:56px;padding:0;
-    display:flex;align-items:center;justify-content:center;
-    background:transparent;border:1px solid rgba(230,196,74,0.55);border-radius:50%;
-    color:var(--ink);cursor:pointer;transition:border-color .15s ease, background .15s ease, transform .15s ease;
-  }
-  .sp-icon-btn:hover{border-color:#e6c44a;background:rgba(230,196,74,0.1);transform:scale(1.06);}
-  .sp-icon-btn svg{width:34px;height:34px;display:block;}
-
-  /* Pencil: briefly "scribbles" (a quick back-and-forth wobble, once) the
-     instant the splash buttons appear — mirrors the one-shot timing the
-     walk-in characters use below. The base 45° tilt lives on a separate
-     outer <g> so the wobble (animated via CSS transform on the inner
-     .pencil-scribble-group) adds on top of it instead of replacing it. */
-  @keyframes pencilScribble{
-    0%,100%{transform:rotate(0deg);}
-    12%{transform:rotate(-14deg);}
-    24%{transform:rotate(10deg);}
-    36%{transform:rotate(-11deg);}
-    48%{transform:rotate(8deg);}
-    60%{transform:rotate(-6deg);}
-    72%{transform:rotate(3deg);}
-    84%{transform:rotate(-2deg);}
-  }
-  .splash-modes.shown .pencil-scribble-group{
-    transform-box:fill-box;transform-origin:15% 90%;
-    animation:pencilScribble 1.5s ease-in-out .8s 1;
-  }
-
-  /* Speaker: the two sound-wave arcs pulse outward in a short stagger to
-     suggest sound actually emanating from the cone, once the splash
-     buttons are visible. */
-  @keyframes speakerWavePulse{
-    0%,100%{opacity:.35;transform:scale(0.85);}
-    50%{opacity:1;transform:scale(1.08);}
-  }
-  .splash-modes.shown .speaker-wave-1{
-    transform-box:fill-box;transform-origin:0% 50%;
-    animation:speakerWavePulse 1.2s ease-in-out .8s infinite;
-  }
-  .splash-modes.shown .speaker-wave-2{
-    transform-box:fill-box;transform-origin:0% 50%;
-    animation:speakerWavePulse 1.2s ease-in-out 1.05s infinite;
-  }
-
   /* --- Little characters that walk into the SP/MP/TP mode buttons on the
        splash screen. Each is a tiny CSS "peg doll" (head/body/2 arms/2 legs)
        positioned at the very edge of its button so the label stays readable.
@@ -642,37 +579,7 @@
     <div class="splash-karaoke" id="splashKaraoke">Karaoke</div>
   </div>
   <div class="splash-modes" id="splashModes">
-    <div class="mode-box mode-box-sp" id="splashSoloBox">
-      <button class="sp-icon-btn" id="splashSoloDrawBtn" aria-label="Singleplayer: Zeichnen-Modus" type="button">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <!-- Detailed tilted pencil: eraser / metal ferrule / shaft (with a
-               facet highlight line) / wood taper / graphite tip, built as a
-               vertical pencil then tilted 45° via the outer, non-animated
-               <g> so the scribble-wobble (below) rotates on top of it. -->
-          <g transform="rotate(45 12 12)">
-            <g class="pencil-scribble-group">
-              <rect x="9" y="1.6" width="6" height="4" rx="1.6" fill="currentColor" opacity="0.55"/>
-              <rect x="9" y="5.6" width="6" height="2.2" fill="currentColor" opacity="0.9"/>
-              <rect x="9.2" y="7.8" width="5.6" height="9.4" fill="currentColor" opacity="0.2"/>
-              <rect x="9.2" y="7.8" width="5.6" height="9.4" stroke="currentColor" stroke-width="1" stroke-linejoin="round" fill="none"/>
-              <line x1="12" y1="8.1" x2="12" y2="17" stroke="currentColor" stroke-width="0.8" opacity="0.45"/>
-              <path d="M9.2 17.2 L14.8 17.2 L12 22.4 Z" fill="currentColor" opacity="0.5"/>
-              <path d="M10.6 20.1 L13.4 20.1 L12 22.4 Z" fill="currentColor"/>
-            </g>
-          </g>
-        </svg>
-      </button>
-      <span class="mode-box-sp-label">Singleplayer</span>
-      <button class="sp-icon-btn" id="splashSoloListenBtn" aria-label="Singleplayer: Hören-Modus" type="button">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <!-- Classic speaker-cone glyph with two sound-wave arcs, instead
-               of the old plain square+dot "device" icon. -->
-          <polygon points="10.5 5 5.5 9 2 9 2 15 5.5 15 10.5 19" fill="currentColor"/>
-          <path class="speaker-wave speaker-wave-1" d="M15 8.3a5.4 5.4 0 0 1 0 7.4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-          <path class="speaker-wave speaker-wave-2" d="M18.4 5.4a10 10 0 0 1 0 13.2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-        </svg>
-      </button>
-    </div>
+    <button class="mode-box" id="splashSoloBtn">Singleplayer</button>
     <button class="mode-box" id="splashMpBtn">Multiplayer</button>
     <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
     <!-- Stille Post Modus: auf Wunsch des Nutzers vorübergehend vom Startbildschirm
@@ -696,17 +603,10 @@
     <button class="start-btn arrow-btn" id="mpModeBtn">&#8594;</button>
   </div>
 
-  <!-- Draw/Hör mode is chosen once, up front, via the two splash-screen
-       icons (Stift = Zeichnen, Lautsprecher = Hören — see splashSoloDrawBtn/
-       splashSoloListenBtn) rather than switched here, so the old in-page
-       Zeichnen/Hören toggle that used to live here was removed per [stated]
-       request ("kann oben die wahlmöglichkeit zeichnen/hören verschwinden").
-       An adjustable snippet-length picker (5/8/12s circles) was tried here
-       too, but the auto-stop-after-N-seconds mechanism turned out to be
-       unreliable on real iOS Spotify playback (confirmed by [stated] even
-       with a retry-based pause() mitigation) — reverted back to this
-       simpler, previously-confirmed-reliable fixed 8s snippet per [stated]
-       request ("zurück auf die letzte funktionierende Version"). -->
+  <div class="sp-mode-toggle" id="spModeToggle">
+    <button type="button" class="sp-mode-btn active" id="spModeDrawBtn">🖊️ Zeichnen</button>
+    <button type="button" class="sp-mode-btn" id="spModeListenBtn">🎧 Hören</button>
+  </div>
 
   <div class="err-banner" id="errBanner"></div>
 
@@ -728,8 +628,7 @@
       <div class="reveal-title" id="revealTitle"></div>
       <div class="reveal-artist" id="revealArtist"></div>
     </div>
-    <div class="round-countdown" id="roundCountdown"></div>
-    <div class="verdict-thumb" id="verdictThumb"></div>
+    <div class="correct-thumb" id="correctThumb">👍</div>
   </div>
 
   <div class="progress"><i id="progressBar"></i></div>
@@ -1469,10 +1368,7 @@ const stage = document.getElementById('stage');
 const progressBar = document.getElementById('progressBar');
 const optionsEl = document.getElementById('options');
 const resultEl = document.getElementById('result');
-const verdictThumbEl = document.getElementById('verdictThumb');
-const roundCountdownEl = document.getElementById('roundCountdown');
-let verdictThumbTimer = null;
-const CORRECT_REACTIONS = ['👍', '🤘', '👍👍', '😄', '🙌', '🎉'];
+const correctThumbEl = document.getElementById('correctThumb');
 const verdictEl = document.getElementById('verdict');
 const resultTextEl = document.getElementById('resultText');
 const nextBtn = document.getElementById('nextBtn');
@@ -1482,6 +1378,9 @@ const finalEl = document.getElementById('final');
 const finalScoreEl = document.getElementById('finalScore');
 const boardList = document.getElementById('boardList');
 const playerNameInput = document.getElementById('playerName');
+const spModeToggle = document.getElementById('spModeToggle');
+const spModeDrawBtn = document.getElementById('spModeDrawBtn');
+const spModeListenBtn = document.getElementById('spModeListenBtn');
 const listenStageEl = document.getElementById('listenStage');
 const listenPlayBtn = document.getElementById('listenPlayBtn');
 const listenHintEl = document.getElementById('listenHint');
@@ -1496,20 +1395,12 @@ let roundIdx = 0;
 let score = 0;
 let rafId = null;
 let roundMode = 'draw'; // 'draw' | 'listen' — chosen on the SP entry screen
-// Fixed snippet length for Hör-Modus — a per-length picker (5/8/12s circles)
-// was tried but the auto-stop-after-N-seconds mechanism proved unreliable
-// on real iOS Spotify playback even with a retry-based pause(), so this
-// reverted back to the simpler, previously-confirmed-reliable fixed value.
 const SNIPPET_MS = 8000;
-const SNIPPET_FADE_MS = 1000;
 let spotifyController = null;
 let spotifyControllerReady = false;
 let spotifyApiLoadStarted = false;
 let listenTimer = null;
 let listenPlaying = false;
-let listenRoundTimerStarted = false;
-let listenAutoplayWatchdog = null;
-let fadeInterval = null;
 const trackMetaCache = {};
 let currentMode = null; // 'sp' | 'mp' | 'tp' | null — which mode was picked on the splash screen ('tp' = multiplayer with team mode on)
 function setModeBadge(mode){
@@ -4719,33 +4610,7 @@ function ensureSpotifyController(onReady){
       });
       EmbedController.addListener('playback_update', (e) => {
         const d = e && e.data || {};
-        if(d.isPaused === false){
-          listenPlaying = true;
-          clearTimeout(listenAutoplayWatchdog);
-          if(roundMode === 'listen' && !locked){
-            listenPlayBtn.disabled = true;
-            listenPlayBtn.classList.add('playing');
-            listenPlayBtn.textContent = '❚❚';
-            listenHintEl.textContent = 'Läuft…';
-            // Die Rundenzeit (Punkte/Fortschrittsbalken/5-4-3-2-1) startet erst
-            // JETZT, beim tatsächlichen Beginn der Wiedergabe — nicht schon beim
-            // Rundenstart/Laden, damit Ladezeit nicht von der Antwortzeit abgeht.
-            if(!listenRoundTimerStarted){
-              listenRoundTimerStarted = true;
-              startTime = null;
-              cancelAnimationFrame(rafId);
-              rafId = requestAnimationFrame(loop);
-            }
-            fadeVolume(0, 1, SNIPPET_FADE_MS);
-            clearTimeout(listenTimer);
-            listenTimer = setTimeout(() => {
-              fadeVolume(1, 0, SNIPPET_FADE_MS, () => {
-                stopListenSnippet();
-                showListenReplayUI();
-              });
-            }, Math.max(0, SNIPPET_MS - SNIPPET_FADE_MS));
-          }
-        }
+        if(d.isPaused === false) listenPlaying = true;
         if(d.isPaused === true) listenPlaying = false;
       });
     });
@@ -4756,35 +4621,8 @@ function ensureSpotifyController(onReady){
   document.head.appendChild(s);
 }
 
-// Sanfter 1s-Fade statt hartem Ein-/Ausblenden der Musik. Spotifys iFrame-API
-// dokumentiert setVolume() nicht offiziell — daher defensiv mit try/catch, und
-// wenn der Aufruf nichts bewirkt (nicht unterstützt), läuft alles wie zuvor,
-// nur ohne hörbaren Fade.
-function fadeVolume(from, to, durationMs, onDone){
-  clearInterval(fadeInterval);
-  fadeInterval = null;
-  if(!spotifyController || typeof spotifyController.setVolume !== 'function'){
-    if(onDone) onDone();
-    return;
-  }
-  const steps = 20;
-  const stepMs = durationMs / steps;
-  let i = 0;
-  fadeInterval = setInterval(() => {
-    i++;
-    const v = from + (to - from) * (i / steps);
-    try{ spotifyController.setVolume(Math.max(0, Math.min(1, v))); }catch(e){}
-    if(i >= steps){
-      clearInterval(fadeInterval);
-      fadeInterval = null;
-      if(onDone) onDone();
-    }
-  }, stepMs);
-}
-
 function loadListenTrack(song){
   listenPlayBtn.disabled = true;
-  listenPlayBtn.style.display = '';
   listenPlayBtn.classList.remove('playing');
   listenPlayBtn.textContent = '▶';
   listenHintEl.textContent = 'Player wird geladen…';
@@ -4800,11 +4638,6 @@ function loadListenTrack(song){
     // Songs nicht in die neue Runde durchsickert
     setTimeout(() => {
       if(roundMode === 'listen' && !locked && SONGS[order[roundIdx]] === song){
-        // Der automatische Start-ohne-Antippen-Versuch wurde auf Nutzer-Feedback
-        // ("scheint nicht ganz zu klappen") wieder entfernt — der Nutzer tippt
-        // bewusst auf den (weißen) Play-Button; die Rundenzeit startet trotzdem
-        // erst mit dem tatsächlichen Wiedergabebeginn (siehe playback_update
-        // weiter oben), nicht schon jetzt beim Laden.
         listenPlayBtn.disabled = false;
         listenHintEl.textContent = 'Antippen zum Anhören';
       }
@@ -4812,30 +4645,29 @@ function loadListenTrack(song){
   });
 }
 
-function showListenReplayUI(){
-  if(roundMode === 'listen' && !locked){
-    listenPlayBtn.style.display = '';
-    listenPlayBtn.disabled = false;
-    listenPlayBtn.classList.remove('playing');
-    listenPlayBtn.textContent = '↻';
-    listenHintEl.textContent = 'Nochmal hören';
-  }
-}
-
 function startListenSnippet(){
   if(!spotifyController || listenPlayBtn.disabled) return;
   listenPlayBtn.disabled = true;
-  try{ spotifyController.setVolume(0); }catch(e){}
+  listenPlayBtn.classList.add('playing');
+  listenPlayBtn.textContent = '❚❚';
+  listenHintEl.textContent = 'Läuft…';
   try{ spotifyController.play(); }catch(e){}
+  clearTimeout(listenTimer);
+  listenTimer = setTimeout(() => {
+    stopListenSnippet();
+    if(roundMode === 'listen' && !locked){
+      listenPlayBtn.disabled = false;
+      listenPlayBtn.classList.remove('playing');
+      listenPlayBtn.textContent = '↻';
+      listenHintEl.textContent = 'Nochmal hören oder tippen';
+    }
+  }, SNIPPET_MS);
 }
 listenPlayBtn.addEventListener('click', startListenSnippet);
 
 function stopListenSnippet(){
   clearTimeout(listenTimer);
   listenTimer = null;
-  clearTimeout(listenAutoplayWatchdog);
-  clearInterval(fadeInterval);
-  fadeInterval = null;
   if(spotifyController){
     try{ spotifyController.pause(); }catch(e){}
   }
@@ -4929,16 +4761,6 @@ function loop(ts){
   if(startTime===null) startTime = ts;
   const elapsed = ts - startTime;
   if(roundMode === 'draw') drawFrame(elapsed);
-  if(roundMode === 'listen'){
-    const remaining = ROUND_MS - elapsed;
-    if(remaining > 0 && remaining <= 5000){
-      const n = Math.ceil(remaining/1000);
-      if(roundCountdownEl.textContent !== String(n)) roundCountdownEl.textContent = n;
-      roundCountdownEl.classList.add('shown');
-    } else {
-      roundCountdownEl.classList.remove('shown');
-    }
-  }
   progressBar.style.transform = `scaleX(${1 - Math.min(1, elapsed/ROUND_MS)})`;
   const segMs = (ROUND_MS - FREE_MS)/5;
   const segIdx = Math.min(eliminationOrder.length, Math.floor(Math.max(0, elapsed-FREE_MS)/segMs));
@@ -4983,34 +4805,25 @@ function startRound(){
   locked = false;
   startTime = null;
   resultEl.style.display = 'none';
-  clearTimeout(verdictThumbTimer);
-  verdictThumbEl.classList.remove('shown');
-  roundCountdownEl.classList.remove('shown');
+  correctThumbEl.classList.remove('shown');
   hideRevealFrame();
   nextBtn.style.display = 'none';
   progressBar.style.transform = 'scaleX(1)';
   roundNumEl.textContent = roundIdx+1;
   const song = SONGS[order[roundIdx]];
-  stage.classList.toggle('no-frame', roundMode === 'listen');
   if(roundMode === 'listen'){
     canvas.style.display = 'none';
     listenStageEl.style.display = 'flex';
-    listenRoundTimerStarted = false;
-    cancelAnimationFrame(rafId);
-    rafId = null;
     stopListenSnippet();
     loadListenTrack(song);
-    // Die Rundenzeit (rafId/loop) startet erst, sobald die Wiedergabe
-    // tatsächlich beginnt — siehe playback_update-Listener oben — damit
-    // Ladezeit nicht von der Antwortzeit abgeht.
   } else {
     canvas.style.display = 'block';
     listenStageEl.style.display = 'none';
     strokes = generatePath(song, stage.clientWidth, stage.clientHeight);
-    rafId = requestAnimationFrame(loop);
   }
   renderOptions(song);
   resizeCanvas();
+  rafId = requestAnimationFrame(loop);
 }
 
 function finishRound(chosen, btnEl){
@@ -5036,28 +4849,17 @@ function finishRound(chosen, btnEl){
   }
   scoreValEl.textContent = score;
 
-  roundCountdownEl.classList.remove('shown');
-
   if(roundMode === 'listen'){
     stopListenSnippet();
     listenPlayBtn.disabled = true;
-    listenPlayBtn.style.display = 'none';
     showRevealFrame(song);
   }
 
   // The correct/wrong answer is already visible via the green/red option
   // borders above (set in the forEach loop above) — no separate result box,
   // since it used to push the page layout down and disrupt the game flow.
-  // A brief thumbs-up/-down appears in the corner instead — short and out of
-  // the way so it doesn't cover the (listen-mode) album cover in the middle.
-  clearTimeout(verdictThumbTimer);
-  verdictThumbEl.classList.remove('correct', 'wrong');
-  verdictThumbEl.textContent = correct
-    ? CORRECT_REACTIONS[Math.floor(Math.random()*CORRECT_REACTIONS.length)]
-    : '👎';
-  verdictThumbEl.classList.add(correct ? 'correct' : 'wrong');
-  verdictThumbEl.classList.add('shown');
-  verdictThumbTimer = setTimeout(() => verdictThumbEl.classList.remove('shown'), 1300);
+  // On a correct guess, show a brief thumbs-up over the drawing instead.
+  if(correct) correctThumbEl.classList.add('shown');
 
   nextBtn.style.display = 'none';
   setTimeout(goNext, 4000);
@@ -5082,14 +4884,7 @@ function showFinal(){
   nextBtn.style.display = 'none';
   finalEl.style.display = 'block';
   finalScoreEl.textContent = score;
-  updateSpBoardVisibility();
-}
-
-function updateSpBoardVisibility(){
-  document.querySelector('.board').style.display = currentMode === 'sp' ? 'block' : 'none';
-}
-function hideSpBoards(){
-  document.querySelector('.board').style.display = 'none';
+  document.querySelector('.board').style.display = 'block';
 }
 
 async function loadBoard(){
@@ -5144,7 +4939,7 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   document.querySelector('.progress').style.display = 'block';
   optionsEl.style.display = 'grid';
   finalEl.style.display = 'none';
-  hideSpBoards();
+  document.querySelector('.board').style.display = 'none';
   document.getElementById('saveBtn').disabled = false;
   document.getElementById('saveBtn').textContent = 'Im Leaderboard speichern';
   score = 0;
@@ -5171,7 +4966,7 @@ startGameBtn.addEventListener('click', () => {
     }
     playerNameInput.disabled = true;
     startGameBtn.style.display = 'none';
-    hideSpBoards();
+    document.querySelector('.board').style.display = 'none';
     gameArea.style.display = 'flex';
     order = pickRoundOrder();
     resizeCanvas();
@@ -5353,7 +5148,7 @@ function updateMultiplayerBoardVisibility(){
 
 function showMpScreen(name){
   document.querySelector('.name-row').style.display = 'none';
-  hideSpBoards();
+  document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
   gameArea.style.display = 'none';
@@ -5368,7 +5163,7 @@ function showMpScreen(name){
 function showStartScreen(){
   showMpScreen(null);
   document.querySelector('.name-row').style.display = 'flex';
-  updateSpBoardVisibility();
+  document.querySelector('.board').style.display = currentMode === 'sp' ? 'block' : 'none';
   updateMultiplayerBoardVisibility();
   playerNameInput.disabled = false;
   if(currentMode === 'sp'){ startGameBtn.style.display = ''; mpModeBtn.style.display = 'none'; }
@@ -5388,7 +5183,7 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   // the create/join fields below, instead of swapping to a separate screen.
   playerNameInput.disabled = true;
   mpModeBtn.style.display = 'none';
-  hideSpBoards();
+  document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'block';
@@ -6658,10 +6453,11 @@ function makeModeWalker(direction, skinClass){
   return el;
 }
 function addModeWalkers(){
+  const soloBtn = document.getElementById('splashSoloBtn');
   const mpBtn = document.getElementById('splashMpBtn');
   const teamBtn = document.getElementById('splashTeamBtn');
-  // SP: no walker anymore — the box shows a pencil/speaker icon pair instead
-  // (see "#splashSoloBox" markup and setRoundMode-driven click handlers below).
+  // SP: one character walks in.
+  if(soloBtn) soloBtn.appendChild(makeModeWalker('left', 'mw-a'));
   // MP: one from the left, one from the right.
   if(mpBtn){
     mpBtn.appendChild(makeModeWalker('left', 'mw-b'));
@@ -6725,8 +6521,8 @@ function goToSingleplayerEntry(){
   document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('mpModeBtn').style.display = 'none';
   document.getElementById('startGameBtn').style.display = '';
-  updateSpBoardVisibility();
-  loadBoard();
+  document.querySelector('.board').style.display = 'block';
+  spModeToggle.style.display = 'flex';
   updateMultiplayerBoardVisibility();
   updateContinueButtons();
   playerNameInput.focus();
@@ -6734,8 +6530,12 @@ function goToSingleplayerEntry(){
 
 function setRoundMode(mode){
   roundMode = mode;
+  spModeDrawBtn.classList.toggle('active', mode === 'draw');
+  spModeListenBtn.classList.toggle('active', mode === 'listen');
   if(mode === 'listen') ensureSpotifyController();
 }
+spModeDrawBtn.addEventListener('click', () => setRoundMode('draw'));
+spModeListenBtn.addEventListener('click', () => setRoundMode('listen'));
 function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   hideSplash(!!prefillCode);
   // "Teamplayer" and "Telestrationsplayer" on the splash are shortcuts into
@@ -6752,20 +6552,14 @@ function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
   document.querySelector('.name-row').style.display = 'flex';
   document.getElementById('startGameBtn').style.display = 'none';
   document.getElementById('mpModeBtn').style.display = '';
-  hideSpBoards();
+  document.querySelector('.board').style.display = 'none';
+  spModeToggle.style.display = 'none';
   updateMultiplayerBoardVisibility();
   if(prefillCode) document.getElementById('mpCodeInput').value = prefillCode;
   updateContinueButtons();
   playerNameInput.focus();
 }
-document.getElementById('splashSoloDrawBtn').addEventListener('click', () => {
-  setRoundMode('draw');
-  goToSingleplayerEntry();
-});
-document.getElementById('splashSoloListenBtn').addEventListener('click', () => {
-  setRoundMode('listen');
-  goToSingleplayerEntry();
-});
+document.getElementById('splashSoloBtn').addEventListener('click', () => goToSingleplayerEntry());
 document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
 document.getElementById('splashTeamBtn').addEventListener('click', () => goToMultiplayerEntry(null, true));
 document.getElementById('splashChainBtn').addEventListener('click', () => goToMultiplayerEntry(null, false, true));
@@ -6776,9 +6570,10 @@ function goToSplash(){
   stopListenSnippet();
   mpTeardown();
   document.querySelector('.name-row').style.display = 'none';
+  spModeToggle.style.display = 'none';
   gameArea.style.display = 'none';
   finalEl.style.display = 'none';
-  hideSpBoards();
+  document.querySelector('.board').style.display = 'none';
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
   mpEntry.style.display = 'none';
@@ -6980,7 +6775,7 @@ async function handleSpotifyRedirect(){
         hideSplash(true);
         setModeBadge('mp');
         document.getElementById('startGameBtn').style.display = 'none';
-        hideSpBoards();
+        document.querySelector('.board').style.display = 'none';
         enterRoom(returnRoom);
         await showSpotifyPlaylistPicker(data.access_token);
       }
