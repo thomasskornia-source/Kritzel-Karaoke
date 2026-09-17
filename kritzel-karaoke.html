@@ -195,6 +195,19 @@
   }
   .listen-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:0 20px;}
 
+  .mpl-reveal{margin-top:14px;text-align:center;}
+  .mpl-reveal-list{list-style:none;margin:10px 0 0;padding:0;}
+  .mpl-reveal-list li{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 10px;border:1px solid var(--line);border-radius:7px;
+    margin-bottom:6px;font-size:13px;
+  }
+  .mpl-reveal-list li.correct{border-color:var(--good);background:rgba(95,174,130,0.08);}
+  .mpl-reveal-list li.wrong{border-color:var(--pen);background:rgba(230,57,43,0.06);opacity:.7;}
+  .mpl-reveal-list .mpl-rank{color:var(--gold);font-weight:700;margin-right:8px;}
+  .mpl-reveal-list .mpl-time{color:var(--muted);font-size:11.5px;}
+  .mpl-reveal-list .mpl-pts{color:var(--good);font-weight:700;}
+
   .reveal-frame{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:8px;
@@ -673,7 +686,31 @@
         </svg>
       </button>
     </div>
-    <button class="mode-box" id="splashMpBtn">Multiplayer</button>
+    <div class="mode-box mode-box-sp" id="splashMpBtn">
+      <button class="sp-icon-btn" id="splashMpDrawBtn" aria-label="Multiplayer: Zeichnen-Modus" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(45 12 12)">
+            <g class="pencil-scribble-group">
+              <rect x="9" y="1.6" width="6" height="4" rx="1.6" fill="currentColor" opacity="0.55"/>
+              <rect x="9" y="5.6" width="6" height="2.2" fill="currentColor" opacity="0.9"/>
+              <rect x="9.2" y="7.8" width="5.6" height="9.4" fill="currentColor" opacity="0.2"/>
+              <rect x="9.2" y="7.8" width="5.6" height="9.4" stroke="currentColor" stroke-width="1" stroke-linejoin="round" fill="none"/>
+              <line x1="12" y1="8.1" x2="12" y2="17" stroke="currentColor" stroke-width="0.8" opacity="0.45"/>
+              <path d="M9.2 17.2 L14.8 17.2 L12 22.4 Z" fill="currentColor" opacity="0.5"/>
+              <path d="M10.6 20.1 L13.4 20.1 L12 22.4 Z" fill="currentColor"/>
+            </g>
+          </g>
+        </svg>
+      </button>
+      <span class="mode-box-sp-label">Multiplayer</span>
+      <button class="sp-icon-btn" id="splashMpListenBtn" aria-label="Multiplayer: Hören-Modus" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="10.5 5 5.5 9 2 9 2 15 5.5 15 10.5 19" fill="currentColor"/>
+          <path class="speaker-wave speaker-wave-1" d="M15 8.3a5.4 5.4 0 0 1 0 7.4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <path class="speaker-wave speaker-wave-2" d="M18.4 5.4a10 10 0 0 1 0 13.2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
     <button class="mode-box" id="splashTeamBtn">Teamplayer</button>
     <!-- Stille Post Modus: auf Wunsch des Nutzers vorübergehend vom Startbildschirm
          ausgeblendet ("werde bei Zeiten drauf zurückkommen") — der Modus selbst
@@ -766,6 +803,11 @@
     <ol id="tpBoardList"></ol>
   </div>
 
+  <div class="board" id="mplBoardWrap">
+    <h2>Hörmodus Multiplayer Top 10</h2>
+    <ol id="mplBoardList"></ol>
+  </div>
+
   <!-- ===== Multiplayer: Entry (create/join) ===== -->
   <div class="mp-wrap" id="mpEntry" style="display:none;">
     <div class="mp-actions">
@@ -809,6 +851,7 @@
 
     <p class="sub" id="mpTeamNote" style="display:none;">Jede:r wählt unten das eigene Team.</p>
     <p class="sub" id="mpChainNote" style="display:none;">🔗 Stille Post Modus: Jede:r zeichnet und rät reihum an mehreren Ketten gleichzeitig — am Ende werden alle Ketten aufgedeckt.</p>
+    <p class="sub" id="mpListenNote" style="display:none;">🎧 Hörmodus: Alle hören denselben Song-Schnipsel auf dem eigenen Handy und tippen die Antwort — wer am schnellsten richtig tippt, bekommt die meisten Punkte.</p>
 
     <ol class="mp-player-list" id="mpPlayerList"></ol>
     <button class="start-btn" id="mpStartBtn" style="display:none;">Spiel starten</button>
@@ -842,6 +885,24 @@
       <div class="progress"><i id="mpProgressBar"></i></div>
       <button class="restart-btn" id="mpClearBtn" style="display:none;">Löschen</button>
       <div class="options" id="mpOptions"></div>
+    </div>
+
+    <!-- Hörmodus (Multiplayer): alle bekommen denselben Song, jede:r hört auf dem
+         eigenen Gerät ab und tippt selbst — Timing/Punkte laufen pro Spieler ab
+         dem eigenen Play-Tap (siehe mpListenSubmitAnswer). Runde endet, sobald
+         alle geantwortet haben (siehe mpListenRefereeTick). -->
+    <div id="mpListenWrap" style="display:none;">
+      <div class="stage no-frame" id="mpListenStage">
+        <div class="hidden-embed" id="mpListenSpotifyEmbed"></div>
+        <button class="listen-play-btn" id="mpListenPlayBtn" disabled>▶</button>
+        <div class="listen-hint" id="mpListenHint">Player wird geladen…</div>
+      </div>
+      <div class="options" id="mpListenOptions"></div>
+      <p class="sub" id="mpListenWaitNote"></p>
+      <div class="mpl-reveal" id="mpListenReveal" style="display:none;">
+        <span class="verdict" id="mpListenVerdict"></span>
+        <ol class="mpl-reveal-list" id="mpListenRevealList"></ol>
+      </div>
     </div>
 
     <div class="result" id="mpResult">
@@ -1519,6 +1580,7 @@ function setModeBadge(mode){
   if(!badge) return;
   if(mode === 'sp'){ badge.textContent = 'SP'; badge.style.display = 'inline-block'; }
   else if(mode === 'mp'){ badge.textContent = 'MP'; badge.style.display = 'inline-block'; }
+  else if(mode === 'mpl'){ badge.textContent = 'MP🎧'; badge.style.display = 'inline-block'; }
   else if(mode === 'tp'){ badge.textContent = 'TP'; badge.style.display = 'inline-block'; }
   else if(mode === 'chain'){ badge.textContent = 'STP'; badge.style.display = 'inline-block'; }
   else { badge.style.display = 'none'; }
@@ -2074,17 +2136,23 @@ const ICON_VERTS = {
   "Die Welt kann mich nicht mehr verstehen": [ // a globe
     { v:circleVerts(0.5,0.5,0.20,16), c:'#3a6a8a' },
     { v:[[0.30,0.5],[0.70,0.5]], c:'#7fb3d9' },
-    { v:arcVerts(0.5,0.5,0.20,Math.PI*0.5,Math.PI*1.5,10), c:'#7fb3d9' }
+    { v:arcVerts(0.5,0.5,0.20,Math.PI*0.5,Math.PI*1.5,10), c:'#7fb3d9' },
+    { v:[[0.42,0.42],[0.52,0.40],[0.58,0.48],[0.50,0.54],[0.42,0.50],[0.42,0.42]], c:'#3d7a4a' },
+    { v:arcVerts(0.5,0.5,0.28,Math.PI*1.1,Math.PI*1.9,10), c:'#5a8aa8' }
   ],
   "Was hat dich bloß so ruiniert": [ // shattered glass
     { v:[[0.35,0.30],[0.5,0.45],[0.35,0.60]], c:'#7fb3d9' },
     { v:[[0.5,0.45],[0.65,0.30],[0.65,0.55]], c:'#a5c4d9' },
-    { v:[[0.5,0.45],[0.45,0.70],[0.6,0.65]], c:'#bcd4e8' }
+    { v:[[0.5,0.45],[0.45,0.70],[0.6,0.65]], c:'#bcd4e8' },
+    { v:[[0.35,0.60],[0.30,0.72],[0.42,0.68],[0.35,0.60]], c:'#8ab4d4' },
+    { v:[[0.65,0.55],[0.70,0.68],[0.58,0.65],[0.65,0.55]], c:'#c9dcea' }
   ],
   "Schunder-Song": [ // a musical note
     { v:circleVerts(0.45,0.65,0.07,10), c:'#c9403a' },
     { v:[[0.52,0.65],[0.52,0.30]], c:'#3a3a40' },
-    { v:[[0.52,0.30],[0.62,0.35],[0.52,0.42]], c:'#3a3a40' }
+    { v:[[0.52,0.30],[0.62,0.35],[0.52,0.42]], c:'#3a3a40' },
+    { v:circleVerts(0.68,0.55,0.05,10), c:'#c9403a' },
+    { v:[[0.73,0.55],[0.73,0.40]], c:'#3a3a40' }
   ],
   "Together On The Sand": [ // a beach umbrella
     { v:[[0.30,0.40],[0.5,0.28],[0.70,0.40],[0.30,0.40]], c:'#c9403a' },
@@ -2101,7 +2169,9 @@ const ICON_VERTS = {
   "Halt dich an deiner Liebe fest": [ // a heart held by two hands
     { v:[[0.5,0.55],[0.40,0.45],[0.36,0.36],[0.42,0.30],[0.5,0.34],[0.58,0.30],[0.64,0.36],[0.60,0.45],[0.5,0.55]], c:'#c9403a' },
     { v:[[0.30,0.60],[0.40,0.55],[0.45,0.62]], c:'#d9b48a' },
-    { v:[[0.70,0.60],[0.60,0.55],[0.55,0.62]], c:'#d9b48a' }
+    { v:[[0.70,0.60],[0.60,0.55],[0.55,0.62]], c:'#d9b48a' },
+    { v:[[0.28,0.62],[0.34,0.58]], c:'#c9903f' },
+    { v:[[0.72,0.62],[0.66,0.58]], c:'#c9903f' }
   ],
   "Give It Away": [ // an open gift box
     { v:[[0.28,0.50],[0.72,0.50],[0.72,0.78],[0.28,0.78],[0.28,0.50]], c:'#c9403a' },
@@ -2124,7 +2194,10 @@ const ICON_VERTS = {
   ],
   "Ziggy Stardust": [ // a lightning bolt across a face
     { v:circleVerts(0.5,0.45,0.18,14), c:'#e8b83f' },
-    { v:[[0.62,0.24],[0.44,0.44],[0.56,0.44],[0.38,0.66]], c:'#c9403a' }
+    { v:[[0.62,0.24],[0.44,0.44],[0.56,0.44],[0.38,0.66]], c:'#c9403a' },
+    { v:circleVerts(0.34,0.50,0.02,8), c:'#7fb3d9' },
+    { v:circleVerts(0.66,0.50,0.02,8), c:'#3a6a8a' },
+    { v:[[0.60,0.26],[0.46,0.42],[0.54,0.42],[0.40,0.62]], c:'#e8843f' }
   ],
   "Heroes": [ // two figures holding hands by a wall
     { v:[[0.15,0.55],[0.85,0.55]], c:'#7a6a5a' },
@@ -2145,16 +2218,23 @@ const ICON_VERTS = {
   "Right Here, Right Now": [ // a clock
     { v:circleVerts(0.5,0.48,0.18,14), c:'#e8e4d8' },
     { v:[[0.5,0.48],[0.5,0.34]], c:'#2b2320' },
-    { v:[[0.5,0.48],[0.63,0.48]], c:'#2b2320' }
+    { v:[[0.5,0.48],[0.63,0.48]], c:'#2b2320' },
+    { v:[[0.5,0.32],[0.5,0.36]], c:'#5a5a62' },
+    { v:[[0.68,0.48],[0.64,0.48]], c:'#5a5a62' }
   ],
   "The Rockafeller Skank": [ // a dollar sign
     { v:[[0.60,0.28],[0.44,0.32],[0.44,0.44],[0.60,0.48],[0.60,0.60],[0.44,0.64]], c:'#3d7a4a' },
     { v:[[0.5,0.22],[0.5,0.28]], c:'#3d7a4a' },
-    { v:[[0.5,0.64],[0.5,0.70]], c:'#3d7a4a' }
+    { v:[[0.5,0.64],[0.5,0.70]], c:'#3d7a4a' },
+    { v:[[0.30,0.30],[0.34,0.26]], c:'#e8d840' },
+    { v:[[0.68,0.62],[0.72,0.66]], c:'#e8d840' },
+    { v:arcVerts(0.5,0.46,0.24,0.4,2.7,10), c:'#e8d840' }
   ],
   "Lust for Life": [ // a heart on fire
     { v:[[0.5,0.62],[0.38,0.50],[0.33,0.40],[0.38,0.32],[0.46,0.35],[0.5,0.42],[0.54,0.35],[0.62,0.32],[0.67,0.40],[0.62,0.50],[0.5,0.62]], c:'#c9403a' },
-    { v:[[0.5,0.30],[0.46,0.20],[0.5,0.15],[0.54,0.20],[0.5,0.30]], c:'#e8843f' }
+    { v:[[0.5,0.30],[0.46,0.20],[0.5,0.15],[0.54,0.20],[0.5,0.30]], c:'#e8843f' },
+    { v:[[0.5,0.28],[0.47,0.22],[0.5,0.18],[0.53,0.22],[0.5,0.28]], c:'#e8d840' },
+    { v:[[0.44,0.42],[0.47,0.38]], c:'#e8b6cc' }
   ],
   "The Passenger": [ // a train car
     { v:[[0.25,0.35],[0.75,0.35],[0.75,0.65],[0.25,0.65],[0.25,0.35]], c:'#5a5a62' },
@@ -2223,7 +2303,10 @@ const ICON_VERTS = {
   ],
   "Satisfaction": [ // a smiling mouth
     { v:[[0.28,0.42],[0.5,0.60],[0.72,0.42]], c:'#c9403a' },
-    { v:[[0.28,0.42],[0.72,0.42]], c:'#c9403a' }
+    { v:[[0.28,0.42],[0.72,0.42]], c:'#c9403a' },
+    { v:[[0.36,0.46],[0.64,0.46]], c:'#e8e4d8' },
+    { v:circleVerts(0.30,0.36,0.015,6), c:'#e8b6cc' },
+    { v:circleVerts(0.70,0.36,0.015,6), c:'#e8b6cc' }
   ],
   "Be Yourself": [ // a mirror reflecting a figure
     { v:circleVerts(0.5,0.42,0.18,14), c:'#7fb3d9' },
@@ -2326,7 +2409,11 @@ const ICON_VERTS = {
     { v:[[0.78,0.22],[0.5,0.5]], c:'#5a3a1e' }
   ],
   "Born Slippy (Nuxx)": [ // a rain drop
-    { v:[[0.5,0.22],[0.36,0.50],[0.36,0.64],[0.44,0.74],[0.56,0.74],[0.64,0.64],[0.64,0.50],[0.5,0.22]], c:'#3a6a8a' }
+    { v:[[0.5,0.22],[0.36,0.50],[0.36,0.64],[0.44,0.74],[0.56,0.74],[0.64,0.64],[0.64,0.50],[0.5,0.22]], c:'#3a6a8a' },
+    { v:arcVerts(0.5,0.80,0.10,0,3.14,8), c:'#5a8aa8' },
+    { v:[[0.44,0.32],[0.42,0.44]], c:'#8ab4d4' },
+    { v:circleVerts(0.30,0.70,0.02,8), c:'#3a6a8a' },
+    { v:circleVerts(0.70,0.68,0.025,8), c:'#3a6a8a' }
   ],
   "A Forest": [ // pine trees
     { v:[[0.34,0.70],[0.34,0.60],[0.28,0.60],[0.34,0.48],[0.29,0.48],[0.34,0.36],[0.39,0.48],[0.34,0.48],[0.40,0.60],[0.34,0.60],[0.34,0.70]], c:'#2c4f36' },
@@ -2338,7 +2425,11 @@ const ICON_VERTS = {
     { v:[[0.66,0.44],[0.82,0.34],[0.76,0.48],[0.82,0.56]], c:'#e8e4d8' }
   ],
   "Everybody Hurts": [ // a teardrop
-    { v:[[0.5,0.22],[0.36,0.50],[0.36,0.64],[0.44,0.74],[0.56,0.74],[0.64,0.64],[0.64,0.50],[0.5,0.22]], c:'#7fb3d9' }
+    { v:[[0.5,0.22],[0.36,0.50],[0.36,0.64],[0.44,0.74],[0.56,0.74],[0.64,0.64],[0.64,0.50],[0.5,0.22]], c:'#7fb3d9' },
+    { v:arcVerts(0.5,0.80,0.10,0,3.14,8), c:'#3a6a8a' },
+    { v:[[0.44,0.32],[0.42,0.44]], c:'#bcd4e8' },
+    { v:circleVerts(0.62,0.66,0.03,8), c:'#7fb3d9' },
+    { v:arcVerts(0.5,0.85,0.16,0,3.14,8), c:'#2b5a7a' }
   ],
   "Jeremy": [ // a memorial candle burning steady on its base
     { v:[[0.44,0.40],[0.44,0.78],[0.56,0.78],[0.56,0.40],[0.44,0.40]], c:'#e8e4d8' },
@@ -2429,7 +2520,10 @@ const ICON_VERTS = {
   "Free Bird": [
     { v:[[0.3, 0.34], [0.2, 0.48], [0.3, 0.44], [0.5, 0.36], [0.7, 0.44], [0.8, 0.48], [0.7, 0.34], [0.5, 0.24], [0.3, 0.34]], c:'#8a8a92' },
     { v:[[0.5, 0.36], [0.5, 0.7]], c:'#8a8a92' },
-    { v:[[0.3, 0.62], [0.7, 0.62]], c:'#4a4a52' },
+    { v:[[0.3, 0.62], [0.7, 0.62]], c:'#4a4a52' },,
+    { v:[[0.5,0.7],[0.46,0.78],[0.54,0.78],[0.5,0.7]], c:'#5a5a62' },
+    { v:circleVerts(0.72,0.22,0.05,10), c:'#e8d840' },
+    { v:[[0.38,0.28],[0.34,0.20]], c:'#8a8a92' }
   ],
   "Sweet Child O' Mine": [
     { v:circleVerts(0.5,0.44,0.13,14), c:'#c9403a' },
@@ -2447,31 +2541,47 @@ const ICON_VERTS = {
   "Knockin' On Heaven's Door": [
     { v:[[0.34, 0.24], [0.66, 0.24], [0.66, 0.8], [0.34, 0.8], [0.34, 0.24]], c:'#6b4226' },
     { v:circleVerts(0.58,0.52,0.03,10), c:'#e8b83f' },
-    { v:arcVerts(0.5,0.14,0.10,3.4,6.03,14), c:'#e8e4d8' },
+    { v:arcVerts(0.5,0.14,0.10,3.4,6.03,14), c:'#e8e4d8' },,
+    { v:[[0.34,0.52],[0.66,0.52]], c:'#5a3a1e' },
+    { v:arcVerts(0.5,0.14,0.16,3.0,6.4,12), c:'#e8d840' }
   ],
   "Highway to Hell": [
     { v:[[0.2, 0.8], [0.8, 0.8]], c:'#4a4a52' },
     { v:[[0.36, 0.8], [0.64, 0.8], [0.52, 0.3], [0.48, 0.3], [0.36, 0.8]], c:'#5a5a62' },
-    { v:[[0.4, 0.3], [0.34, 0.14], [0.44, 0.22], [0.42, 0.1], [0.52, 0.24], [0.5, 0.1]], c:'#e8843f' },
+    { v:[[0.4, 0.3], [0.34, 0.14], [0.44, 0.22], [0.42, 0.1], [0.52, 0.24], [0.5, 0.1]], c:'#e8843f' },,
+    { v:[[0.56,0.30],[0.50,0.16],[0.58,0.20],[0.60,0.08]], c:'#c9403a' },
+    { v:[[0.46,0.65],[0.46,0.75]], c:'#e8b83f' },
+    { v:[[0.54,0.55],[0.54,0.65]], c:'#e8b83f' }
   ],
   "T.N.T.": [
     { v:[[0.4, 0.3], [0.6, 0.3], [0.6, 0.78], [0.4, 0.78], [0.4, 0.3]], c:'#c9403a' },
     { v:[[0.5, 0.3], [0.5, 0.14]], c:'#8a5a2b' },
-    { v:[[0.5, 0.14], [0.56, 0.06], [0.6, 0.1]], c:'#e8b83f' },
+    { v:[[0.5, 0.14], [0.56, 0.06], [0.6, 0.1]], c:'#e8b83f' },,
+    { v:[[0.62,0.34],[0.78,0.34],[0.78,0.74],[0.62,0.74],[0.62,0.34]], c:'#c9403a' },
+    { v:[[0.4,0.5],[0.6,0.5]], c:'#e8e4d8' },
+    { v:[[0.62,0.10],[0.66,0.04]], c:'#e8d840' }
   ],
   "Hells Bells": [
     { v:[[0.36, 0.36], [0.34, 0.62], [0.66, 0.62], [0.64, 0.36], [0.5, 0.24], [0.36, 0.36]], c:'#8a8a92' },
     { v:circleVerts(0.5,0.68,0.05,10), c:'#4a4a52' },
-    { v:[[0.5, 0.24], [0.5, 0.14]], c:'#4a4a52' },
+    { v:[[0.5, 0.24], [0.5, 0.14]], c:'#4a4a52' },,
+    { v:arcVerts(0.5,0.45,0.24,4.0,5.3,10), c:'#8a8a92' },
+    { v:[[0.42,0.40],[0.42,0.55]], c:'#bcbcc4' },
+    { v:[[0.46,0.20],[0.5,0.10],[0.54,0.20]], c:'#e8d840' }
   ],
   "Livin' On A Prayer": [
     { v:[[0.4, 0.24], [0.4, 0.5], [0.5, 0.6], [0.6, 0.5], [0.6, 0.24]], c:'#d9b48a' },
-    { v:[[0.5, 0.6], [0.5, 0.8]], c:'#d9b48a' },
+    { v:[[0.5, 0.6], [0.5, 0.8]], c:'#d9b48a' },,
+    { v:[[0.5,0.20],[0.5,0.14]], c:'#e8d840' },
+    { v:[[0.44,0.16],[0.56,0.16]], c:'#e8d840' },
+    { v:[[0.4,0.5],[0.6,0.5]], c:'#c9903f' }
   ],
   "It's My Life": [
     { v:circleVerts(0.5,0.5,0.28,20), c:'#e8e4d8' },
     { v:[[0.5, 0.5], [0.5, 0.28]], c:'#2b2320' },
-    { v:[[0.5, 0.5], [0.66, 0.58]], c:'#2b2320' },
+    { v:[[0.5, 0.5], [0.66, 0.58]], c:'#2b2320' },,
+    { v:arcVerts(0.5,0.5,0.24,0.2,2.9,10), c:'#c9903f' },
+    { v:[[0.5,0.24],[0.5,0.30]], c:'#c9403a' }
   ],
   "Bed Of Roses": [
     { v:[[0.24, 0.6], [0.76, 0.6], [0.76, 0.78], [0.24, 0.78], [0.24, 0.6]], c:'#c9903f' },
@@ -2482,7 +2592,10 @@ const ICON_VERTS = {
   "Eye of the Tiger": [
     { v:circleVerts(0.5,0.5,0.26,20), c:'#e8b83f' },
     { v:[[0.5, 0.3], [0.44, 0.5], [0.5, 0.7], [0.56, 0.5], [0.5, 0.3]], c:'#2b2320' },
-    { v:[[0.26, 0.5], [0.74, 0.5]], c:'#8a5a2b' },
+    { v:[[0.26, 0.5], [0.74, 0.5]], c:'#8a5a2b' },,
+    { v:[[0.32,0.36],[0.28,0.30]], c:'#2b2320' },
+    { v:[[0.68,0.36],[0.72,0.30]], c:'#2b2320' },
+    { v:circleVerts(0.44,0.45,0.03,8), c:'#e8e4d8' }
   ],
   "Purple Rain": [
     { v:[[0.3, 0.28], [0.28, 0.4]], c:'#8a5aa8' },
@@ -2494,7 +2607,9 @@ const ICON_VERTS = {
   "Free Fallin'": [
     { v:[[0.5, 0.2], [0.42, 0.34], [0.42, 0.6], [0.5, 0.8], [0.58, 0.6], [0.58, 0.34], [0.5, 0.2]], c:'#4a4a52' },
     { v:[[0.42, 0.34], [0.24, 0.24]], c:'#4a4a52' },
-    { v:[[0.58, 0.34], [0.76, 0.24]], c:'#4a4a52' },
+    { v:[[0.58, 0.34], [0.76, 0.24]], c:'#4a4a52' },,
+    { v:[[0.2,0.85],[0.8,0.85]], c:'#3d7a4a' },
+    { v:[[0.42,0.30],[0.36,0.24]], c:'#7a7a82' }
   ],
   "Black": [
     { v:circleVerts(0.5,0.5,0.26,20), c:'#2b2320' },
@@ -2502,21 +2617,32 @@ const ICON_VERTS = {
   ],
   "Stairway to Heaven": [
     { v:[[0.3, 0.8], [0.42, 0.8], [0.42, 0.68], [0.5, 0.68], [0.5, 0.56], [0.58, 0.56], [0.58, 0.44], [0.66, 0.44], [0.66, 0.32]], c:'#8a8a92' },
-    { v:cloudVerts(0.66,0.22,0.12,16), c:'#e8e4d8' },
+    { v:cloudVerts(0.66,0.22,0.12,16), c:'#e8e4d8' },,
+    { v:circleVerts(0.60,0.16,0.05,10), c:'#e8d840' },
+    { v:[[0.3,0.8],[0.3,0.68]], c:'#6b4226' },
+    { v:cloudVerts(0.78,0.30,0.06,12), c:'#f5f1e6' }
   ],
   "Message In A Bottle": [
     { v:[[0.44, 0.2], [0.56, 0.2], [0.58, 0.34], [0.58, 0.7], [0.5, 0.8], [0.42, 0.7], [0.42, 0.34], [0.44, 0.2]], c:'#7fb3d9' },
     { v:[[0.46, 0.44], [0.54, 0.44], [0.54, 0.52], [0.46, 0.52], [0.46, 0.44]], c:'#e8e4d8' },
-    { v:[[0.3, 0.78], [0.7, 0.78]], c:'#4a4a52' },
+    { v:[[0.3, 0.78], [0.7, 0.78]], c:'#4a4a52' },,
+    { v:[[0.20,0.86],[0.35,0.80],[0.5,0.86],[0.65,0.80],[0.80,0.86]], c:'#3a6a8a' },
+    { v:[[0.46,0.16],[0.54,0.16],[0.54,0.20],[0.46,0.20]], c:'#5a3a1e' },
+    { v:circleVerts(0.5,0.48,0.015,8), c:'#c9403a' }
   ],
   "Roxanne": [
     { v:circleVerts(0.5,0.36,0.14,16), c:'#c9403a' },
     { v:[[0.5, 0.5], [0.5, 0.8]], c:'#4a4a52' },
-    { v:[[0.5, 0.8], [0.3, 0.8]], c:'#4a4a52' },
+    { v:[[0.5, 0.8], [0.3, 0.8]], c:'#4a4a52' },,
+    { v:arcVerts(0.5,0.36,0.20,0.3,2.9,10), c:'#e8843f' },
+    { v:[[0.36,0.8],[0.64,0.8],[0.60,0.86],[0.40,0.86],[0.36,0.8]], c:'#3a3a40' }
   ],
   "Every Breath You Take": [
     { v:[[0.24, 0.5], [0.5, 0.3], [0.76, 0.5], [0.5, 0.7], [0.24, 0.5]], c:'#e8e4d8' },
-    { v:circleVerts(0.5,0.5,0.10,14), c:'#2b2320' },
+    { v:circleVerts(0.5,0.5,0.10,14), c:'#2b2320' },,
+    { v:[[0.30,0.42],[0.24,0.36]], c:'#5a3a1e' },
+    { v:[[0.70,0.42],[0.76,0.36]], c:'#5a3a1e' },
+    { v:circleVerts(0.5,0.5,0.05,10), c:'#3a6a8a' }
   ],
   "Don't Stand So Close To Me": [
     { v:circleVerts(0.30,0.42,0.08,12), c:'#c9a06a' },
@@ -2527,7 +2653,10 @@ const ICON_VERTS = {
   ],
   "Can't Stand Losing You": [
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
-    { v:[[0.36, 0.4], [0.5, 0.54], [0.64, 0.4]], c:'#2b2320' },
+    { v:[[0.36, 0.4], [0.5, 0.54], [0.64, 0.4]], c:'#2b2320' },,
+    { v:[[0.42,0.30],[0.46,0.38]], c:'#2b2320' },
+    { v:[[0.58,0.30],[0.54,0.38]], c:'#2b2320' },
+    { v:circleVerts(0.5,0.60,0.02,8), c:'#e8e4d8' }
   ],
   "London Calling": [
     { v:circleVerts(0.5,0.44,0.06,10), c:'#4a4a52' },
@@ -2544,14 +2673,23 @@ const ICON_VERTS = {
   "God Save The Queen": [
     { v:[[0.32, 0.44], [0.36, 0.28], [0.44, 0.4], [0.5, 0.24], [0.56, 0.4], [0.64, 0.28], [0.68, 0.44], [0.32, 0.44]], c:'#e8b83f' },
     { v:[[0.32, 0.44], [0.68, 0.44], [0.68, 0.54], [0.32, 0.54], [0.32, 0.44]], c:'#c9903f' },
-    { v:[[0.3, 0.6], [0.7, 0.66]], c:'#8a8a92' },
+    { v:[[0.3, 0.6], [0.7, 0.66]], c:'#8a8a92' },,
+    { v:circleVerts(0.5,0.32,0.025,8), c:'#c9403a' },
+    { v:[[0.42,0.60],[0.58,0.60]], c:'#8a8a92' },
+    { v:circleVerts(0.4,0.48,0.015,6), c:'#7fb3d9' }
   ],
   "Baba O'Riley": [
-    { v:[[0.24, 0.6], [0.32, 0.4], [0.4, 0.68], [0.48, 0.3], [0.56, 0.72], [0.64, 0.36], [0.72, 0.6], [0.76, 0.5]], c:'#e8b83f' },
+    { v:[[0.24, 0.6], [0.32, 0.4], [0.4, 0.68], [0.48, 0.3], [0.56, 0.72], [0.64, 0.36], [0.72, 0.6], [0.76, 0.5]], c:'#e8b83f' },,
+    { v:[[0.24,0.68],[0.24,0.52]], c:'#7fb3d9' },
+    { v:[[0.5,0.68],[0.5,0.30]], c:'#7fb3d9' },
+    { v:[[0.76,0.68],[0.76,0.56]], c:'#7fb3d9' },
+    { v:[[0.4,0.68],[0.4,0.40]], c:'#bcd4e8' }
   ],
   "Light My Fire": [
     { v:[[0.48, 0.3], [0.48, 0.62], [0.52, 0.62], [0.52, 0.3], [0.48, 0.3]], c:'#e8e4d8' },
-    { v:[[0.5, 0.3], [0.44, 0.2], [0.5, 0.1], [0.56, 0.2], [0.5, 0.3]], c:'#e8843f' },
+    { v:[[0.5, 0.3], [0.44, 0.2], [0.5, 0.1], [0.56, 0.2], [0.5, 0.3]], c:'#e8843f' },,
+    { v:[[0.5,0.22],[0.47,0.16],[0.5,0.12],[0.53,0.16],[0.5,0.22]], c:'#e8d840' },
+    { v:circleVerts(0.5,0.64,0.03,8), c:'#e8843f' }
   ],
   "People Are Strange": [
     { v:circleVerts(0.5,0.5,0.24,20), c:'#c9a06a' },
@@ -2583,12 +2721,17 @@ const ICON_VERTS = {
   ],
   "Heaven Is a Halfpipe (If I Die)": [
     { v:[[0.2, 0.7], [0.3, 0.4], [0.5, 0.3], [0.7, 0.4], [0.8, 0.7]], c:'#4a4a52' },
-    { v:circleVerts(0.5,0.32,0.04,10), c:'#c9403a' },
+    { v:circleVerts(0.5,0.32,0.04,10), c:'#c9403a' },,
+    { v:circleVerts(0.5,0.36,0.02,8), c:'#e8e4d8' },
+    { v:[[0.3,0.7],[0.7,0.7]], c:'#3a3a40' },
+    { v:circleVerts(0.72,0.24,0.03,8), c:'#e8d840' }
   ],
   "Words": [
     { v:[[0.24, 0.3], [0.76, 0.3], [0.76, 0.6], [0.44, 0.6], [0.34, 0.72], [0.34, 0.6], [0.24, 0.6], [0.24, 0.3]], c:'#e8e4d8' },
     { v:[[0.34, 0.42], [0.66, 0.42]], c:'#2b2320' },
-    { v:[[0.34, 0.5], [0.58, 0.5]], c:'#2b2320' },
+    { v:[[0.34, 0.5], [0.58, 0.5]], c:'#2b2320' },,
+    { v:[[0.34,0.58],[0.50,0.58]], c:'#2b2320' },
+    { v:circleVerts(0.70,0.36,0.015,6), c:'#c9403a' }
   ],
   "Take My Breath Away": [
     { v:[[0.5, 0.72], [0.32, 0.54], [0.24, 0.4], [0.3, 0.28], [0.4, 0.28], [0.5, 0.38], [0.6, 0.28], [0.7, 0.28], [0.76, 0.4], [0.68, 0.54], [0.5, 0.72]], c:'#c9403a' },
@@ -2613,16 +2756,24 @@ const ICON_VERTS = {
   "Lose Yourself": [
     { v:circleVerts(0.5,0.5,0.05,10), c:'#e8b83f' },
     { v:circleVerts(0.5,0.5,0.14,16), c:'#e8843f' },
-    { v:circleVerts(0.5,0.5,0.24,20), c:'#c9403a' },
+    { v:circleVerts(0.5,0.5,0.24,20), c:'#c9403a' },,
+    { v:arcVerts(0.5,0.5,0.30,0.5,2.6,10), c:'#e8d840' },
+    { v:[[0.72,0.30],[0.78,0.24]], c:'#e8d840' }
   ],
   "Soul Bossa Nova": [
     { v:[[0.3, 0.3], [0.3, 0.6], [0.4, 0.66], [0.44, 0.6], [0.44, 0.3]], c:'#e8b83f' },
     { v:circleVerts(0.32,0.36,0.03,8), c:'#2b2320' },
-    { v:circleVerts(0.32,0.44,0.03,8), c:'#2b2320' },
+    { v:circleVerts(0.32,0.44,0.03,8), c:'#2b2320' },,
+    { v:[[0.44,0.30],[0.50,0.32]], c:'#e8b83f' },
+    { v:circleVerts(0.32,0.52,0.03,8), c:'#2b2320' },
+    { v:[[0.28,0.28],[0.24,0.24]], c:'#c9903f' }
   ],
   "Everybody Wants To Rule The World": [
     { v:circleVerts(0.5,0.5,0.24,20), c:'#7fb3d9' },
-    { v:[[0.3, 0.3], [0.44, 0.34], [0.5, 0.2], [0.56, 0.34], [0.7, 0.3], [0.6, 0.42], [0.7, 0.54], [0.56, 0.5], [0.5, 0.64], [0.44, 0.5], [0.3, 0.54], [0.4, 0.42], [0.3, 0.3]], c:'#e8b83f' },
+    { v:[[0.3, 0.3], [0.44, 0.34], [0.5, 0.2], [0.56, 0.34], [0.7, 0.3], [0.6, 0.42], [0.7, 0.54], [0.56, 0.5], [0.5, 0.64], [0.44, 0.5], [0.3, 0.54], [0.4, 0.42], [0.3, 0.3]], c:'#e8b83f' },,
+    { v:arcVerts(0.5,0.5,0.32,1.0,3.2,12), c:'#5a8aa8' },
+    { v:circleVerts(0.72,0.24,0.03,8), c:'#e8d840' },
+    { v:circleVerts(0.28,0.72,0.025,8), c:'#e8d840' }
   ],
   "Time After Time": [
     { v:circleVerts(0.5,0.5,0.26,20), c:'#e8e4d8' },
@@ -2633,7 +2784,10 @@ const ICON_VERTS = {
   "I Get Around": [
     { v:[[0.22, 0.56], [0.3, 0.42], [0.7, 0.42], [0.78, 0.56], [0.78, 0.66], [0.22, 0.66], [0.22, 0.56]], c:'#7fb3d9' },
     { v:circleVerts(0.34,0.66,0.06,10), c:'#2b2320' },
-    { v:circleVerts(0.66,0.66,0.06,10), c:'#2b2320' },
+    { v:circleVerts(0.66,0.66,0.06,10), c:'#2b2320' },,
+    { v:[[0.36,0.44],[0.44,0.44],[0.44,0.52],[0.36,0.52],[0.36,0.44]], c:'#bcd4e8' },
+    { v:circleVerts(0.76,0.50,0.02,8), c:'#e8d840' },
+    { v:[[0.16,0.48],[0.24,0.48]], c:'#8a8a92' }
   ],
   "Jump": [
     { v:circleVerts(0.5,0.30,0.08,12), c:'#c9a06a' },
@@ -2645,7 +2799,9 @@ const ICON_VERTS = {
   ],
   "You Really Got Me": [
     { v:[[0.5, 0.72], [0.32, 0.54], [0.24, 0.4], [0.3, 0.28], [0.4, 0.28], [0.5, 0.38], [0.6, 0.28], [0.7, 0.28], [0.76, 0.4], [0.68, 0.54], [0.5, 0.72]], c:'#c9403a' },
-    { v:[[0.2, 0.3], [0.34, 0.42], [0.2, 0.5]], c:'#e8b83f' },
+    { v:[[0.2, 0.3], [0.34, 0.42], [0.2, 0.5]], c:'#e8b83f' },,
+    { v:[[0.18,0.34],[0.24,0.30]], c:'#e8d840' },
+    { v:[[0.40,0.36],[0.44,0.32]], c:'#e8b6cc' }
   ],
   "It's Tricky": [
     { v:[[0.24, 0.6], [0.3, 0.44], [0.66, 0.44], [0.76, 0.6], [0.76, 0.7], [0.24, 0.7], [0.24, 0.6]], c:'#e8e4d8' },
@@ -4724,7 +4880,9 @@ function ensureSpotifyController(onReady){
         if(d.isPaused === false){
           listenPlaying = true;
           clearTimeout(listenAutoplayWatchdog);
-          if(roundMode === 'listen' && !locked){
+          if(listenPlaybackContext === 'mp'){
+            handleMpListenPlaybackStarted();
+          } else if(roundMode === 'listen' && !locked){
             listenPlayBtn.disabled = true;
             listenPlayBtn.classList.add('playing');
             listenPlayBtn.textContent = '❚❚';
@@ -4827,6 +4985,7 @@ function showListenReplayUI(){
 
 function startListenSnippet(){
   if(!spotifyController || listenPlayBtn.disabled) return;
+  listenPlaybackContext = 'sp';
   listenPlayBtn.disabled = true;
   try{ spotifyController.setVolume(0); }catch(e){}
   // Jump to a random point in the song instead of always starting at 0:00 —
@@ -4851,6 +5010,89 @@ function stopListenSnippet(){
   clearTimeout(listenTimer);
   listenTimer = null;
   clearTimeout(listenAutoplayWatchdog);
+  clearInterval(fadeInterval);
+  fadeInterval = null;
+  if(spotifyController){
+    try{ spotifyController.pause(); }catch(e){}
+  }
+  listenPlaying = false;
+}
+
+// ---- Hör-Modus (Multiplayer): dieselbe Spotify-Mechanik wie im Singleplayer
+// (ensureSpotifyController/seek/play/pause), aber eigene UI-Elemente
+// (mpListenPlayBtn/mpListenHintEl) und eigenes Timing — jede:r Spieler:in
+// startet die Wiedergabe selbst und wird ab dem EIGENEN Play-Tap gemessen
+// (siehe mpListenSubmitAnswer), nicht ab einem geteilten Rundenstart. ----
+function loadMpListenTrack(song){
+  mpListenPlayBtn.disabled = true;
+  mpListenPlayBtn.style.display = '';
+  mpListenPlayBtn.classList.remove('playing');
+  mpListenPlayBtn.textContent = '▶';
+  mpListenHintEl.textContent = 'Player wird geladen…';
+  const trackId = getSpotifyTrackId(song);
+  if(!trackId){
+    mpListenHintEl.textContent = 'Kein Spotify-Link für diesen Song hinterlegt.';
+    return;
+  }
+  ensureSpotifyController((controller) => {
+    currentTrackDurationMs = null;
+    try{ controller.loadUri('spotify:track:' + trackId); }catch(e){}
+    listenPlaying = false;
+    setTimeout(() => {
+      if(mpRoomData && mpRoomData.round && mpRoomData.round.chosenTitle === song.title && !mpListenAnswered){
+        mpListenPlayBtn.disabled = false;
+        mpListenHintEl.textContent = 'Antippen zum Anhören';
+      }
+    }, 500);
+  });
+}
+
+function startMpListenSnippet(){
+  if(!spotifyController || mpListenPlayBtn.disabled) return;
+  listenPlaybackContext = 'mp';
+  mpListenPlayBtn.disabled = true;
+  try{ spotifyController.setVolume(0); }catch(e){}
+  if(typeof currentTrackDurationMs === 'number' && currentTrackDurationMs > 0){
+    const durationSec = currentTrackDurationMs / 1000;
+    const minSec = 6;
+    const maxSec = durationSec - (SNIPPET_MS / 1000) - 10;
+    if(maxSec > minSec){
+      const randomSec = minSec + Math.random() * (maxSec - minSec);
+      try{ spotifyController.seek(randomSec); }catch(e){}
+    }
+  }
+  try{ spotifyController.play(); }catch(e){}
+}
+
+// Called from the shared playback_update listener the moment MY snippet
+// actually starts playing — this is the fair, per-player starting gun for
+// "wer am schnellsten tippt" scoring (see mpListenSubmitAnswer).
+let mpListenTimer = null;
+function handleMpListenPlaybackStarted(){
+  if(!mpRoomData || !mpRoomData.round || mpRoomData.round.phase !== 'answering' || mpListenAnswered) return;
+  mpListenPlayBtn.classList.add('playing');
+  mpListenPlayBtn.textContent = '❚❚';
+  mpListenHintEl.textContent = 'Läuft…';
+  mpListenPlayStartedAt = performance.now();
+  fadeVolume(0, 1, SNIPPET_FADE_MS);
+  clearTimeout(mpListenTimer);
+  mpListenTimer = setTimeout(() => {
+    fadeVolume(1, 0, SNIPPET_FADE_MS, () => {
+      stopMpListenSnippet();
+      if(!mpListenAnswered){
+        mpListenPlayBtn.style.display = '';
+        mpListenPlayBtn.disabled = false;
+        mpListenPlayBtn.classList.remove('playing');
+        mpListenPlayBtn.textContent = '↻';
+        mpListenHintEl.textContent = 'Nochmal hören';
+      }
+    });
+  }, Math.max(0, SNIPPET_MS - SNIPPET_FADE_MS));
+}
+
+function stopMpListenSnippet(){
+  clearTimeout(mpListenTimer);
+  mpListenTimer = null;
   clearInterval(fadeInterval);
   fadeInterval = null;
   if(spotifyController){
@@ -5343,6 +5585,44 @@ const mpFinalScores = document.getElementById('mpFinalScores');
 const mpSaveStatus = document.getElementById('mpSaveStatus');
 const mpBoardList = document.getElementById('mpBoardList');
 
+// ---- Hörmodus (Multiplayer) DOM refs ----
+const mplBoardWrap = document.getElementById('mplBoardWrap');
+const mplBoardList = document.getElementById('mplBoardList');
+const mpListenNote = document.getElementById('mpListenNote');
+const mpListenWrap = document.getElementById('mpListenWrap');
+const mpListenStageEl = document.getElementById('mpListenStage');
+const mpListenSpotifyEmbedEl = document.getElementById('mpListenSpotifyEmbed');
+const mpListenPlayBtn = document.getElementById('mpListenPlayBtn');
+const mpListenHintEl = document.getElementById('mpListenHint');
+const mpListenOptionsEl = document.getElementById('mpListenOptions');
+const mpListenWaitNote = document.getElementById('mpListenWaitNote');
+const mpListenRevealEl = document.getElementById('mpListenReveal');
+const mpListenVerdictEl = document.getElementById('mpListenVerdict');
+const mpListenRevealListEl = document.getElementById('mpListenRevealList');
+// Wired here (not next to startMpListenSnippet's definition further up) so
+// this runs only after mpListenPlayBtn itself has been declared above — the
+// original placement next to the function caused a temporal-dead-zone
+// ReferenceError at page load (script died before the splash screen's
+// typewriter animation ever ran, i.e. nothing worked at all).
+mpListenPlayBtn.addEventListener('click', startMpListenSnippet);
+// Fixed round count for MP Hörmodus (no per-player "turns" concept like the
+// drawer-rotation modes — everyone answers every round, so this is just a
+// flat session length, matching Singleplayer's 5-round session).
+const MP_LISTEN_ROUNDS = 5;
+let pendingListenMode = false;
+let mpListenLoadedFor = null;   // which currentRoundIdx the track is loaded for
+let mpListenAnswered = false;   // have I already submitted my answer this round?
+let mpListenPlayStartedAt = null; // performance.now() when MY OWN snippet actually started
+let mpListenOptionButtons = {};
+// The Spotify hidden-iframe controller/playback_update listener (set up once
+// in ensureSpotifyController, shared code) is reused for both Singleplayer
+// Hörmodus and Multiplayer Hörmodus — this flag tells that shared listener
+// which one is currently active, since only one can be listening at a time
+// per browser tab, so the SP-specific and MP-specific reactions never both
+// fire for the same playback event.
+let listenPlaybackContext = null; // 'sp' | 'mp' | null
+
+
 // ---- Telestrationsplayer (chain-mode) DOM refs ----
 const mpChainRoundWrap = document.getElementById('mpChainRoundWrap');
 const chainTaskBanner = document.getElementById('chainTaskBanner');
@@ -5366,6 +5646,7 @@ const chainRevealCounter = document.getElementById('chainRevealCounter');
 function updateMultiplayerBoardVisibility(){
   mpBoardWrap.style.display = currentMode === 'mp' ? 'block' : 'none';
   tpBoardWrap.style.display = currentMode === 'tp' ? 'block' : 'none';
+  mplBoardWrap.style.display = currentMode === 'mpl' ? 'block' : 'none';
 }
 
 function showMpScreen(name){
@@ -5373,6 +5654,7 @@ function showMpScreen(name){
   hideSpBoards();
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
+  mplBoardWrap.style.display = 'none';
   gameArea.style.display = 'none';
   finalEl.style.display = 'none';
   mpEntry.style.display = name === 'entry' ? 'block' : 'none';
@@ -5408,6 +5690,7 @@ document.getElementById('mpModeBtn').addEventListener('click', () => {
   hideSpBoards();
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
+  mplBoardWrap.style.display = 'none';
   mpEntry.style.display = 'block';
   // (pendingTeamMode was already set/reset in goToMultiplayerEntry(), depending
   // on whether "Multiplayer" or "Teamplayer" was chosen on the splash screen.)
@@ -5440,8 +5723,8 @@ async function mpCreateRoom(){
       code, hostId: myPlayerId, status: 'lobby',
       createdAt: mp.FieldValue.serverTimestamp(),
       turnOrder: [], currentRoundIdx: -1, usedSongIdx: [], round: null,
-      teamMode: pendingChainMode ? false : pendingTeamMode,
-      gameMode: pendingChainMode ? 'chain' : 'standard',
+      teamMode: (pendingChainMode || pendingListenMode) ? false : pendingTeamMode,
+      gameMode: pendingChainMode ? 'chain' : (pendingListenMode ? 'listen' : 'standard'),
       persistent: pendingPersistent,
       meetingTime
     });
@@ -5638,7 +5921,7 @@ function onRoomUpdate(){
   // badge (MP/TP) in sync with it. Matters most for a JOINING player, whose
   // local guess (from which splash button they used) may not match the
   // room they actually joined.
-  setModeBadge(mpRoomData.gameMode === 'chain' ? 'chain' : (mpRoomData.teamMode ? 'tp' : 'mp'));
+  setModeBadge(mpRoomData.gameMode === 'chain' ? 'chain' : (mpRoomData.gameMode === 'listen' ? 'mpl' : (mpRoomData.teamMode ? 'tp' : 'mp')));
   if(mpRoomData.status === 'lobby'){
     showMpScreen('lobby');
     mpAutoSaveDone = false; // a fresh game (initial or via "Neue Runde") always
@@ -5647,6 +5930,7 @@ function onRoomUpdate(){
     const teamMode = !!mpRoomData.teamMode;
     mpTeamNote.style.display = teamMode ? 'block' : 'none';
     document.getElementById('mpChainNote').style.display = mpRoomData.gameMode === 'chain' ? 'block' : 'none';
+    mpListenNote.style.display = mpRoomData.gameMode === 'listen' ? 'block' : 'none';
     renderMpPlayerList();
     const teamsReady = !teamMode || (mpPlayers.every(p => p.team) && mpTeamPlayerCount('A') >= 1 && mpTeamPlayerCount('B') >= 1);
     mpStartBtn.style.display = isHost ? 'block' : 'none';
@@ -5691,6 +5975,8 @@ function onRoomUpdate(){
   showMpScreen('game');
   if(mpRoomData.gameMode === 'chain'){
     renderMpChainRound();
+  } else if(mpRoomData.gameMode === 'listen'){
+    renderMpListenRound();
   } else {
     renderMpRound();
   }
@@ -5727,6 +6013,10 @@ mpStartBtn.addEventListener('click', async () => {
   mpStartBtn.disabled = true;
   if(mpRoomData && mpRoomData.gameMode === 'chain'){
     await mpStartChainGame();
+    return;
+  }
+  if(mpRoomData && mpRoomData.gameMode === 'listen'){
+    await mpStartListenGame();
     return;
   }
   const basePlayerIds = mpPlayers.map(p => p.id);
@@ -5810,11 +6100,51 @@ async function mpStartRoundForDrawer(idx, order){
   });
 }
 
+// ---- Hörmodus (Multiplayer): game start ----
+// Kein Zeichner/Zeichnerin — alle bekommen pro Runde denselben Song und
+// hören/tippen gleichzeitig, jede:r auf dem eigenen Gerät. Fixe Rundenzahl
+// (MP_LISTEN_ROUNDS), keine Team-Option (bewusst einfach gehalten).
+async function mpStartListenGame(){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  await roomRef.update({ status: 'playing', currentRoundIdx: 0, totalRounds: MP_LISTEN_ROUNDS, usedSongIdx: [] });
+  await mpStartListenRound(0);
+  if(!mpRefereeIntervalId) mpRefereeIntervalId = setInterval(mpRefereeTick, 300);
+}
+
+async function mpStartListenRound(roundIdx){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  const snap = await roomRef.get();
+  const roomData = snap.data();
+  const used = roomData.usedSongIdx || [];
+  const sourcePool = (roomData.songPool && roomData.songPool.length >= 5) ? roomData.songPool : SONGS;
+  let pool = sourcePool.map((_, i) => i).filter(i => !used.includes(i));
+  if(pool.length < 5) pool = sourcePool.map((_, i) => i);
+  const chosenIdxs = shuffle(pool).slice(0, 5);
+  const candidates = chosenIdxs.map(i => ({ title: sourcePool[i].title, artist: sourcePool[i].artist, url: sourcePool[i].url, idx: i }));
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  await roomRef.update({
+    round: {
+      mode: 'listen',
+      candidates,
+      chosenIdx: target.idx,
+      chosenTitle: target.title,
+      chosenArtist: target.artist,
+      chosenUrl: target.url,
+      phase: 'answering',
+      roundStartTs: Date.now(),
+      answers: {},
+      revealStartTs: null
+    }
+  });
+}
+
 function hideAllMpPhaseBlocks(){
   mpWaitChoose.style.display = 'none';
   mpThinkWrap.style.display = 'none';
   mpDrawWrap.style.display = 'none';
   mpChainRoundWrap.style.display = 'none';
+  mpListenWrap.style.display = 'none';
+  mpListenRevealEl.style.display = 'none';
   mpResult.style.display = 'none';
   mpStage.classList.remove('mp-live');
   mpStage.classList.remove('mp-fullscreen-draw');
@@ -6017,9 +6347,138 @@ function showMpReveal(r){
   if(song.url) mpResultText.innerHTML += `<a href="${song.url}" target="_blank" rel="noopener">In Spotify anhören ↗</a>`;
 }
 
+// ---- Hörmodus (Multiplayer): Runden-Rendering, Antwort-Abgabe, Auflösung ----
+let mpListenOptionsRenderedFor = null;
+function renderMpListenOptions(r){
+  const key = mpRoomData.currentRoundIdx + ':listen';
+  if(mpListenOptionsRenderedFor === key) return;
+  mpListenOptionsRenderedFor = key;
+  mpListenOptionsEl.innerHTML = '';
+  mpListenOptionButtons = {};
+  const shuffled = shuffle(r.candidates);
+  shuffled.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `${c.title}<br><span style="color:var(--muted);font-size:12px;">${c.artist}</span>`;
+    btn.addEventListener('click', () => mpListenSubmitAnswer(c, btn));
+    mpListenOptionsEl.appendChild(btn);
+    mpListenOptionButtons[c.title] = btn;
+  });
+}
+
+function renderMpListenRound(){
+  const r = mpRoomData.round;
+  mpRoundNum.textContent = mpRoomData.currentRoundIdx + 1;
+  mpRoundTotal.textContent = mpRoomData.totalRounds || MP_LISTEN_ROUNDS;
+  renderMpTeamScores();
+  hideAllMpPhaseBlocks();
+  mpDrawerLabel.textContent = '🎧 Hörmodus';
+  if(!r || r.phase === 'pending'){
+    mpWaitChoose.style.display = 'block';
+    return;
+  }
+  if(r.phase === 'answering'){
+    mpListenWrap.style.display = 'block';
+    mpListenStageEl.style.display = 'flex';
+    renderMpListenOptions(r);
+    const myAnswer = r.answers && r.answers[myPlayerId];
+    if(mpListenLoadedFor !== mpRoomData.currentRoundIdx){
+      mpListenLoadedFor = mpRoomData.currentRoundIdx;
+      mpListenAnswered = !!myAnswer;
+      mpListenPlayStartedAt = null;
+      if(!myAnswer){
+        const song = r.candidates.find(c => c.title === r.chosenTitle);
+        if(song) loadMpListenTrack(song);
+      }
+    }
+    if(myAnswer) mpListenAnswered = true;
+    if(mpListenAnswered){
+      mpListenPlayBtn.style.display = 'none';
+      [...mpListenOptionsEl.children].forEach(b => b.classList.add('locked'));
+    }
+    const answeredCount = Object.keys(r.answers || {}).length;
+    mpListenWaitNote.textContent = mpListenAnswered
+      ? `Warte auf die anderen… (${answeredCount}/${mpPlayers.length})`
+      : `${answeredCount}/${mpPlayers.length} haben schon getippt`;
+  } else if(r.phase === 'reveal'){
+    showMpListenReveal(r);
+  }
+}
+
+async function mpListenSubmitAnswer(song, btnEl){
+  if(!mpRoomData || !mpRoomData.round || mpRoomData.round.phase !== 'answering') return;
+  if(mpListenAnswered) return;
+  if(mpListenPlayStartedAt === null){
+    mpListenWaitNote.textContent = 'Erst antippen zum Anhören, dann tippen.';
+    return;
+  }
+  mpListenAnswered = true;
+  const elapsedMs = Math.max(0, Math.round(performance.now() - mpListenPlayStartedAt));
+  [...mpListenOptionsEl.children].forEach(b => b.classList.add('locked'));
+  const correct = song.title === mpRoomData.round.chosenTitle;
+  btnEl.classList.add(correct ? 'correct' : 'wrong');
+  stopMpListenSnippet();
+  mpListenPlayBtn.style.display = 'none';
+  mpListenWaitNote.textContent = 'Warte auf die anderen…';
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  try{
+    await roomRef.update({
+      ['round.answers.' + myPlayerId]: { name: myName, correct, elapsedMs, ts: Date.now() }
+    });
+  }catch(e){ /* room gone or round already advanced — the referee timeout covers stragglers */ }
+}
+
+// "Lass dir was einfallen" für die Auflösung: eine kleine Rangliste dieser
+// Runde (schnellste richtige Antwort zuerst), mit Zeit + gewonnenen Punkten
+// pro Spieler:in, statt nur eines einzelnen "X hat's erraten"-Satzes.
+function showMpListenReveal(r){
+  mpListenWrap.style.display = 'block';
+  mpListenStageEl.style.display = 'none';
+  mpListenOptionsEl.querySelectorAll('.opt').forEach(b => {
+    b.classList.add('locked');
+    const isCorrectBtn = b.textContent.trim().startsWith(r.chosenTitle);
+    b.classList.toggle('correct', isCorrectBtn);
+  });
+  mpListenRevealEl.style.display = 'block';
+  const answers = r.answers || {};
+  const sorted = Object.values(answers).filter(a => a.correct).sort((a,b) => a.elapsedMs - b.elapsedMs);
+  mpListenVerdictEl.textContent = sorted.length
+    ? `🏆 ${sorted[0].name} war am schnellsten!`
+    : 'Niemand hat richtig getippt.';
+  mpListenRevealListEl.innerHTML = '';
+  const rows = mpPlayers.map(p => ({ name: p.name, a: answers[p.id] }));
+  rows.sort((x, y) => {
+    if(x.a && y.a){
+      if(x.a.correct !== y.a.correct) return x.a.correct ? -1 : 1;
+      return x.a.elapsedMs - y.a.elapsedMs;
+    }
+    if(x.a && !y.a) return -1;
+    if(!x.a && y.a) return 1;
+    return 0;
+  });
+  rows.forEach((row, i) => {
+    const li = document.createElement('li');
+    if(row.a){
+      li.className = row.a.correct ? 'correct' : 'wrong';
+      const secs = (row.a.elapsedMs / 1000).toFixed(1);
+      const ptsHtml = row.a.correct ? ` · <span class="mpl-pts">+${row.a.gained || 0}</span>` : '';
+      li.innerHTML = `<span><span class="mpl-rank">${i+1}.</span>${row.name}</span><span class="mpl-time">${secs}s${ptsHtml}</span>`;
+    } else {
+      li.className = 'wrong';
+      li.innerHTML = `<span><span class="mpl-rank">${i+1}.</span>${row.name}</span><span class="mpl-time">keine Antwort</span>`;
+    }
+    mpListenRevealListEl.appendChild(li);
+  });
+  const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
+  mpListenWaitNote.innerHTML = song.url
+    ? `<b>${song.title}</b> - ${song.artist} · <a href="${song.url}" target="_blank" rel="noopener" style="color:var(--pen);">In Spotify anhören ↗</a>`
+    : `<b>${song.title}</b> - ${song.artist}`;
+}
+
 function mpRefereeTick(){
   if(!isHost || !mpRoomData || mpRoomData.status !== 'playing') return;
   if(mpRoomData.gameMode === 'chain'){ mpChainRefereeTick(); return; }
+  if(mpRoomData.gameMode === 'listen'){ mpListenRefereeTick(); return; }
   if(!mpRoomData.round) return;
   const r = mpRoomData.round;
   const now = Date.now();
@@ -6030,6 +6489,84 @@ function mpRefereeTick(){
   } else if(r.phase === 'reveal' && r.revealStartTs && (now - r.revealStartTs) >= MP_REVEAL_MS){
     mpAdvanceRound();
   }
+}
+
+// Host-only: advances a Hörmodus round once every player has answered, or
+// force-advances (no points for stragglers) once a safety timeout is hit —
+// mirrors the Telestrationsplayer referee's all-submitted-or-timeout pattern,
+// but here "submitted" means an entry in round.answers per player.
+const MP_LISTEN_ANSWER_TIMEOUT_MS = 45000;
+function mpListenRefereeTick(){
+  if(!mpRoomData.round) return;
+  const r = mpRoomData.round;
+  const now = Date.now();
+  if(r.phase === 'answering'){
+    const answeredCount = Object.keys(r.answers || {}).length;
+    const allAnswered = mpPlayers.length > 0 && answeredCount >= mpPlayers.length;
+    const timedOut = r.roundStartTs && (now - r.roundStartTs) >= MP_LISTEN_ANSWER_TIMEOUT_MS;
+    if(allAnswered || timedOut) mpListenFinishRound();
+  } else if(r.phase === 'reveal' && r.revealStartTs && (now - r.revealStartTs) >= MP_REVEAL_MS){
+    mpListenAdvanceRound();
+  }
+}
+
+async function mpListenFinishRound(){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  try{
+    await mp.db.runTransaction(async (tx) => {
+      const snap = await tx.get(roomRef);
+      const room = snap.data();
+      if(!room || !room.round || room.round.phase !== 'answering') return;
+      const r = room.round;
+      const answers = r.answers || {};
+      const updatedAnswers = {};
+      const scoreIncrements = {};
+      Object.keys(answers).forEach(pid => {
+        const a = answers[pid];
+        let gained = 0;
+        if(a.correct){
+          const elapsedSec = a.elapsedMs / 1000;
+          // Schnellste richtige Antwort = meiste Punkte, wie gewünscht:
+          // bis zu 120 Punkte bei ~0s, mindestens 10 Punkte, -10/Sekunde.
+          gained = Math.max(10, Math.round(120 - elapsedSec * 10));
+          scoreIncrements[pid] = gained;
+        }
+        updatedAnswers[pid] = Object.assign({}, a, { gained });
+      });
+      tx.update(roomRef, {
+        'round.phase': 'reveal',
+        'round.answers': updatedAnswers,
+        'round.revealStartTs': Date.now()
+      });
+      Object.keys(scoreIncrements).forEach(pid => {
+        tx.update(roomRef.collection('players').doc(pid), { score: mp.FieldValue.increment(scoreIncrements[pid]) });
+      });
+    });
+  }catch(e){ /* room gone or already advanced — fine, no-op */ }
+}
+
+async function mpListenAdvanceRound(){
+  const roomRef = mp.roomsCol.doc(currentRoomCode);
+  let nextIdx = null;
+  try{
+    await mp.db.runTransaction(async (tx) => {
+      const snap = await tx.get(roomRef);
+      const room = snap.data();
+      if(!room || !room.round || room.round.phase !== 'reveal') return;
+      const usedSongIdx = [...(room.usedSongIdx || [])];
+      const played = room.round.candidates.find(c => c.title === room.round.chosenTitle);
+      if(played) usedSongIdx.push(played.idx);
+      const idx = room.currentRoundIdx + 1;
+      const total = room.totalRounds || MP_LISTEN_ROUNDS;
+      if(idx >= total){
+        tx.update(roomRef, { status: 'finished', usedSongIdx, round: null });
+      } else {
+        tx.update(roomRef, { currentRoundIdx: idx, usedSongIdx, round: { phase: 'pending' } });
+        nextIdx = idx;
+      }
+    });
+  }catch(e){ return; }
+  if(nextIdx !== null) await mpStartListenRound(nextIdx);
 }
 
 // Host-only: advances the Telestrationsplayer chain round once every player
@@ -6565,7 +7102,8 @@ async function mpAutoSaveScore(){
     const mine = mpPlayers.find(p => p.id === myPlayerId);
     if(!mine) throw new Error('Kein Punktestand gefunden.');
     const isTeamGame = !!(mpRoomData && mpRoomData.teamMode);
-    const boardRef = isTeamGame ? mp.tpBoardRef : mp.mpBoardRef;
+    const isListenGame = !!(mpRoomData && mpRoomData.gameMode === 'listen');
+    const boardRef = isListenGame ? mp.mplBoardRef : (isTeamGame ? mp.tpBoardRef : mp.mpBoardRef);
     // Every player's client auto-saves at (roughly) the same moment the final
     // screen appears, so a plain get()-then-set() would lose entries when two
     // saves overlap (last write wins). Using a transaction makes the
@@ -6580,7 +7118,9 @@ async function mpAutoSaveScore(){
       tx.set(boardRef, { entries: list });
       savedList = list;
     });
-    if(isTeamGame) renderTpBoard(savedList); else renderMpBoard(savedList);
+    if(isListenGame) renderMplBoard(savedList);
+    else if(isTeamGame) renderTpBoard(savedList);
+    else renderMpBoard(savedList);
     if(mpSaveStatus) mpSaveStatus.textContent = '✓ Im Leaderboard gespeichert';
   }catch(e){
     if(mpSaveStatus) mpSaveStatus.textContent = 'Punktestand konnte nicht gespeichert werden.';
@@ -6602,6 +7142,7 @@ function renderBoardEntries(listEl, list){
 }
 function renderMpBoard(list){ renderBoardEntries(mpBoardList, list); }
 function renderTpBoard(list){ renderBoardEntries(tpBoardList, list); }
+function renderMplBoard(list){ renderBoardEntries(mplBoardList, list); }
 
 async function loadMpBoard(){
   mpBoardList.innerHTML = '<li class="empty">Lade…</li>';
@@ -6623,8 +7164,19 @@ async function loadTpBoard(){
     tpBoardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
   }
 }
+async function loadMplBoard(){
+  mplBoardList.innerHTML = '<li class="empty">Lade…</li>';
+  try{
+    const api = await withTimeout(window.mpReady, 6000);
+    const snap = await api.mplBoardRef.get();
+    renderMplBoard(snap.exists ? (snap.data().entries || []) : []);
+  }catch(e){
+    mplBoardList.innerHTML = '<li class="empty">Leaderboard aktuell nicht erreichbar.</li>';
+  }
+}
 loadMpBoard();
 loadTpBoard();
+loadMplBoard();
 
 function mpTeardown(){
   if(roomUnsub) roomUnsub();
@@ -6646,6 +7198,10 @@ function mpTeardown(){
   stopTitleFlash();
   chainLocalStrokes = []; chainLiveStroke = null; chainRenderedFor = null;
   chainAdvanceInFlight = false; chainRevealBooks = []; chainRevealIdx = 0;
+  stopMpListenSnippet();
+  listenPlaybackContext = null;
+  mpListenOptionsRenderedFor = null; mpListenLoadedFor = null;
+  mpListenAnswered = false; mpListenPlayStartedAt = null;
 }
 
 /* =========================================================
@@ -6753,16 +7309,20 @@ function setRoundMode(mode){
   roundMode = mode;
   if(mode === 'listen') ensureSpotifyController();
 }
-function goToMultiplayerEntry(prefillCode, teamMode, chainMode){
+function goToMultiplayerEntry(prefillCode, teamMode, chainMode, listenMode){
   hideSplash(!!prefillCode);
   // "Teamplayer" and "Telestrationsplayer" on the splash are shortcuts into
   // this same multiplayer entry flow with the corresponding mode pre-set;
   // plain "Multiplayer" and invite links default both to off. There is no
   // toggle for either on this screen (splash choice is the only entry
   // point) — the header badge and which Top-10 board shows both follow this.
+  // "Multiplayer" itself now has its own draw/listen split too (mirroring
+  // Singleplayer's pencil/speaker icons) — listenMode and teamMode/chainMode
+  // are mutually exclusive, all chosen directly on the splash screen.
   pendingTeamMode = !!teamMode;
   pendingChainMode = !!chainMode;
-  setModeBadge(pendingChainMode ? 'chain' : (pendingTeamMode ? 'tp' : 'mp'));
+  pendingListenMode = !!listenMode;
+  setModeBadge(pendingChainMode ? 'chain' : (pendingListenMode ? 'mpl' : (pendingTeamMode ? 'tp' : 'mp')));
   pendingPersistent = false;
   renderPersistentToggleBtn();
   document.getElementById('mpMeetingTime').value = '';
@@ -6783,7 +7343,8 @@ document.getElementById('splashSoloListenBtn').addEventListener('click', () => {
   setRoundMode('listen');
   goToSingleplayerEntry();
 });
-document.getElementById('splashMpBtn').addEventListener('click', () => goToMultiplayerEntry());
+document.getElementById('splashMpDrawBtn').addEventListener('click', () => goToMultiplayerEntry());
+document.getElementById('splashMpListenBtn').addEventListener('click', () => goToMultiplayerEntry(null, false, false, true));
 document.getElementById('splashTeamBtn').addEventListener('click', () => goToMultiplayerEntry(null, true));
 document.getElementById('splashChainBtn').addEventListener('click', () => goToMultiplayerEntry(null, false, true));
 
@@ -6791,6 +7352,8 @@ document.getElementById('splashChainBtn').addEventListener('click', () => goToMu
 function goToSplash(){
   cancelAnimationFrame(rafId);
   stopListenSnippet();
+  stopMpListenSnippet();
+  listenPlaybackContext = null;
   // Defensive reset: roundMode/listenRoundTimerStarted used to only ever get
   // reset by the splash mode-buttons themselves (setRoundMode()/startRound()).
   // If anything ever reaches goToSplash() without going through one of those
@@ -6799,6 +7362,7 @@ function goToSplash(){
   roundMode = 'draw';
   listenRoundTimerStarted = false;
   locked = true;
+  pendingListenMode = false;
   mpTeardown();
   document.querySelector('.name-row').style.display = 'none';
   gameArea.style.display = 'none';
@@ -6806,6 +7370,7 @@ function goToSplash(){
   hideSpBoards();
   mpBoardWrap.style.display = 'none';
   tpBoardWrap.style.display = 'none';
+  mplBoardWrap.style.display = 'none';
   mpEntry.style.display = 'none';
   mpLobby.style.display = 'none';
   mpGameArea.style.display = 'none';
@@ -7050,8 +7615,9 @@ handleSpotifyRedirect();
     const roomsCol = db.collection('kritzel_rooms');
     const mpBoardRef = db.collection('kritzel').doc('leaderboard_multiplayer');
     const tpBoardRef = db.collection('kritzel').doc('leaderboard_teamplayer');
+    const mplBoardRef = db.collection('kritzel').doc('leaderboard_listen_multiplayer');
     if(window.__resolveMp){
-      window.__resolveMp({ db, roomsCol, mpBoardRef, tpBoardRef, FieldValue: firebase.firestore.FieldValue });
+      window.__resolveMp({ db, roomsCol, mpBoardRef, tpBoardRef, mplBoardRef, FieldValue: firebase.firestore.FieldValue });
     }
   }catch(err){
     const b = document.getElementById('errBanner');
