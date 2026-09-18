@@ -892,10 +892,17 @@
          dem eigenen Play-Tap (siehe mpListenSubmitAnswer). Runde endet, sobald
          alle geantwortet haben (siehe mpListenRefereeTick). -->
     <div id="mpListenWrap" style="display:none;">
-      <div class="stage no-frame" id="mpListenStage">
-        <div class="hidden-embed" id="mpListenSpotifyEmbed"></div>
-        <button class="listen-play-btn" id="mpListenPlayBtn" disabled>▶</button>
-        <div class="listen-hint" id="mpListenHint">Player wird geladen…</div>
+      <div class="stage" id="mpListenStageOuter">
+        <div class="listen-stage" id="mpListenStage">
+          <div class="hidden-embed" id="mpListenSpotifyEmbed"></div>
+          <button class="listen-play-btn" id="mpListenPlayBtn" disabled>▶</button>
+          <div class="listen-hint" id="mpListenHint">Player wird geladen…</div>
+        </div>
+        <div class="reveal-frame" id="mpListenRevealFrame">
+          <img class="reveal-cover" id="mpListenRevealCover" alt="">
+          <div class="reveal-title" id="mpListenRevealTitle"></div>
+          <div class="reveal-artist" id="mpListenRevealArtist"></div>
+        </div>
       </div>
       <div class="options" id="mpListenOptions"></div>
       <p class="sub" id="mpListenWaitNote"></p>
@@ -2810,24 +2817,35 @@ const ICON_VERTS = {
     { v:[[0.64, 0.7], [0.64, 0.78]], c:'#2b2320' },
   ],
   "September": [
-    { v:[[0.5, 0.22], [0.42, 0.42], [0.2, 0.44], [0.36, 0.58], [0.3, 0.8], [0.5, 0.68], [0.7, 0.8], [0.64, 0.58], [0.8, 0.44], [0.58, 0.42], [0.5, 0.22]], c:'#c9903f' },
+    { v:[[0.5, 0.22], [0.42, 0.42], [0.2, 0.44], [0.36, 0.58], [0.3, 0.8], [0.5, 0.68], [0.7, 0.8], [0.64, 0.58], [0.8, 0.44], [0.58, 0.42], [0.5, 0.22]], c:'#c9903f' },,
+    { v:[[0.5,0.68],[0.5,0.85]], c:'#8a5a2b' },
+    { v:[[0.5,0.30],[0.5,0.62]], c:'#a56a2f' },
+    { v:circleVerts(0.68,0.60,0.03,8), c:'#c9903f' }
   ],
   "I Want You Back": [
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
-    { v:[[0.68, 0.48], [0.8, 0.56], [0.7, 0.62]], c:'#e8b83f' },
+    { v:[[0.68, 0.48], [0.8, 0.56], [0.7, 0.62]], c:'#e8b83f' },,
+    { v:[[0.76,0.34],[0.82,0.30]], c:'#e8b83f' },
+    { v:circleVerts(0.30,0.28,0.02,8), c:'#e8b6cc' }
   ],
   "Footloose": [
     { v:[[0.3, 0.7], [0.3, 0.5], [0.44, 0.42], [0.62, 0.46], [0.66, 0.58], [0.58, 0.7], [0.3, 0.7]], c:'#8a5a2b' },
     { v:[[0.36, 0.7], [0.36, 0.8]], c:'#4a4a52' },
-    { v:[[0.56, 0.7], [0.56, 0.8]], c:'#4a4a52' },
+    { v:[[0.56, 0.7], [0.56, 0.8]], c:'#4a4a52' },,
+    { v:[[0.40,0.60],[0.46,0.64]], c:'#e8e4d8' },
+    { v:[[0.70,0.64],[0.78,0.60]], c:'#8a8a92' }
   ],
   "All Star": [
     { v:[[0.5, 0.2], [0.576, 0.415], [0.785, 0.427], [0.624, 0.56], [0.676, 0.763], [0.5, 0.65], [0.324, 0.763], [0.376, 0.56], [0.215, 0.427], [0.424, 0.415], [0.5, 0.2]], c:'#e8b83f' },
-    { v:[[0.6, 0.3], [0.72, 0.2]], c:'#e8e4d8' },
+    { v:[[0.6, 0.3], [0.72, 0.2]], c:'#e8e4d8' },,
+    { v:[[0.30,0.35],[0.20,0.30]], c:'#e8e4d8' },
+    { v:circleVerts(0.5,0.48,0.06,10), c:'#f5d878' }
   ],
   "Always On My Mind": [
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
-    { v:cloudVerts(0.5,0.78,0.10,14), c:'#e8e4d8' },
+    { v:cloudVerts(0.5,0.78,0.10,14), c:'#e8e4d8' },,
+    { v:circleVerts(0.72,0.24,0.02,8), c:'#e8d840' },
+    { v:[[0.36,0.36],[0.40,0.40]], c:'#e8b6cc' }
   ],
   "The Final Countdown": [
     { v:[[0.44, 0.3], [0.56, 0.3], [0.62, 0.6], [0.5, 0.8], [0.38, 0.6], [0.44, 0.3]], c:'#e8e4d8' },
@@ -2849,7 +2867,9 @@ const ICON_VERTS = {
   ],
   "Faith": [
     { v:[[0.5, 0.2], [0.5, 0.7]], c:'#e8e4d8' },
-    { v:[[0.34, 0.36], [0.66, 0.36]], c:'#e8e4d8' },
+    { v:[[0.34, 0.36], [0.66, 0.36]], c:'#e8e4d8' },,
+    { v:arcVerts(0.5,0.36,0.12,0.3,2.9,8), c:'#e8d840' },
+    { v:[[0.42,0.78],[0.58,0.78]], c:'#c9903f' }
   ],
   "Stayin Alive": [
     { v:circleVerts(0.5,0.24,0.08,12), c:'#c9a06a' },
@@ -2861,11 +2881,16 @@ const ICON_VERTS = {
   ],
   "Down Under": [
     { v:[[0.3, 0.6], [0.24, 0.5], [0.3, 0.42], [0.4, 0.4], [0.46, 0.3], [0.54, 0.34], [0.56, 0.44], [0.66, 0.46], [0.7, 0.56], [0.6, 0.64], [0.3, 0.6]], c:'#c9903f' },
-    { v:[[0.4, 0.6], [0.4, 0.76], [0.34, 0.82]], c:'#c9903f' },
+    { v:[[0.4, 0.6], [0.4, 0.76], [0.34, 0.82]], c:'#c9903f' },,
+    { v:[[0.34,0.82],[0.30,0.86]], c:'#8a5a2b' },
+    { v:circleVerts(0.6,0.5,0.02,8), c:'#8a5a2b' },
+    { v:[[0.5,0.42],[0.46,0.38]], c:'#e8b83f' }
   ],
   "It Must Be Love": [
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
-    { v:[[0.72, 0.44], [0.76, 0.4], [0.8, 0.44], [0.76, 0.52]], c:'#e8e4d8' },
+    { v:[[0.72, 0.44], [0.76, 0.4], [0.8, 0.44], [0.76, 0.52]], c:'#e8e4d8' },,
+    { v:[[0.32,0.48],[0.24,0.44]], c:'#e8e4d8' },
+    { v:circleVerts(0.40,0.30,0.015,6), c:'#e8b6cc' }
   ],
   "Dancing Queen": [
     { v:[[0.32, 0.44], [0.36, 0.28], [0.44, 0.4], [0.5, 0.24], [0.56, 0.4], [0.64, 0.28], [0.68, 0.44], [0.32, 0.44]], c:'#e8b83f' },
@@ -2875,16 +2900,24 @@ const ICON_VERTS = {
   ],
   "What A Wonderful World": [
     { v:circleVerts(0.5,0.5,0.26,20), c:'#3d7a4a' },
-    { v:arcVerts(0.5,0.5,0.34,3.6,5.8,14), c:'#c9403a' },
+    { v:arcVerts(0.5,0.5,0.34,3.6,5.8,14), c:'#c9403a' },,
+    { v:[[0.70,0.24],[0.70,0.30]], c:'#e8d840' },
+    { v:[[0.67,0.27],[0.73,0.27]], c:'#e8d840' },
+    { v:circleVerts(0.32,0.68,0.02,8), c:'#e8d840' }
   ],
   "What's Up?": [
     { v:[[0.3, 0.3], [0.3, 0.56], [0.42, 0.56], [0.42, 0.66], [0.54, 0.56], [0.66, 0.56], [0.66, 0.3], [0.3, 0.3]], c:'#e8b83f' },
     { v:[[0.44, 0.38], [0.44, 0.44]], c:'#2b2320' },
-    { v:[[0.52, 0.38], [0.52, 0.44]], c:'#2b2320' },
+    { v:[[0.52, 0.38], [0.52, 0.44]], c:'#2b2320' },,
+    { v:circleVerts(0.48,0.50,0.02,8), c:'#2b2320' },
+    { v:[[0.58,0.38],[0.58,0.44]], c:'#2b2320' }
   ],
   "Walk Like an Egyptian": [
     { v:[[0.5, 0.24], [0.28, 0.7], [0.72, 0.7], [0.5, 0.24]], c:'#e8b83f' },
-    { v:circleVerts(0.36,0.44,0.05,10), c:'#2b2320' },
+    { v:circleVerts(0.36,0.44,0.05,10), c:'#2b2320' },,
+    { v:circleVerts(0.72,0.30,0.06,10), c:'#e8d840' },
+    { v:[[0.20,0.7],[0.80,0.7]], c:'#c9903f' },
+    { v:[[0.62,0.5],[0.54,0.7],[0.70,0.7],[0.62,0.5]], c:'#c9903f' }
   ],
   "Kung Fu Fighting": [
     { v:circleVerts(0.5,0.30,0.08,12), c:'#c9a06a' },
@@ -2896,12 +2929,16 @@ const ICON_VERTS = {
   ],
   "I'm Not In Love": [
     { v:[[0.5, 0.68], [0.32, 0.5], [0.24, 0.36], [0.3, 0.24], [0.4, 0.24], [0.5, 0.34], [0.6, 0.24], [0.7, 0.24], [0.76, 0.36], [0.68, 0.5], [0.5, 0.68]], c:'#c9403a' },
-    { v:[[0.24, 0.7], [0.76, 0.24]], c:'#2b2320' },
+    { v:[[0.24, 0.7], [0.76, 0.24]], c:'#2b2320' },,
+    { v:[[0.30,0.60],[0.40,0.68]], c:'#5a5a62' },
+    { v:circleVerts(0.60,0.40,0.02,8), c:'#e8b6cc' }
   ],
   "Video Killed The Radio Star": [
     { v:[[0.24, 0.32], [0.76, 0.32], [0.76, 0.62], [0.24, 0.62], [0.24, 0.32]], c:'#4a4a52' },
     { v:[[0.32, 0.62], [0.68, 0.62], [0.68, 0.7], [0.32, 0.7], [0.32, 0.62]], c:'#2b2320' },
-    { v:[[0.5, 0.32], [0.58, 0.14]], c:'#8a8a92' },
+    { v:[[0.5, 0.32], [0.58, 0.14]], c:'#8a8a92' },,
+    { v:[[0.5,0.32],[0.42,0.14]], c:'#8a8a92' },
+    { v:[[0.42,0.70],[0.58,0.70]], c:'#3a3a40' }
   ],
   "Johnny B. Goode": [
     { v:circleVerts(0.5,0.44,0.13,14), c:'#c9403a' },
@@ -2919,17 +2956,23 @@ const ICON_VERTS = {
   ],
   "Barbara Ann": [
     { v:arcVerts(0.30,0.60,0.24,3.4,6.0,14), c:'#7fb3d9' },
-    { v:[[0.44, 0.4], [0.6, 0.6]], c:'#c9903f' },
+    { v:[[0.44, 0.4], [0.6, 0.6]], c:'#c9903f' },,
+    { v:circleVerts(0.72,0.28,0.07,12), c:'#e8d840' },
+    { v:[[0.20,0.50],[0.36,0.44]], c:'#bcd4e8' }
   ],
   "I Will Wait": [
     { v:[[0.36, 0.24], [0.64, 0.24]], c:'#c9903f' },
     { v:[[0.36, 0.76], [0.64, 0.76]], c:'#c9903f' },
-    { v:[[0.4, 0.24], [0.6, 0.24], [0.44, 0.5], [0.6, 0.76], [0.4, 0.76], [0.56, 0.5], [0.4, 0.24]], c:'#e8e4d8' },
+    { v:[[0.4, 0.24], [0.6, 0.24], [0.44, 0.5], [0.6, 0.76], [0.4, 0.76], [0.56, 0.5], [0.4, 0.24]], c:'#e8e4d8' },,
+    { v:circleVerts(0.5,0.60,0.02,8), c:'#c9903f' },
+    { v:circleVerts(0.5,0.66,0.015,6), c:'#c9903f' }
   ],
   "Rhythm Is A Dancer": [
     { v:[[0.5, 0.2], [0.5, 0.72]], c:'#8a8a92' },
     { v:[[0.34, 0.3], [0.66, 0.62]], c:'#c9403a' },
-    { v:circleVerts(0.5,0.76,0.06,10), c:'#4a4a52' },
+    { v:circleVerts(0.5,0.76,0.06,10), c:'#4a4a52' },,
+    { v:[[0.66,0.30],[0.34,0.62]], c:'#e8b83f' },
+    { v:circleVerts(0.5,0.24,0.03,8), c:'#e8d840' }
   ],
   "Viva Las Vegas": [
     { v:[[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7], [0.3, 0.3]], c:'#c9403a' },
@@ -2939,37 +2982,53 @@ const ICON_VERTS = {
   ],
   "Could You Be Loved": [
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#3d7a4a' },
-    { v:circleVerts(0.5,0.44,0.05,10), c:'#e8b83f' },
+    { v:circleVerts(0.5,0.44,0.05,10), c:'#e8b83f' },,
+    { v:[[0.34,0.50],[0.66,0.50]], c:'#c9403a' },
+    { v:[[0.38,0.36],[0.42,0.40]], c:'#e8d0a0' }
   ],
   "Beautiful Day": [
     { v:arcVerts(0.5,0.70,0.30,3.4,6.03,16), c:'#e8b83f' },
-    { v:[[0.2, 0.7], [0.8, 0.7]], c:'#3d7a4a' },
+    { v:[[0.2, 0.7], [0.8, 0.7]], c:'#3d7a4a' },,
+    { v:[[0.5,0.42],[0.5,0.36]], c:'#e8843f' },
+    { v:cloudVerts(0.72,0.30,0.06,12), c:'#e8e4d8' }
   ],
   "Zombie": [
     { v:[[0.5, 0.8], [0.5, 0.5], [0.44, 0.34], [0.5, 0.24], [0.56, 0.34], [0.5, 0.5]], c:'#7a8a6a' },
     { v:[[0.44, 0.6], [0.34, 0.44]], c:'#7a8a6a' },
-    { v:[[0.56, 0.6], [0.66, 0.44]], c:'#7a8a6a' },
+    { v:[[0.56, 0.6], [0.66, 0.44]], c:'#7a8a6a' },,
+    { v:[[0.5,0.40],[0.5,0.48]], c:'#5a6a4a' },
+    { v:circleVerts(0.5,0.24,0.02,8), c:'#a5b494' }
   ],
   "You're My Best Friend": [
     { v:[[0.42, 0.6], [0.26, 0.44], [0.2, 0.32], [0.26, 0.22], [0.34, 0.22], [0.42, 0.3], [0.42, 0.6]], c:'#c9403a' },
-    { v:[[0.58, 0.6], [0.74, 0.44], [0.8, 0.32], [0.74, 0.22], [0.66, 0.22], [0.58, 0.3], [0.58, 0.6]], c:'#e8b83f' },
+    { v:[[0.58, 0.6], [0.74, 0.44], [0.8, 0.32], [0.74, 0.22], [0.66, 0.22], [0.58, 0.3], [0.58, 0.6]], c:'#e8b83f' },,
+    { v:[[0.42,0.42],[0.58,0.42]], c:'#e8e4d8' },
+    { v:circleVerts(0.5,0.3,0.02,8), c:'#e8d840' }
   ],
   "Brown Eyed Girl": [
     { v:[[0.24, 0.5], [0.5, 0.3], [0.76, 0.5], [0.5, 0.7], [0.24, 0.5]], c:'#e8e4d8' },
-    { v:circleVerts(0.5,0.5,0.10,14), c:'#8a5a2b' },
+    { v:circleVerts(0.5,0.5,0.10,14), c:'#8a5a2b' },,
+    { v:[[0.30,0.42],[0.24,0.36]], c:'#5a3a1e' },
+    { v:circleVerts(0.5,0.5,0.03,8), c:'#3a2410' }
   ],
   "Teenage Dirtbag": [
     { v:[[0.24, 0.66], [0.3, 0.5], [0.7, 0.5], [0.76, 0.66]], c:'#4a4a52' },
     { v:circleVerts(0.36,0.68,0.08,12), c:'#2b2320' },
-    { v:circleVerts(0.64,0.68,0.08,12), c:'#2b2320' },
+    { v:circleVerts(0.64,0.68,0.08,12), c:'#2b2320' },,
+    { v:[[0.30,0.55],[0.70,0.55]], c:'#c9403a' },
+    { v:[[0.78,0.64],[0.84,0.60]], c:'#8a8a92' }
   ],
   "I Won't Back Down": [
     { v:[[0.5, 0.3], [0.5, 0.8]], c:'#8a8a92' },
-    { v:[[0.5, 0.3], [0.72, 0.36], [0.5, 0.44]], c:'#c9403a' },
+    { v:[[0.5, 0.3], [0.72, 0.36], [0.5, 0.44]], c:'#c9403a' },,
+    { v:[[0.30,0.80],[0.70,0.80]], c:'#3d7a4a' },
+    { v:circleVerts(0.5,0.28,0.02,8), c:'#e8b83f' }
   ],
   "Hurts So Good": [
     { v:[[0.5, 0.66], [0.32, 0.48], [0.24, 0.34], [0.3, 0.22], [0.4, 0.22], [0.5, 0.32], [0.6, 0.22], [0.7, 0.22], [0.76, 0.34], [0.68, 0.48], [0.5, 0.66]], c:'#c9403a' },
-    { v:[[0.34, 0.42], [0.66, 0.42]], c:'#e8e4d8' },
+    { v:[[0.34, 0.42], [0.66, 0.42]], c:'#e8e4d8' },,
+    { v:[[0.5,0.42],[0.44,0.56]], c:'#e8d840' },
+    { v:circleVerts(0.4,0.34,0.02,8), c:'#e8b6cc' }
   ],
   "Pretty Fly (For A White Guy)": [
     { v:circleVerts(0.5,0.5,0.24,20), c:'#c9a06a' },
@@ -2985,39 +3044,55 @@ const ICON_VERTS = {
   ],
   "Feel Good Inc.": [
     { v:[[0.2, 0.6], [0.3, 0.44], [0.7, 0.44], [0.8, 0.6], [0.2, 0.6]], c:'#3d7a4a' },
-    { v:circleVerts(0.5,0.30,0.10,14), c:'#7fb3d9' },
+    { v:circleVerts(0.5,0.30,0.10,14), c:'#7fb3d9' },,
+    { v:[[0.5,0.20],[0.5,0.14]], c:'#e8d840' },
+    { v:circleVerts(0.65,0.35,0.02,8), c:'#bcd4e8' }
   ],
   "Somebody to Love": [
     { v:[[0.38, 0.6], [0.24, 0.44], [0.2, 0.32], [0.26, 0.22], [0.34, 0.22], [0.4, 0.3]], c:'#c9403a' },
     { v:[[0.62, 0.6], [0.76, 0.44], [0.8, 0.32], [0.74, 0.22], [0.66, 0.22], [0.6, 0.3]], c:'#e8b83f' },
-    { v:[[0.4, 0.3], [0.5, 0.44], [0.6, 0.3]], c:'#4a4a52' },
+    { v:[[0.4, 0.3], [0.5, 0.44], [0.6, 0.3]], c:'#4a4a52' },,
+    { v:circleVerts(0.5,0.5,0.02,8), c:'#e8d840' },
+    { v:[[0.30,0.30],[0.34,0.26]], c:'#e8e4d8' }
   ],
   "Mr. Brightside": [
     { v:circleVerts(0.5,0.40,0.14,16), c:'#3d7a4a' },
-    { v:[[0.5, 0.54], [0.5, 0.66], [0.42, 0.72], [0.58, 0.72], [0.5, 0.66]], c:'#e8b83f' },
+    { v:[[0.5, 0.54], [0.5, 0.66], [0.42, 0.72], [0.58, 0.72], [0.5, 0.66]], c:'#e8b83f' },,
+    { v:arcVerts(0.5,0.40,0.18,0.4,2.7,10), c:'#e8d840' },
+    { v:[[0.42,0.74],[0.58,0.74]], c:'#c9903f' }
   ],
   "It's Oh So Quiet": [
     { v:circleVerts(0.5,0.40,0.16,16), c:'#c9a06a' },
     { v:[[0.5, 0.52], [0.5, 0.6]], c:'#c9a06a' },
-    { v:[[0.42, 0.6], [0.58, 0.6]], c:'#c9403a' },
+    { v:[[0.42, 0.6], [0.58, 0.6]], c:'#c9403a' },,
+    { v:[[0.44,0.36],[0.44,0.40]], c:'#c9a06a' },
+    { v:[[0.56,0.36],[0.56,0.40]], c:'#c9a06a' }
   ],
   "Sandstorm": [
     { v:[[0.2, 0.72], [0.34, 0.5], [0.5, 0.62], [0.66, 0.44], [0.8, 0.72], [0.2, 0.72]], c:'#e8b83f' },
-    { v:circleVerts(0.5,0.24,0.08,12), c:'#e8843f' },
+    { v:circleVerts(0.5,0.24,0.08,12), c:'#e8843f' },,
+    { v:[[0.15,0.55],[0.25,0.52]], c:'#c9903f' },
+    { v:[[0.85,0.55],[0.75,0.52]], c:'#c9903f' }
   ],
   "Personal Jesus": [
     { v:[[0.36, 0.3], [0.64, 0.3], [0.64, 0.66], [0.36, 0.66], [0.36, 0.3]], c:'#4a4a52' },
     { v:[[0.5, 0.3], [0.5, 0.16]], c:'#4a4a52' },
-    { v:[[0.42, 0.2], [0.58, 0.2]], c:'#4a4a52' },
+    { v:[[0.42, 0.2], [0.58, 0.2]], c:'#4a4a52' },,
+    { v:circleVerts(0.44,0.48,0.02,8), c:'#2b2320' },
+    { v:circleVerts(0.56,0.48,0.02,8), c:'#2b2320' }
   ],
   "Fade To Grey": [
     { v:circleVerts(0.5,0.44,0.16,18), c:'#8a8a92' },
     { v:[[0.42, 0.4], [0.44, 0.44]], c:'#2b2320' },
-    { v:[[0.58, 0.4], [0.56, 0.44]], c:'#2b2320' },
+    { v:[[0.58, 0.4], [0.56, 0.44]], c:'#2b2320' },,
+    { v:arcVerts(0.5,0.44,0.22,3.5,5.8,10), c:'#bcbcc4' },
+    { v:circleVerts(0.46,0.40,0.02,6), c:'#e8e4d8' }
   ],
   "I Love Rock 'N Roll": [
     { v:[[0.42, 0.55], [0.3, 0.6], [0.26, 0.72], [0.34, 0.82], [0.5, 0.8], [0.58, 0.86], [0.7, 0.8], [0.74, 0.68], [0.68, 0.58], [0.56, 0.56], [0.5, 0.46], [0.42, 0.55]], c:'#8a5a2b' },
-    { v:[[0.6, 0.3], [0.64, 0.2], [0.7, 0.3], [0.64, 0.36]], c:'#c9403a' },
+    { v:[[0.6, 0.3], [0.64, 0.2], [0.7, 0.3], [0.64, 0.36]], c:'#c9403a' },,
+    { v:[[0.40,0.60],[0.66,0.64]], c:'#2b2320' },
+    { v:[[0.64,0.24],[0.68,0.18]], c:'#e8d840' }
   ],
   "I Don't Like Mondays": [
     { v:[[0.24, 0.3], [0.76, 0.3], [0.76, 0.74], [0.24, 0.74], [0.24, 0.3]], c:'#e8e4d8' },
@@ -3028,21 +3103,29 @@ const ICON_VERTS = {
   "A New England": [
     { v:[[0.3, 0.24], [0.7, 0.24], [0.7, 0.76], [0.3, 0.76], [0.3, 0.24]], c:'#7fb3d9' },
     { v:[[0.3, 0.24], [0.7, 0.76]], c:'#c9403a' },
-    { v:[[0.7, 0.24], [0.3, 0.76]], c:'#c9403a' },
+    { v:[[0.7, 0.24], [0.3, 0.76]], c:'#c9403a' },,
+    { v:[[0.3,0.5],[0.7,0.5]], c:'#5a8aa8' },
+    { v:circleVerts(0.5,0.5,0.02,8), c:'#e8e4d8' }
   ],
   "Papa Was A Rollin' Stone": [
     { v:circleVerts(0.5,0.5,0.24,20), c:'#8a8a92' },
     { v:circleVerts(0.5,0.5,0.05,10), c:'#2b2320' },
-    { v:[[0.5, 0.5], [0.5, 0.26]], c:'#4a4a52' },
+    { v:[[0.5, 0.5], [0.5, 0.26]], c:'#4a4a52' },,
+    { v:[[0.18,0.42],[0.26,0.42]], c:'#5a5a62' },
+    { v:[[0.16,0.50],[0.24,0.50]], c:'#5a5a62' }
   ],
   "Whiskey in the Jar": [
     { v:[[0.36, 0.4], [0.36, 0.72], [0.64, 0.72], [0.64, 0.4], [0.36, 0.4]], c:'#e8e4d8' },
     { v:[[0.4, 0.4], [0.4, 0.28], [0.6, 0.28], [0.6, 0.4]], c:'#e8b83f' },
-    { v:[[0.42, 0.52], [0.58, 0.52]], c:'#8a5a2b' },
+    { v:[[0.42, 0.52], [0.58, 0.52]], c:'#8a5a2b' },,
+    { v:[[0.42,0.56],[0.42,0.68],[0.58,0.68],[0.58,0.56]], c:'#f5cf7a' },
+    { v:[[0.42,0.44],[0.44,0.50]], c:'#f5e2a0' }
   ],
   "Pet Sematary": [
     { v:[[0.4, 0.7], [0.4, 0.38], [0.5, 0.24], [0.6, 0.38], [0.6, 0.7], [0.4, 0.7]], c:'#8a8a92' },
-    { v:[[0.3, 0.78], [0.7, 0.78]], c:'#2c4f36' },
+    { v:[[0.3, 0.78], [0.7, 0.78]], c:'#2c4f36' },,
+    { v:arcVerts(0.68,0.24,0.06,Math.PI*0.9,Math.PI*2.1,10), c:'#e8d840' },
+    { v:[[0.34,0.78],[0.34,0.72]], c:'#3d7a4a' }
   ],
   "Dancing in the Moonlight": [
     { v:circleVerts(0.5,0.30,0.12,16), c:'#e8e4d8' },
@@ -3244,7 +3327,9 @@ const ICON_VERTS = {
   "Fiesta": [
     { v:arcVerts(0.5,0.5,0.24,0,6.0,20), c:'#e8b83f' },
     { v:[[0.5, 0.24], [0.5, 0.14]], c:'#c9403a' },
-    { v:[[0.74, 0.5], [0.84, 0.5]], c:'#c9403a' },
+    { v:[[0.74, 0.5], [0.84, 0.5]], c:'#c9403a' },,
+    { v:circleVerts(0.30,0.30,0.02,8), c:'#3d7a4a' },
+    { v:circleVerts(0.70,0.30,0.02,8), c:'#7fb3d9' }
   ],
   "Our House": [
     { v:[[0.28, 0.56], [0.5, 0.32], [0.72, 0.56], [0.72, 0.76], [0.28, 0.76], [0.28, 0.56]], c:'#c9403a' },
@@ -5599,6 +5684,10 @@ const mpListenWaitNote = document.getElementById('mpListenWaitNote');
 const mpListenRevealEl = document.getElementById('mpListenReveal');
 const mpListenVerdictEl = document.getElementById('mpListenVerdict');
 const mpListenRevealListEl = document.getElementById('mpListenRevealList');
+const mpListenRevealFrameEl = document.getElementById('mpListenRevealFrame');
+const mpListenRevealCoverEl = document.getElementById('mpListenRevealCover');
+const mpListenRevealTitleEl = document.getElementById('mpListenRevealTitle');
+const mpListenRevealArtistEl = document.getElementById('mpListenRevealArtist');
 // Wired here (not next to startMpListenSnippet's definition further up) so
 // this runs only after mpListenPlayBtn itself has been declared above — the
 // original placement next to the function caused a temporal-dead-zone
@@ -6145,6 +6234,7 @@ function hideAllMpPhaseBlocks(){
   mpChainRoundWrap.style.display = 'none';
   mpListenWrap.style.display = 'none';
   mpListenRevealEl.style.display = 'none';
+  hideMpListenRevealFrame();
   mpResult.style.display = 'none';
   mpStage.classList.remove('mp-live');
   mpStage.classList.remove('mp-fullscreen-draw');
@@ -6348,6 +6438,26 @@ function showMpReveal(r){
 }
 
 // ---- Hörmodus (Multiplayer): Runden-Rendering, Antwort-Abgabe, Auflösung ----
+// Same cover-art reveal as Singleplayer's Hörmodus (reuses fetchTrackMeta's
+// Spotify oEmbed lookup + cache) — separate DOM elements/functions since MP
+// has its own stage, but otherwise an exact mirror of showRevealFrame/hideRevealFrame.
+async function showMpListenRevealFrame(song){
+  mpListenRevealTitleEl.textContent = song.title;
+  mpListenRevealArtistEl.textContent = song.artist;
+  mpListenRevealCoverEl.style.display = 'none';
+  mpListenRevealCoverEl.src = '';
+  mpListenRevealFrameEl.classList.add('shown');
+  const meta = await fetchTrackMeta(song);
+  if(meta.thumbnail && mpRoomData && mpRoomData.round && mpRoomData.round.chosenTitle === song.title){
+    mpListenRevealCoverEl.src = meta.thumbnail;
+    mpListenRevealCoverEl.style.display = 'block';
+  }
+}
+function hideMpListenRevealFrame(){
+  mpListenRevealFrameEl.classList.remove('shown');
+  mpListenRevealCoverEl.src = '';
+}
+
 let mpListenOptionsRenderedFor = null;
 function renderMpListenOptions(r){
   const key = mpRoomData.currentRoundIdx + ':listen';
@@ -6386,6 +6496,7 @@ function renderMpListenRound(){
       mpListenLoadedFor = mpRoomData.currentRoundIdx;
       mpListenAnswered = !!myAnswer;
       mpListenPlayStartedAt = null;
+      hideMpListenRevealFrame();
       if(!myAnswer){
         const song = r.candidates.find(c => c.title === r.chosenTitle);
         if(song) loadMpListenTrack(song);
@@ -6470,6 +6581,7 @@ function showMpListenReveal(r){
     mpListenRevealListEl.appendChild(li);
   });
   const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
+  if(song.title) showMpListenRevealFrame(song);
   mpListenWaitNote.innerHTML = song.url
     ? `<b>${song.title}</b> - ${song.artist} · <a href="${song.url}" target="_blank" rel="noopener" style="color:var(--pen);">In Spotify anhören ↗</a>`
     : `<b>${song.title}</b> - ${song.artist}`;
