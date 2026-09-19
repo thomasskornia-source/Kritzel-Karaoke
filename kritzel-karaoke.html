@@ -194,6 +194,14 @@
     100%{box-shadow:0 0 0 0 rgba(242,236,226,0);}
   }
   .listen-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:0 20px;}
+  #mpListenOptions.listen-options-inline{
+    position:absolute;inset:0;display:none;
+    flex-direction:column;justify-content:center;gap:9px;
+    padding:18px 20px;overflow-y:auto;
+  }
+  #mpListenOptions.listen-options-inline .opt{
+    font-size:15px;padding:13px 16px;text-align:center;border-radius:9px;
+  }
 
   .mpl-reveal{margin-top:14px;text-align:center;}
   .mpl-reveal-list{list-style:none;margin:10px 0 0;padding:0;}
@@ -908,15 +916,15 @@
         <div class="listen-stage" id="mpListenStage">
           <div class="hidden-embed" id="mpListenSpotifyEmbed"></div>
           <button class="listen-play-btn" id="mpListenPlayBtn" disabled>▶</button>
-          <div class="listen-hint" id="mpListenHint">Player wird geladen…</div>
+          <div class="listen-hint" id="mpListenHint"></div>
         </div>
+        <div class="options listen-options-inline" id="mpListenOptions"></div>
         <div class="reveal-frame" id="mpListenRevealFrame">
           <img class="reveal-cover" id="mpListenRevealCover" alt="">
           <div class="reveal-title" id="mpListenRevealTitle"></div>
           <div class="reveal-artist" id="mpListenRevealArtist"></div>
         </div>
       </div>
-      <div class="options" id="mpListenOptions"></div>
       <p class="sub" id="mpListenWaitNote"></p>
       <div class="mpl-reveal" id="mpListenReveal" style="display:none;">
         <span class="verdict" id="mpListenVerdict"></span>
@@ -5123,9 +5131,8 @@ function stopListenSnippet(){
 function loadMpListenTrack(song){
   mpListenPlayBtn.disabled = true;
   mpListenPlayBtn.style.display = '';
-  mpListenPlayBtn.classList.remove('playing');
   mpListenPlayBtn.textContent = '▶';
-  mpListenHintEl.textContent = 'Player wird geladen…';
+  mpListenHintEl.textContent = '';
   const trackId = getSpotifyTrackId(song);
   if(!trackId){
     mpListenHintEl.textContent = 'Kein Spotify-Link für diesen Song hinterlegt.';
@@ -5138,7 +5145,6 @@ function loadMpListenTrack(song){
     setTimeout(() => {
       if(mpRoomData && mpRoomData.round && mpRoomData.round.chosenTitle === song.title && !mpListenAnswered){
         mpListenPlayBtn.disabled = false;
-        mpListenHintEl.textContent = 'Antippen zum Anhören';
       }
     }, 500);
   });
@@ -5163,26 +5169,20 @@ function startMpListenSnippet(){
 
 // Called from the shared playback_update listener the moment MY snippet
 // actually starts playing — this is the fair, per-player starting gun for
-// "wer am schnellsten tippt" scoring (see mpListenSubmitAnswer).
+// "wer am schnellsten tippt" scoring (see mpListenSubmitAnswer). It also
+// swaps the play-button area for the title list right there in the stage
+// box (no separate section below, no pause/replay button — keeps the whole
+// view short enough for small/older screens without zooming out).
 let mpListenTimer = null;
 function handleMpListenPlaybackStarted(){
   if(!mpRoomData || !mpRoomData.round || mpRoomData.round.phase !== 'answering' || mpListenAnswered) return;
-  mpListenPlayBtn.classList.add('playing');
-  mpListenPlayBtn.textContent = '❚❚';
-  mpListenHintEl.textContent = 'Läuft…';
   mpListenPlayStartedAt = performance.now();
+  mpListenSyncStageVisibility();
   fadeVolume(0, 1, SNIPPET_FADE_MS);
   clearTimeout(mpListenTimer);
   mpListenTimer = setTimeout(() => {
     fadeVolume(1, 0, SNIPPET_FADE_MS, () => {
       stopMpListenSnippet();
-      if(!mpListenAnswered){
-        mpListenPlayBtn.style.display = '';
-        mpListenPlayBtn.disabled = false;
-        mpListenPlayBtn.classList.remove('playing');
-        mpListenPlayBtn.textContent = '↻';
-        mpListenHintEl.textContent = 'Nochmal hören';
-      }
     });
   }, Math.max(0, SNIPPET_MS - SNIPPET_FADE_MS));
 }
@@ -5197,6 +5197,7 @@ function stopMpListenSnippet(){
   }
   listenPlaying = false;
 }
+
 
 async function fetchTrackMeta(song){
   if(trackMetaCache[song.title]) return trackMetaCache[song.title];
@@ -6488,6 +6489,24 @@ function renderMpListenOptions(r){
   });
 }
 
+// Play-Button und Titel-Liste teilen sich denselben Platz im Stage-Kasten:
+// vor dem Play-Tap nur der Button, danach nur die Liste (nie beides
+// gleichzeitig, und keine separate Sektion mehr darunter) — das hält die
+// Gesamthöhe klein genug für alte/kleine Displays ohne Reinzoomen.
+function mpListenSyncStageVisibility(){
+  if(!mpRoomData || !mpRoomData.round) return;
+  const answeredCount = Object.keys(mpRoomData.round.answers || {}).length;
+  const showOptions = mpListenAnswered || mpListenPlayStartedAt !== null;
+  mpListenStageEl.style.display = showOptions ? 'none' : 'flex';
+  mpListenOptionsEl.style.display = showOptions ? 'flex' : 'none';
+  if(mpListenAnswered){
+    [...mpListenOptionsEl.children].forEach(b => b.classList.add('locked'));
+  }
+  mpListenWaitNote.textContent = mpListenAnswered
+    ? `Warte auf die anderen… (${answeredCount}/${mpPlayers.length})`
+    : (showOptions ? `${answeredCount}/${mpPlayers.length} haben schon getippt` : '');
+}
+
 function renderMpListenRound(){
   const r = mpRoomData.round;
   mpRoundNum.textContent = mpRoomData.currentRoundIdx + 1;
@@ -6501,7 +6520,6 @@ function renderMpListenRound(){
   }
   if(r.phase === 'answering'){
     mpListenWrap.style.display = 'block';
-    mpListenStageEl.style.display = 'flex';
     renderMpListenOptions(r);
     const myAnswer = r.answers && r.answers[myPlayerId];
     if(mpListenLoadedFor !== mpRoomData.currentRoundIdx){
@@ -6515,14 +6533,7 @@ function renderMpListenRound(){
       }
     }
     if(myAnswer) mpListenAnswered = true;
-    if(mpListenAnswered){
-      mpListenPlayBtn.style.display = 'none';
-      [...mpListenOptionsEl.children].forEach(b => b.classList.add('locked'));
-    }
-    const answeredCount = Object.keys(r.answers || {}).length;
-    mpListenWaitNote.textContent = mpListenAnswered
-      ? `Warte auf die anderen… (${answeredCount}/${mpPlayers.length})`
-      : `${answeredCount}/${mpPlayers.length} haben schon getippt`;
+    mpListenSyncStageVisibility();
   } else if(r.phase === 'reveal'){
     showMpListenReveal(r);
   }
@@ -6541,7 +6552,6 @@ async function mpListenSubmitAnswer(song, btnEl){
   const correct = song.title === mpRoomData.round.chosenTitle;
   btnEl.classList.add(correct ? 'correct' : 'wrong');
   stopMpListenSnippet();
-  mpListenPlayBtn.style.display = 'none';
   mpListenWaitNote.textContent = 'Warte auf die anderen…';
   const roomRef = mp.roomsCol.doc(currentRoomCode);
   try{
@@ -6557,6 +6567,7 @@ async function mpListenSubmitAnswer(song, btnEl){
 function showMpListenReveal(r){
   mpListenWrap.style.display = 'block';
   mpListenStageEl.style.display = 'none';
+  mpListenOptionsEl.style.display = 'none';
   mpListenOptionsEl.querySelectorAll('.opt').forEach(b => {
     b.classList.add('locked');
     const isCorrectBtn = b.textContent.trim().startsWith(r.chosenTitle);
@@ -6594,9 +6605,7 @@ function showMpListenReveal(r){
   });
   const song = r.candidates.find(c => c.title === r.chosenTitle) || {};
   if(song.title) showMpListenRevealFrame(song);
-  mpListenWaitNote.innerHTML = song.url
-    ? `<b>${song.title}</b> - ${song.artist} · <a href="${song.url}" target="_blank" rel="noopener" style="color:var(--pen);">In Spotify anhören ↗</a>`
-    : `<b>${song.title}</b> - ${song.artist}`;
+  mpListenWaitNote.innerHTML = `<b>${song.title}</b> - ${song.artist}`;
 }
 
 function mpRefereeTick(){
