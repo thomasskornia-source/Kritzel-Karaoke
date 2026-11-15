@@ -844,7 +844,13 @@
     border-radius:12px;box-shadow:3px 3px 0 var(--ink);
     font-weight:600;line-height:1.2;
   }
-  .opt:hover{border-color:var(--ink);background:#FFF6CC;}
+  /* Hover-Hervorhebung nur mit echter Maus: auf Handys "klebt" :hover nach
+     dem Antippen an der Stelle, und in der nächsten Runde wirkte dadurch die
+     Antwort unter dem Finger hellgelb markiert. */
+  .opt:hover{background:#fff;}
+  @media (hover:hover) and (pointer:fine){
+    .opt:hover{border-color:var(--ink);background:#FFF6CC;}
+  }
   .opt .opt-artist{display:block;color:var(--muted);font-size:.9em;font-weight:400;margin-top:1px;}
   .opt.locked{opacity:.55;}
   .opt.correct{background:var(--good);border-color:var(--ink);color:#fff;opacity:1;}
