@@ -979,6 +979,23 @@
   .board li.empty{justify-content:flex-start;}
   .wrap{width:calc(100% - 6px);height:calc(100% - 6px);}
 
+  /* Bewegte Hintergrund-Motive im Startbildschirm: wenige, leicht bis mittel */
+  .splash-floaters{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+  .splash-logo, .splash-modes{position:relative;z-index:1;}
+  .splash-modes{position:absolute;}
+  .fl{position:absolute;display:block;filter:drop-shadow(2px 2px 0 rgba(30,27,58,.35));}
+  .fl-squiggle{width:min(26vw,120px);left:6%;top:12%;animation:flDrift 7s ease-in-out infinite alternate;}
+  .fl-tri{width:min(14vw,64px);right:9%;top:16%;animation:flSpin 14s linear infinite;}
+  .fl-ring{width:min(12vw,54px);left:10%;bottom:30%;animation:flBob 4.5s ease-in-out infinite;}
+  .fl-plus{width:min(9vw,40px);right:14%;bottom:34%;animation:flSpin 9s linear infinite reverse;}
+  .fl-zig{width:min(20vw,90px);right:6%;top:44%;animation:flDrift 9s ease-in-out infinite alternate-reverse;}
+  .fl-pill{width:min(11vw,50px);left:5%;top:47%;animation:flWiggle 3.2s ease-in-out infinite;}
+  @keyframes flDrift{0%{transform:translate(0,0) rotate(-6deg);}100%{transform:translate(22px,14px) rotate(8deg);}}
+  @keyframes flSpin{to{transform:rotate(360deg);}}
+  @keyframes flBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-18px);}}
+  @keyframes flWiggle{0%,100%{transform:rotate(-18deg);}50%{transform:rotate(14deg) translateY(-6px);}}
+  @media (prefers-reduced-motion: reduce){ .fl{animation:none !important;} }
+
   @media (orientation:landscape) and (max-height:520px){
     .wrap{padding:8px 12px;border-radius:14px;box-shadow:4px 4px 0 var(--ink);}
     .wrap{width:calc(100% - 4px);height:calc(100% - 4px);}
@@ -995,6 +1012,15 @@
 <body>
 
 <div class="splash" id="splashScreen">
+  <!-- Ein paar bewegte 90s-Motive über dem statischen Muster (rein dekorativ) -->
+  <div class="splash-floaters" aria-hidden="true">
+    <svg class="fl fl-squiggle" viewBox="0 0 90 30"><path d="M5 18 q10 -14 20 0 t20 0 t20 0 t20 0" fill="none" stroke="#FF3D8B" stroke-width="6" stroke-linecap="round"/></svg>
+    <svg class="fl fl-tri" viewBox="0 0 60 56"><path d="M30 6 L54 50 H6 Z" fill="none" stroke="#FFD23F" stroke-width="6" stroke-linejoin="round"/></svg>
+    <svg class="fl fl-ring" viewBox="0 0 50 50"><circle cx="25" cy="25" r="17" fill="none" stroke="#7B3FE4" stroke-width="6"/></svg>
+    <svg class="fl fl-plus" viewBox="0 0 40 40"><path d="M20 6 V34 M6 20 H34" stroke="#FFFDF5" stroke-width="6" stroke-linecap="round"/></svg>
+    <svg class="fl fl-zig" viewBox="0 0 80 30"><path d="M5 22 l12 -14 l12 14 l12 -14 l12 14 l12 -14" fill="none" stroke="#1E1B3A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg class="fl fl-pill" viewBox="0 0 50 24"><rect x="3" y="3" width="44" height="18" rx="5" fill="#FFD23F"/></svg>
+  </div>
   <div class="splash-logo" id="splashLogo">
     <svg class="splash-note" id="splashNote" viewBox="145 66 305 285" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <ellipse class="nstroke n-red" pathLength="1" cx="205" cy="300" rx="52" ry="36" transform="rotate(-22 205 300)" stroke-width="10"/>
